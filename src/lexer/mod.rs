@@ -54,7 +54,17 @@ impl<'a> Lexer<'a> {
                     }
                 }
                 ';' => self.lex_single_char(TokenType::SemiColon),
-                ':' => self.lex_single_char(TokenType::Colon),
+                ':' => {
+                    if let Some('=') = self.cs.next_char() {
+                        let start = self.cs.pos();
+                        self.cs.advance_by(2);
+                        let end = self.cs.pos();
+                        self.tokens
+                            .push(Token::new(TokenType::Operator(OperatorType::ColonEqual), start, end))
+                    } else {
+                        self.lex_single_char(TokenType::Colon)
+                    }
+                }
                 '*' | '+' | '=' | '-' | '<' | '>' | '&' | '|' | '%' | '~' | '^' | '!' => {
                     if matches!((self.cs.current_char(), self.cs.next_char()), (Some('-'), Some('>'))) {
                         let start = self.cs.pos();

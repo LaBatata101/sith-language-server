@@ -44,6 +44,7 @@ pub enum OperatorType {
     BitwiseRightShiftEqual,
     BitwiseXOr,
     BitwiseXOrEqual,
+    ColonEqual,
     Divide,
     DivideEqual,
     Equals,
@@ -62,7 +63,6 @@ pub enum OperatorType {
     NotEquals,
     Plus,
     PlusEqual,
-    Walrus,
 }
 
 #[derive(Debug, PartialEq, Eq)]
