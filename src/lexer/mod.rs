@@ -40,11 +40,30 @@ impl<'a> Lexer<'a> {
                 ']' => self.lex_single_char(TokenType::CloseBrackets),
                 '{' => self.lex_single_char(TokenType::OpenBrace),
                 '}' => self.lex_single_char(TokenType::CloseBrace),
-                '.' => self.lex_single_char(TokenType::Dot),
+                '.' => {
+                    if matches!(
+                        (self.cs.next_char(), self.cs.peek_char(self.cs.pos() + 2)),
+                        (Some('.'), Some('.'))
+                    ) {
+                        let start = self.cs.pos();
+                        self.cs.advance_by(3);
+                        let end = self.cs.pos();
+                        self.tokens.push(Token::new(TokenType::Ellipsis, start, end))
+                    } else {
+                        self.lex_single_char(TokenType::Dot)
+                    }
+                }
                 ';' => self.lex_single_char(TokenType::SemiColon),
                 ':' => self.lex_single_char(TokenType::Colon),
                 '*' | '+' | '=' | '-' | '<' | '>' | '&' | '|' | '%' | '~' | '^' | '!' => {
-                    self.lex_operator();
+                    if matches!((self.cs.current_char(), self.cs.next_char()), (Some('-'), Some('>'))) {
+                        let start = self.cs.pos();
+                        self.cs.advance_by(2);
+                        let end = self.cs.pos();
+                        self.tokens.push(Token::new(TokenType::RightArrow, start, end));
+                    } else {
+                        self.lex_operator();
+                    }
                 }
                 // TODO: Handle NewLine better
                 '\n' => {

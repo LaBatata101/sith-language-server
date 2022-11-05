@@ -9,6 +9,7 @@ pub enum TokenType {
     Dedent,
     Dot,
     Eof,
+    Ellipsis,
     Id(String),
     Ident,
     Invalid(char),
@@ -23,6 +24,7 @@ pub enum TokenType {
     /// These are only keywords under specific contexts
     SoftKeyword(SoftKeywordType),
     String(String),
+    RightArrow,
 }
 
 #[derive(Debug, PartialEq, Eq)]
