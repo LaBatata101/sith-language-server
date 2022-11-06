@@ -202,13 +202,13 @@ impl<'a> Lexer<'a> {
         // Can be `"` or `'`
         let quote_char = self.cs.current_char().unwrap();
 
+        let mut start = self.cs.pos();
         // Consume `"` or `'`
         while self.cs.current_char().map_or(false, |char| char == quote_char) {
             self.cs.advance_by(1);
             start_quote_total += 1;
         }
 
-        let start = self.cs.pos();
         while self.cs.current_char().map_or(false, |char| char != quote_char) {
             // Skip escaped `quote_char`
             if self.cs.current_char().map_or(false, |char| char == '\\')
@@ -220,20 +220,27 @@ impl<'a> Lexer<'a> {
 
             self.cs.advance_by(1);
         }
-        let end = self.cs.pos();
 
         // Consume `"` or `'`
         while self.cs.current_char().map_or(false, |char| char == quote_char) {
             self.cs.advance_by(1);
             end_quote_total += 1;
         }
+        let end = self.cs.pos();
 
         if start_quote_total != end_quote_total {
             panic!("Missing closing quote {quote_char}!")
         }
 
         self.tokens.push(Token::new(
-            TokenType::String(String::from_utf8_lossy(self.cs.get_slice(start..end).unwrap()).into()),
+            TokenType::String(
+                String::from_utf8_lossy(
+                    self.cs
+                        .get_slice(start + start_quote_total..end - end_quote_total)
+                        .unwrap(),
+                )
+                .into(),
+            ),
             start,
             end,
         ));

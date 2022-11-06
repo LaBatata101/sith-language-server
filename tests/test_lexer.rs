@@ -376,7 +376,7 @@ mod test_lexer {
         assert_eq!(
             lexer.tokens(),
             vec![
-                Token::new(TokenType::String("Hello World!".to_string()), 1, 13),
+                Token::new(TokenType::String("Hello World!".to_string()), 0, 14),
                 Token::new(TokenType::Eof, 14, 14)
             ]
         )
@@ -390,7 +390,7 @@ mod test_lexer {
         assert_eq!(
             lexer.tokens(),
             vec![
-                Token::new(TokenType::String("\\\"Hello World❤️\\\"".to_string()), 1, 22),
+                Token::new(TokenType::String("\\\"Hello World❤️\\\"".to_string()), 0, 23),
                 Token::new(TokenType::Eof, 23, 23)
             ]
         )
@@ -411,7 +411,7 @@ mod test_lexer {
         assert_eq!(
             lexer.tokens(),
             vec![
-                Token::new(TokenType::String("Hello World!".to_string()), 1, 13),
+                Token::new(TokenType::String("Hello World!".to_string()), 0, 14),
                 Token::new(TokenType::Eof, 14, 14)
             ]
         )
@@ -427,7 +427,7 @@ mod test_lexer {
             vec![
                 Token::new(TokenType::Id("s".to_string()), 0, 1),
                 Token::new(TokenType::Operator(OperatorType::Assign), 2, 3),
-                Token::new(TokenType::String("Hello World!".to_string()), 6, 18),
+                Token::new(TokenType::String("Hello World!".to_string()), 5, 19),
                 Token::new(TokenType::Eof, 19, 19)
             ]
         )
