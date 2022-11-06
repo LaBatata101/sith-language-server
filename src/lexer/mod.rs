@@ -179,6 +179,8 @@ impl<'a> Lexer<'a> {
             b"assert" => TokenType::Keyword(KeywordType::Assert),
             b"break" => TokenType::Keyword(KeywordType::Break),
             b"class" => TokenType::Keyword(KeywordType::Class),
+            b"True" => TokenType::Keyword(KeywordType::True),
+            b"False" => TokenType::Keyword(KeywordType::False),
             _ => TokenType::Id(String::from_utf8_lossy(str).into()),
         };
 
