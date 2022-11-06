@@ -18,7 +18,8 @@ mod test_lexer {
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::Assign), 5, 6),
                 Token::new(TokenType::Number("12".to_string()), 7, 9),
-                Token::new(TokenType::Eof, 9, 9)
+                Token::new(TokenType::NewLine, 9, 10),
+                Token::new(TokenType::Eof, 11, 11)
             ]
         )
     }
@@ -34,7 +35,8 @@ mod test_lexer {
                 Token::new(TokenType::Operator(OperatorType::Plus), 5, 6),
                 Token::new(TokenType::Invalid('!'), 6, 7),
                 Token::new(TokenType::Number("12".to_string()), 8, 10),
-                Token::new(TokenType::Eof, 10, 10)
+                Token::new(TokenType::NewLine, 10, 11),
+                Token::new(TokenType::Eof, 12, 12)
             ]
         )
     }
@@ -49,7 +51,8 @@ mod test_lexer {
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::Equals), 5, 7),
                 Token::new(TokenType::Number("12".to_string()), 8, 10),
-                Token::new(TokenType::Eof, 10, 10)
+                Token::new(TokenType::NewLine, 10, 11),
+                Token::new(TokenType::Eof, 12, 12)
             ]
         )
     }
@@ -64,7 +67,8 @@ mod test_lexer {
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::PlusEqual), 5, 7),
                 Token::new(TokenType::Number("42".to_string()), 8, 10),
-                Token::new(TokenType::Eof, 10, 10)
+                Token::new(TokenType::NewLine, 10, 11),
+                Token::new(TokenType::Eof, 12, 12)
             ]
         )
     }
@@ -79,7 +83,8 @@ mod test_lexer {
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::AsteriskEqual), 5, 7),
                 Token::new(TokenType::Number("42".to_string()), 8, 10),
-                Token::new(TokenType::Eof, 10, 10)
+                Token::new(TokenType::NewLine, 10, 11),
+                Token::new(TokenType::Eof, 12, 12)
             ]
         )
     }
@@ -94,7 +99,8 @@ mod test_lexer {
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::Asterisk), 5, 6),
                 Token::new(TokenType::Number("42".to_string()), 7, 9),
-                Token::new(TokenType::Eof, 9, 9)
+                Token::new(TokenType::NewLine, 9, 10),
+                Token::new(TokenType::Eof, 11, 11)
             ]
         )
     }
@@ -109,7 +115,8 @@ mod test_lexer {
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::Plus), 5, 6),
                 Token::new(TokenType::Number("42".to_string()), 7, 9),
-                Token::new(TokenType::Eof, 9, 9)
+                Token::new(TokenType::NewLine, 9, 10),
+                Token::new(TokenType::Eof, 11, 11)
             ]
         )
     }
@@ -124,7 +131,8 @@ mod test_lexer {
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::Minus), 5, 6),
                 Token::new(TokenType::Number("42".to_string()), 7, 9),
-                Token::new(TokenType::Eof, 9, 9)
+                Token::new(TokenType::NewLine, 9, 10),
+                Token::new(TokenType::Eof, 11, 11)
             ]
         )
     }
@@ -139,7 +147,8 @@ mod test_lexer {
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::MinusEqual), 5, 7),
                 Token::new(TokenType::Number("42".to_string()), 8, 10),
-                Token::new(TokenType::Eof, 10, 10)
+                Token::new(TokenType::NewLine, 10, 11),
+                Token::new(TokenType::Eof, 12, 12)
             ]
         )
     }
@@ -154,7 +163,8 @@ mod test_lexer {
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::Exponent), 5, 7),
                 Token::new(TokenType::Number("42".to_string()), 8, 10),
-                Token::new(TokenType::Eof, 10, 10)
+                Token::new(TokenType::NewLine, 10, 11),
+                Token::new(TokenType::Eof, 12, 12)
             ]
         )
     }
@@ -169,7 +179,8 @@ mod test_lexer {
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::LessThanOrEqual), 5, 7),
                 Token::new(TokenType::Number("42".to_string()), 8, 10),
-                Token::new(TokenType::Eof, 10, 10)
+                Token::new(TokenType::NewLine, 10, 11),
+                Token::new(TokenType::Eof, 12, 12)
             ]
         )
     }
@@ -184,7 +195,8 @@ mod test_lexer {
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::LessThan), 5, 6),
                 Token::new(TokenType::Number("42".to_string()), 7, 9),
-                Token::new(TokenType::Eof, 9, 9)
+                Token::new(TokenType::NewLine, 9, 10),
+                Token::new(TokenType::Eof, 11, 11)
             ]
         )
     }
@@ -199,7 +211,8 @@ mod test_lexer {
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::GreaterThan), 5, 6),
                 Token::new(TokenType::Number("42".to_string()), 7, 9),
-                Token::new(TokenType::Eof, 9, 9)
+                Token::new(TokenType::NewLine, 9, 10),
+                Token::new(TokenType::Eof, 11, 11)
             ]
         )
     }
@@ -214,7 +227,8 @@ mod test_lexer {
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::GreaterThanOrEqual), 5, 7),
                 Token::new(TokenType::Number("42".to_string()), 8, 10),
-                Token::new(TokenType::Eof, 10, 10)
+                Token::new(TokenType::NewLine, 10, 11),
+                Token::new(TokenType::Eof, 12, 12)
             ]
         )
     }
@@ -229,7 +243,8 @@ mod test_lexer {
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::BitwiseOr), 5, 6),
                 Token::new(TokenType::Number("42".to_string()), 7, 9),
-                Token::new(TokenType::Eof, 9, 9)
+                Token::new(TokenType::NewLine, 9, 10),
+                Token::new(TokenType::Eof, 11, 11)
             ]
         )
     }
@@ -244,7 +259,8 @@ mod test_lexer {
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::BitwiseOrEqual), 5, 7),
                 Token::new(TokenType::Number("42".to_string()), 8, 10),
-                Token::new(TokenType::Eof, 10, 10)
+                Token::new(TokenType::NewLine, 10, 11),
+                Token::new(TokenType::Eof, 12, 12)
             ]
         )
     }
@@ -259,7 +275,8 @@ mod test_lexer {
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::BitwiseAnd), 5, 6),
                 Token::new(TokenType::Number("42".to_string()), 7, 9),
-                Token::new(TokenType::Eof, 9, 9)
+                Token::new(TokenType::NewLine, 9, 10),
+                Token::new(TokenType::Eof, 11, 11)
             ]
         )
     }
@@ -274,7 +291,8 @@ mod test_lexer {
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::BitwiseAndEqual), 5, 7),
                 Token::new(TokenType::Number("42".to_string()), 8, 10),
-                Token::new(TokenType::Eof, 10, 10)
+                Token::new(TokenType::NewLine, 10, 11),
+                Token::new(TokenType::Eof, 12, 12)
             ]
         )
     }
@@ -289,7 +307,8 @@ mod test_lexer {
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::BitwiseLeftShift), 5, 7),
                 Token::new(TokenType::Number("42".to_string()), 8, 10),
-                Token::new(TokenType::Eof, 10, 10)
+                Token::new(TokenType::NewLine, 10, 11),
+                Token::new(TokenType::Eof, 12, 12)
             ]
         )
     }
@@ -304,7 +323,8 @@ mod test_lexer {
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::BitwiseLeftShiftEqual), 5, 8),
                 Token::new(TokenType::Number("42".to_string()), 9, 11),
-                Token::new(TokenType::Eof, 11, 11)
+                Token::new(TokenType::NewLine, 11, 12),
+                Token::new(TokenType::Eof, 13, 13)
             ]
         )
     }
@@ -319,7 +339,8 @@ mod test_lexer {
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::BitwiseRightShift), 5, 7),
                 Token::new(TokenType::Number("42".to_string()), 8, 10),
-                Token::new(TokenType::Eof, 10, 10)
+                Token::new(TokenType::NewLine, 10, 11),
+                Token::new(TokenType::Eof, 12, 12)
             ]
         )
     }
@@ -334,7 +355,8 @@ mod test_lexer {
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::BitwiseRightShiftEqual), 5, 8),
                 Token::new(TokenType::Number("42".to_string()), 9, 11),
-                Token::new(TokenType::Eof, 11, 11)
+                Token::new(TokenType::NewLine, 11, 12),
+                Token::new(TokenType::Eof, 13, 13)
             ]
         )
     }
@@ -348,7 +370,8 @@ mod test_lexer {
             vec![
                 Token::new(TokenType::Operator(OperatorType::BitwiseNot), 0, 1),
                 Token::new(TokenType::Id("test".to_string()), 1, 5),
-                Token::new(TokenType::Eof, 5, 5)
+                Token::new(TokenType::NewLine, 5, 6),
+                Token::new(TokenType::Eof, 7, 7)
             ]
         )
     }
@@ -363,7 +386,8 @@ mod test_lexer {
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::BitwiseNotEqual), 5, 7),
                 Token::new(TokenType::Number("42".to_string()), 8, 10),
-                Token::new(TokenType::Eof, 10, 10)
+                Token::new(TokenType::NewLine, 10, 11),
+                Token::new(TokenType::Eof, 12, 12)
             ]
         )
     }
@@ -377,7 +401,8 @@ mod test_lexer {
             lexer.tokens(),
             vec![
                 Token::new(TokenType::String("Hello World!".to_string()), 0, 14),
-                Token::new(TokenType::Eof, 14, 14)
+                Token::new(TokenType::NewLine, 14, 15),
+                Token::new(TokenType::Eof, 16, 16)
             ]
         )
     }
@@ -391,7 +416,8 @@ mod test_lexer {
             lexer.tokens(),
             vec![
                 Token::new(TokenType::String("\\\"Hello World❤️\\\"".to_string()), 0, 23),
-                Token::new(TokenType::Eof, 23, 23)
+                Token::new(TokenType::NewLine, 23, 24),
+                Token::new(TokenType::Eof, 25, 25)
             ]
         )
     }
@@ -412,7 +438,8 @@ mod test_lexer {
             lexer.tokens(),
             vec![
                 Token::new(TokenType::String("Hello World!".to_string()), 0, 14),
-                Token::new(TokenType::Eof, 14, 14)
+                Token::new(TokenType::NewLine, 14, 15),
+                Token::new(TokenType::Eof, 16, 16)
             ]
         )
     }
@@ -428,7 +455,8 @@ mod test_lexer {
                 Token::new(TokenType::Id("s".to_string()), 0, 1),
                 Token::new(TokenType::Operator(OperatorType::Assign), 2, 3),
                 Token::new(TokenType::String("Hello World!".to_string()), 5, 19),
-                Token::new(TokenType::Eof, 19, 19)
+                Token::new(TokenType::NewLine, 19, 20),
+                Token::new(TokenType::Eof, 21, 21)
             ]
         )
     }
@@ -464,7 +492,8 @@ else:
                 Token::new(TokenType::Id("pass".to_string()), 31, 35),
                 Token::new(TokenType::NewLine, 35, 36),
                 Token::new(TokenType::Dedent, 0, 0),
-                Token::new(TokenType::Eof, 36, 36),
+                Token::new(TokenType::NewLine, 36, 37),
+                Token::new(TokenType::Eof, 38, 38),
             ]
         )
     }

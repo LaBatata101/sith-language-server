@@ -104,7 +104,9 @@ impl<'a> Lexer<'a> {
         }
 
         self.tokens
-            .push(Token::new(TokenType::Eof, self.cs.pos(), self.cs.pos()));
+            .push(Token::new(TokenType::NewLine, self.cs.pos(), self.cs.pos() + 1));
+        self.tokens
+            .push(Token::new(TokenType::Eof, self.cs.pos() + 2, self.cs.pos() + 2));
     }
 
     pub fn tokens(&self) -> &[Token] {
