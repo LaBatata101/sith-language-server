@@ -250,28 +250,28 @@ impl<'a> Lexer<'a> {
 
     fn lex_operator(&mut self) {
         let start = self.cs.pos();
-        let (token_type, advance_offset) = match (self.cs.current_char().unwrap(), self.cs.next_char().unwrap()) {
-            ('=', '=') => (TokenType::Operator(OperatorType::Equals), 2),
-            ('+', '=') => (TokenType::Operator(OperatorType::PlusEqual), 2),
-            ('*', '=') => (TokenType::Operator(OperatorType::AsteriskEqual), 2),
-            ('*', '*') => (TokenType::Operator(OperatorType::Exponent), 2),
-            ('-', '=') => (TokenType::Operator(OperatorType::MinusEqual), 2),
-            ('<', '=') => (TokenType::Operator(OperatorType::LessThanOrEqual), 2),
-            ('>', '=') => (TokenType::Operator(OperatorType::GreaterThanOrEqual), 2),
-            ('^', '=') => (TokenType::Operator(OperatorType::BitwiseXOrEqual), 2),
-            ('~', '=') => (TokenType::Operator(OperatorType::BitwiseNotEqual), 2),
-            ('!', '=') => (TokenType::Operator(OperatorType::NotEquals), 2),
-            ('%', '=') => (TokenType::Operator(OperatorType::ModulusEqual), 2),
-            ('&', '=') => (TokenType::Operator(OperatorType::BitwiseAndEqual), 2),
-            ('|', '=') => (TokenType::Operator(OperatorType::BitwiseOrEqual), 2),
-            ('<', '<') => {
+        let (token_type, advance_offset) = match (self.cs.current_char().unwrap(), self.cs.next_char()) {
+            ('=', Some('=')) => (TokenType::Operator(OperatorType::Equals), 2),
+            ('+', Some('=')) => (TokenType::Operator(OperatorType::PlusEqual), 2),
+            ('*', Some('=')) => (TokenType::Operator(OperatorType::AsteriskEqual), 2),
+            ('*', Some('*')) => (TokenType::Operator(OperatorType::Exponent), 2),
+            ('-', Some('=')) => (TokenType::Operator(OperatorType::MinusEqual), 2),
+            ('<', Some('=')) => (TokenType::Operator(OperatorType::LessThanOrEqual), 2),
+            ('>', Some('=')) => (TokenType::Operator(OperatorType::GreaterThanOrEqual), 2),
+            ('^', Some('=')) => (TokenType::Operator(OperatorType::BitwiseXOrEqual), 2),
+            ('~', Some('=')) => (TokenType::Operator(OperatorType::BitwiseNotEqual), 2),
+            ('!', Some('=')) => (TokenType::Operator(OperatorType::NotEquals), 2),
+            ('%', Some('=')) => (TokenType::Operator(OperatorType::ModulusEqual), 2),
+            ('&', Some('=')) => (TokenType::Operator(OperatorType::BitwiseAndEqual), 2),
+            ('|', Some('=')) => (TokenType::Operator(OperatorType::BitwiseOrEqual), 2),
+            ('<', Some('<')) => {
                 if self.cs.peek_char(self.cs.pos() + 2).map_or(false, |char| char == '=') {
                     (TokenType::Operator(OperatorType::BitwiseLeftShiftEqual), 3)
                 } else {
                     (TokenType::Operator(OperatorType::BitwiseLeftShift), 2)
                 }
             }
-            ('>', '>') => {
+            ('>', Some('>')) => {
                 if self.cs.peek_char(self.cs.pos() + 2).map_or(false, |char| char == '=') {
                     (TokenType::Operator(OperatorType::BitwiseRightShiftEqual), 3)
                 } else {
