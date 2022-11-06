@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum TokenType {
     At,
     CloseBrace,
@@ -27,7 +27,7 @@ pub enum TokenType {
     RightArrow,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum OperatorType {
     Assign,
     Asterisk,
@@ -65,7 +65,7 @@ pub enum OperatorType {
     PlusEqual,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum KeywordType {
     And,
     As,
@@ -102,7 +102,7 @@ pub enum KeywordType {
     Yield,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum SoftKeywordType {
     Match,
     Case,
