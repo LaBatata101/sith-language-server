@@ -204,7 +204,7 @@ impl<'a> Lexer<'a> {
         // Can be `"` or `'`
         let quote_char = self.cs.current_char().unwrap();
 
-        let mut start = self.cs.pos();
+        let start = self.cs.pos();
         // Consume `"` or `'`
         while self.cs.current_char().map_or(false, |char| char == quote_char) {
             self.cs.advance_by(1);
