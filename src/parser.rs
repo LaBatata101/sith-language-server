@@ -96,13 +96,16 @@ impl Parser {
             TokenType::Number(num) => (Expression::Number(num.to_string(), token.span), token.span),
             TokenType::Keyword(KeywordType::True) => (Expression::Bool(true, token.span), token.span),
             TokenType::Keyword(KeywordType::False) => (Expression::Bool(false, token.span), token.span),
-            TokenType::NewLine => panic!("Invalid syntax!"),
+            TokenType::NewLine | TokenType::SemiColon | TokenType::Eof => panic!("Invalid syntax!"),
             _ => panic!("ERROR: Unexpected token! {token:?}"),
         };
 
         *index += 1;
         let next_token = self.tokens.get(*index).unwrap();
-        if matches!(next_token.kind, TokenType::NewLine | TokenType::SemiColon) {
+        if matches!(
+            next_token.kind,
+            TokenType::NewLine | TokenType::SemiColon | TokenType::Eof
+        ) {
             *index += 1;
             expr
         } else {
