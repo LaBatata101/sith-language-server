@@ -173,6 +173,7 @@ impl Parser {
                     panic!("Invalid syntax for function definition!")
                 }
             }
+            TokenType::Keyword(KeywordType::Pass) => Statement::Pass(*span),
             _ => panic!("ERROR: unexpected token {kind:?} at position {span:?}"),
         }
     }
