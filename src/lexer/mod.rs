@@ -179,6 +179,8 @@ impl<'a> Lexer<'a> {
             b"class" => TokenType::Keyword(KeywordType::Class),
             b"True" => TokenType::Keyword(KeywordType::True),
             b"False" => TokenType::Keyword(KeywordType::False),
+            b"def" => TokenType::Keyword(KeywordType::Def),
+            b"pass" => TokenType::Keyword(KeywordType::Pass),
             _ => TokenType::Id(String::from_utf8_lossy(str).into()),
         };
 
