@@ -75,31 +75,15 @@ impl Parser {
         let mut index = 0;
 
         while index < self.tokens.len() {
-            let token = self.tokens.get(index).unwrap();
-            index += 1;
-
-            match &token.kind {
-                TokenType::Id(name) => {
-                    if self
-                        .tokens
-                        .get(index)
-                        .map_or(false, |token| token.kind == TokenType::Operator(OperatorType::Assign))
-                    {
-                        index += 1;
-                        let (expr, expr_span) = self.parse_expression(&mut index);
-                        let assign = Assignment::new(
-                            name.clone(),
-                            Span {
-                                start: token.span.start,
-                                end: expr_span.end,
-                            },
-                        );
-                        parsed_file.stmts.push(Statement::Assignment(assign, expr));
-                    }
-                }
-                TokenType::Eof | TokenType::NewLine => break,
-                _ => panic!("ERROR: unexpected token {token:?}"),
+            if self
+                .tokens
+                .get(index)
+                .map_or(false, |token| token.kind == TokenType::Eof)
+            {
+                break;
             }
+            let stmt = self.parse_statements(&mut index);
+            parsed_file.stmts.push(stmt);
         }
 
         parsed_file
@@ -152,4 +136,44 @@ impl Parser {
         block
     }
 
+    fn parse_statements(&self, index: &mut usize) -> Statement {
+        let Token { kind, span } = self.tokens.get(*index).unwrap();
+        *index += 1;
+
+        match kind {
+            TokenType::Id(name) => {
+                let token = self.tokens.get(*index).unwrap();
+                if !matches!(token.kind, TokenType::Operator(OperatorType::Assign)) {
+                    panic!("Invalid syntax: expecting '=' got {:?}", token.kind);
+                }
+
+                *index += 1;
+                let (expr, expr_span) = self.parse_expression(index);
+                let assign = Assignment::new(
+                    name.clone(),
+                    Span {
+                        start: span.start,
+                        end: expr_span.end,
+                    },
+                );
+
+                Statement::Assignment(assign, expr)
+            }
+            TokenType::Keyword(KeywordType::Def) => {
+                if let Some(Token {
+                    kind: TokenType::Id(name),
+                    span,
+                }) = self.tokens.get(*index)
+                {
+                    *index += 1;
+                    let func = self.parse_function(index, name.to_string(), *span);
+
+                    Statement::FunctionDef(func)
+                } else {
+                    panic!("Invalid syntax for function definition!")
+                }
+            }
+            _ => panic!("ERROR: unexpected token {kind:?} at position {span:?}"),
+        }
+    }
 }
