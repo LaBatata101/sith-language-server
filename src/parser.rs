@@ -125,4 +125,31 @@ impl Parser {
             self.parse_expression(index)
         }
     }
+    fn parse_block(&self, index: &mut usize) -> Block {
+        let mut token = self.tokens.get(*index).unwrap();
+        if !matches!(token.kind, TokenType::NewLine) {
+            panic!("Invalid syntax: expecting 'NEWLINE' got {:?}", token.kind)
+        }
+        *index += 1;
+        token = self.tokens.get(*index).unwrap();
+        if !matches!(token.kind, TokenType::Ident) {
+            panic!("Expected a indented block!")
+        }
+        *index += 1;
+
+        // FIXME: Get all Statements
+        let stmt = self.parse_statements(index);
+
+        token = self.tokens.get(*index).unwrap();
+        if !matches!(token.kind, TokenType::Dedent) {
+            panic!("Unexpected indent!")
+        }
+        *index += 1;
+
+        let mut block = Block::new();
+        block.stmts.push(stmt);
+
+        block
+    }
+
 }
