@@ -10,9 +10,10 @@ use crate::lexer::{
 pub enum Statement {
     Expression(Expression),
     Block(Block),
-    FunctionDef,
+    FunctionDef(Function),
     If,
     Assignment(Assignment, Expression),
+    Pass(Span),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -32,6 +33,14 @@ impl Assignment {
     pub fn new(name: String, span: Span) -> Self {
         Self { name, span }
     }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Function {
+    name: String,
+    name_span: Span,
+    block: Block,
+    span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -112,6 +121,33 @@ impl Parser {
             self.parse_expression(index)
         }
     }
+
+    fn parse_function(&self, index: &mut usize, name: String, name_span: Span) -> Function {
+        let mut token = self.tokens.get(*index).unwrap();
+        if !matches!(token.kind, TokenType::OpenParenthesis) {
+            panic!("Invalid syntax: expecting '(' got {:?}", token.kind)
+        }
+        *index += 1;
+        token = self.tokens.get(*index).unwrap();
+        if !matches!(token.kind, TokenType::CloseParenthesis) {
+            panic!("Invalid syntax: expecting ')' got {:?}", token.kind)
+        }
+        *index += 1;
+        token = self.tokens.get(*index).unwrap();
+        if !matches!(token.kind, TokenType::Colon) {
+            panic!("Invalid syntax: expecting ':' got {:?}", token.kind)
+        }
+        *index += 1;
+        let block = self.parse_block(index);
+
+        Function {
+            name,
+            name_span,
+            block,
+            span: Span { start: 0, end: 0 },
+        }
+    }
+
     fn parse_block(&self, index: &mut usize) -> Block {
         let mut token = self.tokens.get(*index).unwrap();
         if !matches!(token.kind, TokenType::NewLine) {
