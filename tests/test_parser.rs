@@ -79,9 +79,10 @@ mod tests_parser {
                     name: "x".to_string(),
                     name_span: Span { start: 4, end: 5 },
                     block: Block {
-                        stmts: vec![Statement::Pass(Span { start: 13, end: 17 })]
+                        stmts: vec![Statement::Pass(Span { start: 13, end: 17 })],
+                        span: Span { start: 13, end: 17 }
                     },
-                    span: Span { start: 0, end: 0 }
+                    span: Span { start: 0, end: 17 }
                 })]
             }
         )

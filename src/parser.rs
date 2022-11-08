@@ -147,8 +147,11 @@ impl Parser {
         Function {
             name,
             name_span,
+            span: Span {
+                start: 0,
+                end: block.span.end,
+            },
             block,
-            span: Span { start: 0, end: 0 },
         }
     }
 
@@ -205,11 +208,12 @@ impl Parser {
             TokenType::Keyword(KeywordType::Def) => {
                 if let Some(Token {
                     kind: TokenType::Id(name),
-                    span,
+                    span: func_name_span,
                 }) = self.tokens.get(*index)
                 {
                     *index += 1;
-                    let func = self.parse_function(index, name.to_string(), *span);
+                    let mut func = self.parse_function(index, name.to_string(), *func_name_span);
+                    func.span.start = span.start;
 
                     Statement::FunctionDef(func)
                 } else {
