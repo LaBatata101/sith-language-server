@@ -95,7 +95,7 @@ impl Parser {
             {
                 break;
             }
-            let stmt = self.parse_statements(&mut index);
+            let (stmt, _) = self.parse_statements(&mut index);
             parsed_file.stmts.push(stmt);
         }
 
@@ -182,7 +182,7 @@ impl Parser {
         block
     }
 
-    fn parse_statements(&self, index: &mut usize) -> Statement {
+    fn parse_statements(&self, index: &mut usize) -> (Statement, Span) {
         let Token { kind, span } = self.tokens.get(*index).unwrap();
         *index += 1;
 
@@ -195,15 +195,13 @@ impl Parser {
 
                 *index += 1;
                 let (expr, expr_span) = self.parse_expression(index);
-                let assign = Assignment::new(
-                    name.clone(),
-                    Span {
-                        start: span.start,
-                        end: expr_span.end,
-                    },
-                );
+                let assign_span = Span {
+                    start: span.start,
+                    end: expr_span.end,
+                };
+                let assign = Assignment::new(name.clone(), assign_span);
 
-                Statement::Assignment(assign, expr)
+                (Statement::Assignment(assign, expr), assign_span)
             }
             TokenType::Keyword(KeywordType::Def) => {
                 if let Some(Token {
@@ -214,13 +212,14 @@ impl Parser {
                     *index += 1;
                     let mut func = self.parse_function(index, name.to_string(), *func_name_span);
                     func.span.start = span.start;
+                    let func_span = func.span;
 
-                    Statement::FunctionDef(func)
+                    (Statement::FunctionDef(func), func_span)
                 } else {
                     panic!("Invalid syntax for function definition!")
                 }
             }
-            TokenType::Keyword(KeywordType::Pass) => Statement::Pass(*span),
+            TokenType::Keyword(KeywordType::Pass) => (Statement::Pass(*span), *span),
             _ => panic!("ERROR: unexpected token {kind:?} at position {span:?}"),
         }
     }
