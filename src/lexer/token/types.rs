@@ -32,6 +32,8 @@ pub enum OperatorType {
     Assign,
     Asterisk,
     AsteriskEqual,
+    At,
+    AtEqual,
     BitwiseAnd,
     BitwiseAndEqual,
     BitwiseLeftShift,

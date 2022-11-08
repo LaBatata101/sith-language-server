@@ -369,6 +369,38 @@ mod test_lexer {
     }
 
     #[test]
+    fn test_lex_at_operator() {
+        let mut lexer = Lexer::new("matrix1 @ matrix2");
+        lexer.tokenize();
+
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token::new(TokenType::Id("matrix1".to_string()), 0, 7),
+                Token::new(TokenType::Operator(OperatorType::At), 8, 9),
+                Token::new(TokenType::Id("matrix2".to_string()), 10, 17),
+                Token::new(TokenType::Eof, 17, 18)
+            ]
+        )
+    }
+
+    #[test]
+    fn test_lex_at_equal_operator() {
+        let mut lexer = Lexer::new("matrix1 @= matrix2");
+        lexer.tokenize();
+
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token::new(TokenType::Id("matrix1".to_string()), 0, 7),
+                Token::new(TokenType::Operator(OperatorType::AtEqual), 8, 10),
+                Token::new(TokenType::Id("matrix2".to_string()), 11, 18),
+                Token::new(TokenType::Eof, 18, 19)
+            ]
+        )
+    }
+
+    #[test]
     fn test_lex_string() {
         let mut lexer = Lexer::new("\"Hello World!\"");
         lexer.tokenize();

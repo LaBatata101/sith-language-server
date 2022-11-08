@@ -63,7 +63,7 @@ impl<'a> Lexer<'a> {
                         self.lex_single_char(TokenType::Colon)
                     }
                 }
-                '*' | '+' | '=' | '-' | '<' | '>' | '&' | '|' | '%' | '~' | '^' | '!' => {
+                '*' | '+' | '=' | '-' | '<' | '>' | '&' | '|' | '%' | '~' | '^' | '!' | '@' => {
                     if matches!((self.cs.current_char(), self.cs.next_char()), (Some('-'), Some('>'))) {
                         let start = self.cs.pos();
                         self.cs.advance_by(2);
@@ -289,6 +289,7 @@ impl<'a> Lexer<'a> {
             ('%', Some('=')) => (TokenType::Operator(OperatorType::ModulusEqual), 2),
             ('&', Some('=')) => (TokenType::Operator(OperatorType::BitwiseAndEqual), 2),
             ('|', Some('=')) => (TokenType::Operator(OperatorType::BitwiseOrEqual), 2),
+            ('@', Some('=')) => (TokenType::Operator(OperatorType::AtEqual), 2),
             ('<', Some('<')) => {
                 if self.cs.peek_char(self.cs.pos() + 2).map_or(false, |char| char == '=') {
                     (TokenType::Operator(OperatorType::BitwiseLeftShiftEqual), 3)
@@ -315,6 +316,7 @@ impl<'a> Lexer<'a> {
             ('^', _) => (TokenType::Operator(OperatorType::BitwiseXOr), 1),
             ('|', _) => (TokenType::Operator(OperatorType::BitwiseOr), 1),
             ('~', _) => (TokenType::Operator(OperatorType::BitwiseNot), 1),
+            ('@', _) => (TokenType::Operator(OperatorType::At), 1),
 
             ('!', _) => (TokenType::Invalid('!'), 1),
             (char, _) => (TokenType::Invalid(char), 1),
