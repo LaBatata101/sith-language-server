@@ -46,11 +46,15 @@ pub struct Function {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Block {
     pub stmts: Vec<Statement>,
+    pub span: Span,
 }
 
 impl Block {
     pub fn new() -> Self {
-        Self { stmts: Vec::new() }
+        Self {
+            stmts: Vec::new(),
+            span: Span { start: 0, end: 0 },
+        }
     }
 }
 
