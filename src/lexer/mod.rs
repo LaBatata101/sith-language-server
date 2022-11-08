@@ -141,7 +141,6 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    #[inline]
     fn lex_single_char(&mut self, token: TokenType) {
         let start = self.cs.pos();
         self.cs.advance_by(1);
