@@ -2,7 +2,7 @@
 mod tests_parser {
     use python_parser::{
         lexer::token::Span,
-        parser::{Assignment, Expression, ParsedFile, Parser, Statement},
+        parser::{Assignment, Block, Expression, Function, ParsedFile, Parser, Statement},
     };
 
     #[test]
@@ -64,5 +64,26 @@ mod tests_parser {
     fn test_parse_incorrect_assignment() {
         let parser = Parser::new("test =");
         parser.parse();
+    }
+
+    #[test]
+    fn test_parse_function() {
+        let parser = Parser::new(
+            "def x():
+    pass",
+        );
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::FunctionDef(Function {
+                    name: "x".to_string(),
+                    name_span: Span { start: 4, end: 5 },
+                    block: Block {
+                        stmts: vec![Statement::Pass(Span { start: 13, end: 17 })]
+                    },
+                    span: Span { start: 0, end: 0 }
+                })]
+            }
+        )
     }
 }

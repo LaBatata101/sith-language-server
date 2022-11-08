@@ -37,15 +37,15 @@ impl Assignment {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Function {
-    name: String,
-    name_span: Span,
-    block: Block,
-    span: Span,
+    pub name: String,
+    pub name_span: Span,
+    pub block: Block,
+    pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Block {
-    stmts: Vec<Statement>,
+    pub stmts: Vec<Statement>,
 }
 
 impl Block {
