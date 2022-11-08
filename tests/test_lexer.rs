@@ -484,4 +484,43 @@ for i in range(len(l)):             # error: not indented
         );
         lexer.tokenize();
     }
+
+    #[test]
+    fn test_lex_indentation3() {
+        let mut lexer = Lexer::new(
+            "def test(x):
+    if x:
+        return True
+    return False
+",
+        );
+        lexer.tokenize();
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token::new(TokenType::Keyword(KeywordType::Def), 0, 3),
+                Token::new(TokenType::Id("test".to_string()), 4, 8),
+                Token::new(TokenType::OpenParenthesis, 8, 9),
+                Token::new(TokenType::Id("x".to_string()), 9, 10),
+                Token::new(TokenType::CloseParenthesis, 10, 11),
+                Token::new(TokenType::Colon, 11, 12),
+                Token::new(TokenType::NewLine, 12, 13),
+                Token::new(TokenType::Ident, 0, 0),
+                Token::new(TokenType::Keyword(KeywordType::If), 17, 19),
+                Token::new(TokenType::Id("x".to_string()), 20, 21),
+                Token::new(TokenType::Colon, 21, 22),
+                Token::new(TokenType::NewLine, 22, 23),
+                Token::new(TokenType::Ident, 0, 0),
+                Token::new(TokenType::Keyword(KeywordType::Return), 31, 37),
+                Token::new(TokenType::Keyword(KeywordType::True), 38, 42),
+                Token::new(TokenType::NewLine, 42, 43),
+                Token::new(TokenType::Dedent, 0, 0),
+                Token::new(TokenType::Keyword(KeywordType::Return), 47, 53),
+                Token::new(TokenType::Keyword(KeywordType::False), 54, 59),
+                Token::new(TokenType::NewLine, 59, 60),
+                Token::new(TokenType::Dedent, 0, 0),
+                Token::new(TokenType::Eof, 60, 61),
+            ]
+        );
+    }
 }
