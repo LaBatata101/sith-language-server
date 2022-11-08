@@ -7,7 +7,7 @@ use token::Token;
 
 use crate::{valid_id_initial_chars, valid_id_noninitial_chars};
 
-use self::token::types::{KeywordType, OperatorType, TokenType};
+use self::token::types::{KeywordType, OperatorType, SoftKeywordType, TokenType};
 
 pub struct Lexer<'a> {
     cs: CharStream<'a>,
@@ -27,8 +27,6 @@ impl<'a> Lexer<'a> {
     pub fn tokenize(&mut self) {
         while !self.cs.is_eof() {
             self.cs.skip_whitespace();
-            // TODO: check if its working!!
-            // self.handle_indentation(whitespace_total);
 
             match self.cs.current_char().unwrap() {
                 valid_id_initial_chars!() => self.lex_identifier_or_keyword(),
@@ -170,17 +168,43 @@ impl<'a> Lexer<'a> {
             return;
         }
 
-        // TODO: handle soft keywords and the other keywords
         let token_type = match str {
             b"and" => TokenType::Keyword(KeywordType::And),
             b"as" => TokenType::Keyword(KeywordType::As),
             b"assert" => TokenType::Keyword(KeywordType::Assert),
             b"break" => TokenType::Keyword(KeywordType::Break),
+            b"case" => TokenType::SoftKeyword(SoftKeywordType::Case),
             b"class" => TokenType::Keyword(KeywordType::Class),
-            b"True" => TokenType::Keyword(KeywordType::True),
-            b"False" => TokenType::Keyword(KeywordType::False),
+            b"continue" => TokenType::Keyword(KeywordType::Continue),
             b"def" => TokenType::Keyword(KeywordType::Def),
+            b"del" => TokenType::Keyword(KeywordType::Del),
+            b"elif" => TokenType::Keyword(KeywordType::Elif),
+            b"else" => TokenType::Keyword(KeywordType::Else),
+            b"except" => TokenType::Keyword(KeywordType::Except),
+            b"False" => TokenType::Keyword(KeywordType::False),
+            b"finally" => TokenType::Keyword(KeywordType::Finally),
+            b"for" => TokenType::Keyword(KeywordType::For),
+            b"from" => TokenType::Keyword(KeywordType::From),
+            b"global" => TokenType::Keyword(KeywordType::Global),
+            b"if" => TokenType::Keyword(KeywordType::If),
+            b"import" => TokenType::Keyword(KeywordType::Import),
+            b"in" => TokenType::Keyword(KeywordType::In),
+            b"is" => TokenType::Keyword(KeywordType::Is),
+            b"lambda" => TokenType::Keyword(KeywordType::Lambda),
+            b"match" => TokenType::SoftKeyword(SoftKeywordType::Match),
+            b"None" => TokenType::Keyword(KeywordType::None),
+            b"nonlocal" => TokenType::Keyword(KeywordType::NonLocal),
+            b"not" => TokenType::Keyword(KeywordType::Not),
+            b"or" => TokenType::Keyword(KeywordType::Or),
             b"pass" => TokenType::Keyword(KeywordType::Pass),
+            b"raise" => TokenType::Keyword(KeywordType::Raise),
+            b"return" => TokenType::Keyword(KeywordType::Return),
+            b"True" => TokenType::Keyword(KeywordType::True),
+            b"try" => TokenType::Keyword(KeywordType::Try),
+            b"while" => TokenType::Keyword(KeywordType::While),
+            b"with" => TokenType::Keyword(KeywordType::With),
+            b"yield" => TokenType::Keyword(KeywordType::Yield),
+            b"_" => TokenType::SoftKeyword(SoftKeywordType::Underscore),
             _ => TokenType::Id(String::from_utf8_lossy(str).into()),
         };
 
