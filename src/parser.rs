@@ -167,17 +167,24 @@ impl Parser {
         }
         *index += 1;
 
-        // FIXME: Get all Statements
-        let stmt = self.parse_statements(index);
-
-        token = self.tokens.get(*index).unwrap();
-        if !matches!(token.kind, TokenType::Dedent) {
-            panic!("Unexpected indent!")
-        }
-        *index += 1;
-
         let mut block = Block::new();
-        block.stmts.push(stmt);
+        block.span.start = self.tokens.get(*index).map(|token| token.span.start).unwrap();
+
+        while let Some(token_kind) = self.tokens.get(*index).map(|token| &token.kind) {
+            // Not sure if this should be here or in the parse_statements
+            if *token_kind == TokenType::NewLine {
+                *index += 1;
+            }
+
+            if *token_kind == TokenType::Dedent {
+                *index += 1;
+                break;
+            }
+
+            let (statement, stmt_span) = self.parse_statements(index);
+            block.span.end = stmt_span.end;
+            block.stmts.push(statement);
+        }
 
         block
     }

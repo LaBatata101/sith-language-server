@@ -87,4 +87,33 @@ mod tests_parser {
             }
         )
     }
+
+    #[test]
+    fn test_parse_function2() {
+        let parser = Parser::new(
+            "def x():
+    pass
+    pass
+    pass",
+        );
+
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::FunctionDef(Function {
+                    name: "x".to_string(),
+                    name_span: Span { start: 4, end: 5 },
+                    block: Block {
+                        stmts: vec![
+                            Statement::Pass(Span { start: 13, end: 17 }),
+                            Statement::Pass(Span { start: 22, end: 26 }),
+                            Statement::Pass(Span { start: 31, end: 35 })
+                        ],
+                        span: Span { start: 13, end: 35 }
+                    },
+                    span: Span { start: 0, end: 35 }
+                })]
+            }
+        )
+    }
 }
