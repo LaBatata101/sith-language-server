@@ -193,6 +193,10 @@ impl Parser {
         let Token { kind, span } = self.tokens.get(*index).unwrap();
         *index += 1;
 
+        if *kind == TokenType::NewLine {
+            *index += 1;
+        }
+
         match kind {
             TokenType::Id(name) => {
                 let token = self.tokens.get(*index).unwrap();
