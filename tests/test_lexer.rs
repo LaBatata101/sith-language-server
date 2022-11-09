@@ -555,4 +555,25 @@ for i in range(len(l)):             # error: not indented
             ]
         );
     }
+
+    #[test]
+    fn test_lex_implicit_line_joining() {
+        let mut lexer = Lexer::new("\n[\n(\n)\n{\n}\n]\n");
+
+        lexer.tokenize();
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token::new(TokenType::NewLine, 0, 1),
+                Token::new(TokenType::OpenBrackets, 1, 2),
+                Token::new(TokenType::OpenParenthesis, 3, 4),
+                Token::new(TokenType::CloseParenthesis, 5, 6),
+                Token::new(TokenType::OpenBrace, 7, 8),
+                Token::new(TokenType::CloseBrace, 9, 10),
+                Token::new(TokenType::CloseBrackets, 11, 12),
+                Token::new(TokenType::NewLine, 12, 13),
+                Token::new(TokenType::Eof, 13, 14),
+            ]
+        )
+    }
 }

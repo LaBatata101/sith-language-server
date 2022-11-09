@@ -25,6 +25,9 @@ impl<'a> Lexer<'a> {
     }
 
     pub fn tokenize(&mut self) {
+        // This is used to check if we are inside a [], () or {} and then skip the NewLine Token.
+        let mut implicit_line_joining = 0;
+
         while !self.cs.is_eof() {
             self.cs.skip_whitespace();
 
@@ -32,12 +35,30 @@ impl<'a> Lexer<'a> {
                 valid_id_initial_chars!() => self.lex_identifier_or_keyword(),
                 '0'..='9' => self.lex_number(),
                 '"' | '\'' => self.lex_string(),
-                '(' => self.lex_single_char(TokenType::OpenParenthesis),
-                ')' => self.lex_single_char(TokenType::CloseParenthesis),
-                '[' => self.lex_single_char(TokenType::OpenBrackets),
-                ']' => self.lex_single_char(TokenType::CloseBrackets),
-                '{' => self.lex_single_char(TokenType::OpenBrace),
-                '}' => self.lex_single_char(TokenType::CloseBrace),
+                '(' => {
+                    implicit_line_joining += 1;
+                    self.lex_single_char(TokenType::OpenParenthesis);
+                }
+                ')' => {
+                    implicit_line_joining -= 1;
+                    self.lex_single_char(TokenType::CloseParenthesis);
+                }
+                '[' => {
+                    implicit_line_joining += 1;
+                    self.lex_single_char(TokenType::OpenBrackets);
+                }
+                ']' => {
+                    implicit_line_joining -= 1;
+                    self.lex_single_char(TokenType::CloseBrackets);
+                }
+                '{' => {
+                    implicit_line_joining += 1;
+                    self.lex_single_char(TokenType::OpenBrace);
+                }
+                '}' => {
+                    implicit_line_joining -= 1;
+                    self.lex_single_char(TokenType::CloseBrace);
+                }
                 '.' => {
                     if matches!(
                         (self.cs.next_char(), self.cs.peek_char(self.cs.pos() + 2)),
@@ -75,12 +96,22 @@ impl<'a> Lexer<'a> {
                 }
                 // TODO: Handle NewLine better
                 '\n' => {
+                    if implicit_line_joining > 0 {
+                        self.cs.advance_by(1);
+                        continue;
+                    }
+
                     self.lex_single_char(TokenType::NewLine);
                     let whitespace_total = self.cs.skip_whitespace();
                     // TODO: check if its working!!
                     self.handle_indentation(whitespace_total);
                 }
                 '\r' => {
+                    if implicit_line_joining > 0 {
+                        self.cs.advance_by(1);
+                        continue;
+                    }
+
                     let start = self.cs.pos();
                     self.cs.advance_by(1);
 
