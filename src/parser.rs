@@ -117,9 +117,8 @@ impl Parser {
         let next_token = self.tokens.get(*index).unwrap();
         if matches!(
             next_token.kind,
-            TokenType::NewLine | TokenType::SemiColon | TokenType::Eof
+            TokenType::NewLine | TokenType::SemiColon | TokenType::Colon | TokenType::Eof
         ) {
-            *index += 1;
             expr
         } else {
             self.parse_expression(index)
@@ -206,6 +205,7 @@ impl Parser {
 
                 *index += 1;
                 let (expr, expr_span) = self.parse_expression(index);
+                *index += 1;
                 let assign_span = Span {
                     start: span.start,
                     end: expr_span.end,
