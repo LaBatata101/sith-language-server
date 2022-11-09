@@ -94,34 +94,34 @@ impl<'a> Lexer<'a> {
                         self.lex_operator();
                     }
                 }
-                // TODO: Handle NewLine better
-                '\n' => {
-                    if implicit_line_joining > 0 {
-                        self.cs.advance_by(1);
-                        continue;
-                    }
-
-                    self.lex_single_char(TokenType::NewLine);
-                    let whitespace_total = self.cs.skip_whitespace();
-                    // TODO: check if its working!!
-                    self.handle_indentation(whitespace_total);
-                }
-                '\r' => {
-                    if implicit_line_joining > 0 {
-                        self.cs.advance_by(1);
-                        continue;
-                    }
+                '\n' | '\r' => {
+                    let mut advance_offset = 1;
 
                     let start = self.cs.pos();
-                    self.cs.advance_by(1);
 
-                    if self.cs.next_char().map_or(false, |char| char == '\n') {
-                        self.cs.advance_by(1);
+                    if self.cs.current_char().map_or(false, |char| char == '\n') {
+                        self.cs.advance_by(advance_offset);
                     }
 
-                    let end = self.cs.pos();
+                    let mut end = self.cs.pos();
+
+                    if self.cs.current_char().map_or(false, |char| char == '\r') {
+                        if self.cs.next_char().map_or(false, |char| char == '\n') {
+                            advance_offset = 2;
+                        }
+                        self.cs.advance_by(advance_offset);
+
+                        end = self.cs.pos();
+                    }
+
+                    if implicit_line_joining > 0 {
+                        continue;
+                    }
 
                     self.tokens.push(Token::new(TokenType::NewLine, start, end));
+                    let whitespace_total = self.cs.skip_whitespace();
+
+                    self.handle_indentation(whitespace_total);
                 }
                 c => self.lex_single_char(TokenType::Invalid(c)),
             }
