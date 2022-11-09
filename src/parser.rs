@@ -72,6 +72,7 @@ pub struct Block {
 }
 
 impl Block {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
             stmts: Vec::new(),
@@ -86,6 +87,7 @@ pub struct ParsedFile {
 }
 
 impl ParsedFile {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self { stmts: Vec::new() }
     }
