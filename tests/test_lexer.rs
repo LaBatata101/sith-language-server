@@ -479,7 +479,7 @@ else:
         assert_eq!(
             lexer.tokens(),
             vec![
-                Token::new(TokenType::Id("if".to_string()), 0, 2),
+                Token::new(TokenType::Keyword(KeywordType::If), 0, 2),
                 Token::new(TokenType::Keyword(KeywordType::True), 3, 7),
                 Token::new(TokenType::Colon, 7, 8),
                 Token::new(TokenType::NewLine, 8, 9),
@@ -489,7 +489,7 @@ else:
                 Token::new(TokenType::CloseParenthesis, 19, 20),
                 Token::new(TokenType::NewLine, 20, 21),
                 Token::new(TokenType::Dedent, 0, 0),
-                Token::new(TokenType::Id("else".to_string()), 21, 25),
+                Token::new(TokenType::Keyword(KeywordType::Else), 21, 25),
                 Token::new(TokenType::Colon, 25, 26),
                 Token::new(TokenType::NewLine, 26, 27),
                 Token::new(TokenType::Ident, 0, 0),
