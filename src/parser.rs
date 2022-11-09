@@ -11,7 +11,7 @@ pub enum Statement {
     Expression(Expression),
     Block(Block),
     FunctionDef(Function),
-    If,
+    If(IfStmt),
     Assignment(Assignment, Expression),
     Pass(Span),
 }
@@ -21,6 +21,28 @@ pub enum Expression {
     String(String, Span),
     Number(String, Span),
     Bool(bool, Span),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct IfStmt {
+    pub condition: Expression,
+    pub block: Block,
+    pub elif_stms: Vec<ElIfStmt>,
+    pub else_stmt: Option<ElseStmt>,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ElIfStmt {
+    pub condition: Expression,
+    pub block: Block,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ElseStmt {
+    pub block: Block,
+    pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -231,8 +253,88 @@ impl Parser {
                     panic!("Invalid syntax for function definition!")
                 }
             }
+            TokenType::Keyword(KeywordType::If) => {
+                let mut if_stmt = self.parse_if(index);
+                if_stmt.span.start = span.start;
+                let if_span = if_stmt.span;
+
+                (Statement::If(if_stmt), if_span)
+            }
             TokenType::Keyword(KeywordType::Pass) => (Statement::Pass(*span), *span),
             _ => panic!("ERROR: unexpected token {kind:?} at position {span:?}"),
         }
+    }
+
+    fn parse_if(&self, index: &mut usize) -> IfStmt {
+        let (condition_expr, _) = self.parse_expression(index);
+        let mut token = self.tokens.get(*index).unwrap();
+        if !matches!(token.kind, TokenType::Colon) {
+            panic!("Invalid syntax: expecting ':' got {:?}", token.kind)
+        }
+        *index += 1;
+
+        let block = self.parse_block(index);
+
+        let mut if_stmt = IfStmt {
+            condition: condition_expr,
+            elif_stms: vec![],
+            else_stmt: None,
+            span: Span {
+                start: 0,
+                end: block.span.end,
+            },
+            block,
+        };
+
+        token = self.tokens.get(*index).unwrap();
+        if token.kind == TokenType::Keyword(KeywordType::Elif) {
+            let mut elif_stms = Vec::new();
+
+            while token.kind == TokenType::Keyword(KeywordType::Elif) {
+                *index += 1;
+                let (condition_expr, _) = self.parse_expression(index);
+
+                token = self.tokens.get(*index).unwrap();
+                if !matches!(token.kind, TokenType::Colon) {
+                    panic!("Invalid syntax: expecting ':' got {:?}", token.kind)
+                }
+                *index += 1;
+
+                let elif_block = self.parse_block(index);
+                if_stmt.span.end = elif_block.span.end;
+                elif_stms.push(ElIfStmt {
+                    condition: condition_expr,
+                    span: Span {
+                        start: token.span.start,
+                        end: elif_block.span.end,
+                    },
+                    block: elif_block,
+                });
+
+                token = self.tokens.get(*index).unwrap();
+            }
+
+            if_stmt.elif_stms = elif_stms;
+        }
+
+        if token.kind == TokenType::Keyword(KeywordType::Else) {
+            *index += 1;
+            token = self.tokens.get(*index).unwrap();
+            if !matches!(token.kind, TokenType::Colon) {
+                panic!("Invalid syntax: expecting ':' got {:?}", token.kind)
+            }
+            *index += 1;
+            let else_block = self.parse_block(index);
+            if_stmt.span.end = else_block.span.end;
+            if_stmt.else_stmt = Some(ElseStmt {
+                span: Span {
+                    start: token.span.start,
+                    end: else_block.span.end,
+                },
+                block: else_block,
+            });
+        }
+
+        if_stmt
     }
 }

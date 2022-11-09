@@ -2,7 +2,7 @@
 mod tests_parser {
     use python_parser::{
         lexer::token::Span,
-        parser::{Assignment, Block, Expression, Function, ParsedFile, Parser, Statement},
+        parser::{Assignment, Block, ElIfStmt, ElseStmt, Expression, Function, IfStmt, ParsedFile, Parser, Statement},
     };
 
     #[test]
@@ -113,6 +113,160 @@ mod tests_parser {
                     },
                     span: Span { start: 0, end: 35 }
                 })]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_if() {
+        let parser = Parser::new(
+            "if True:
+    pass
+",
+        );
+
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::If(IfStmt {
+                    condition: Expression::Bool(true, Span { start: 3, end: 7 }),
+                    block: Block {
+                        stmts: vec![Statement::Pass(Span { start: 13, end: 17 })],
+                        span: Span { start: 13, end: 17 }
+                    },
+                    elif_stms: vec![],
+                    else_stmt: None,
+                    span: Span { start: 0, end: 17 }
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_if_else() {
+        let parser = Parser::new(
+            "if True:
+    pass
+else:
+    pass",
+        );
+
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::If(IfStmt {
+                    condition: Expression::Bool(true, Span { start: 3, end: 7 }),
+                    block: Block {
+                        stmts: vec![Statement::Pass(Span { start: 13, end: 17 })],
+                        span: Span { start: 13, end: 17 }
+                    },
+                    elif_stms: vec![],
+                    else_stmt: Some(ElseStmt {
+                        block: Block {
+                            stmts: vec![Statement::Pass(Span { start: 28, end: 32 })],
+                            span: Span { start: 28, end: 32 }
+                        },
+                        span: Span { start: 22, end: 32 },
+                    }),
+                    span: Span { start: 0, end: 32 }
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_if_elif() {
+        let parser = Parser::new(
+            "if True:
+    pass
+elif True:
+    pass
+elif True:
+    pass",
+        );
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::If(IfStmt {
+                    condition: Expression::Bool(true, Span { start: 3, end: 7 }),
+                    block: Block {
+                        stmts: vec![Statement::Pass(Span { start: 13, end: 17 })],
+                        span: Span { start: 13, end: 17 },
+                    },
+                    elif_stms: vec![
+                        ElIfStmt {
+                            condition: Expression::Bool(true, Span { start: 23, end: 27 }),
+                            block: Block {
+                                stmts: vec![Statement::Pass(Span { start: 33, end: 37 })],
+                                span: Span { start: 33, end: 37 },
+                            },
+                            span: Span { start: 27, end: 37 },
+                        },
+                        ElIfStmt {
+                            condition: Expression::Bool(true, Span { start: 43, end: 47 }),
+                            block: Block {
+                                stmts: vec![Statement::Pass(Span { start: 53, end: 57 })],
+                                span: Span { start: 53, end: 57 }
+                            },
+                            span: Span { start: 47, end: 57 },
+                        },
+                    ],
+                    else_stmt: None,
+                    span: Span { start: 0, end: 57 },
+                })],
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_if_elif_else() {
+        let parser = Parser::new(
+            "if True:
+    pass
+elif True:
+    pass
+elif True:
+    pass
+else:
+    pass",
+        );
+
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::If(IfStmt {
+                    condition: Expression::Bool(true, Span { start: 3, end: 7 }),
+                    block: Block {
+                        stmts: vec![Statement::Pass(Span { start: 13, end: 17 })],
+                        span: Span { start: 13, end: 17 },
+                    },
+                    elif_stms: vec![
+                        ElIfStmt {
+                            condition: Expression::Bool(true, Span { start: 23, end: 27 }),
+                            block: Block {
+                                stmts: vec![Statement::Pass(Span { start: 33, end: 37 })],
+                                span: Span { start: 33, end: 37 },
+                            },
+                            span: Span { start: 27, end: 37 },
+                        },
+                        ElIfStmt {
+                            condition: Expression::Bool(true, Span { start: 43, end: 47 }),
+                            block: Block {
+                                stmts: vec![Statement::Pass(Span { start: 53, end: 57 })],
+                                span: Span { start: 53, end: 57 }
+                            },
+                            span: Span { start: 47, end: 57 },
+                        },
+                    ],
+                    else_stmt: Some(ElseStmt {
+                        block: Block {
+                            stmts: vec![Statement::Pass(Span { start: 68, end: 72 })],
+                            span: Span { start: 68, end: 72 }
+                        },
+                        span: Span { start: 62, end: 72 },
+                    }),
+                    span: Span { start: 0, end: 72 },
+                })],
             }
         )
     }
