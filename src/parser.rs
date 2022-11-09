@@ -294,6 +294,7 @@ impl Parser {
                 *index += 1;
                 let (condition_expr, _) = self.parse_expression(index);
 
+                let elif_start = token.span.start;
                 token = self.tokens.get(*index).unwrap();
                 if !matches!(token.kind, TokenType::Colon) {
                     panic!("Invalid syntax: expecting ':' got {:?}", token.kind)
@@ -305,7 +306,7 @@ impl Parser {
                 elif_stms.push(ElIfStmt {
                     condition: condition_expr,
                     span: Span {
-                        start: token.span.start,
+                        start: elif_start,
                         end: elif_block.span.end,
                     },
                     block: elif_block,
@@ -319,6 +320,7 @@ impl Parser {
 
         if token.kind == TokenType::Keyword(KeywordType::Else) {
             *index += 1;
+            let else_start = token.span.start;
             token = self.tokens.get(*index).unwrap();
             if !matches!(token.kind, TokenType::Colon) {
                 panic!("Invalid syntax: expecting ':' got {:?}", token.kind)
@@ -328,7 +330,7 @@ impl Parser {
             if_stmt.span.end = else_block.span.end;
             if_stmt.else_stmt = Some(ElseStmt {
                 span: Span {
-                    start: token.span.start,
+                    start: else_start,
                     end: else_block.span.end,
                 },
                 block: else_block,

@@ -166,7 +166,7 @@ else:
                             stmts: vec![Statement::Pass(Span { start: 28, end: 32 })],
                             span: Span { start: 28, end: 32 }
                         },
-                        span: Span { start: 22, end: 32 },
+                        span: Span { start: 18, end: 32 },
                     }),
                     span: Span { start: 0, end: 32 }
                 })]
@@ -200,7 +200,7 @@ elif True:
                                 stmts: vec![Statement::Pass(Span { start: 33, end: 37 })],
                                 span: Span { start: 33, end: 37 },
                             },
-                            span: Span { start: 27, end: 37 },
+                            span: Span { start: 18, end: 37 },
                         },
                         ElIfStmt {
                             condition: Expression::Bool(true, Span { start: 43, end: 47 }),
@@ -208,7 +208,7 @@ elif True:
                                 stmts: vec![Statement::Pass(Span { start: 53, end: 57 })],
                                 span: Span { start: 53, end: 57 }
                             },
-                            span: Span { start: 47, end: 57 },
+                            span: Span { start: 38, end: 57 },
                         },
                     ],
                     else_stmt: None,
@@ -247,7 +247,7 @@ else:
                                 stmts: vec![Statement::Pass(Span { start: 33, end: 37 })],
                                 span: Span { start: 33, end: 37 },
                             },
-                            span: Span { start: 27, end: 37 },
+                            span: Span { start: 18, end: 37 },
                         },
                         ElIfStmt {
                             condition: Expression::Bool(true, Span { start: 43, end: 47 }),
@@ -255,7 +255,7 @@ else:
                                 stmts: vec![Statement::Pass(Span { start: 53, end: 57 })],
                                 span: Span { start: 53, end: 57 }
                             },
-                            span: Span { start: 47, end: 57 },
+                            span: Span { start: 38, end: 57 },
                         },
                     ],
                     else_stmt: Some(ElseStmt {
@@ -263,7 +263,7 @@ else:
                             stmts: vec![Statement::Pass(Span { start: 68, end: 72 })],
                             span: Span { start: 68, end: 72 }
                         },
-                        span: Span { start: 62, end: 72 },
+                        span: Span { start: 58, end: 72 },
                     }),
                     span: Span { start: 0, end: 72 },
                 })],
