@@ -169,10 +169,11 @@ impl Parser {
         let mut block = Block::new();
         block.span.start = self.tokens.get(*index).map(|token| token.span.start).unwrap();
 
-        while let Some(token_kind) = self.tokens.get(*index).map(|token| &token.kind) {
+        while let Some(mut token_kind) = self.tokens.get(*index).map(|token| &token.kind) {
             // Not sure if this should be here or in the parse_statements
             if *token_kind == TokenType::NewLine {
                 *index += 1;
+                token_kind = self.tokens.get(*index).map(|token| &token.kind).unwrap();
             }
 
             if *token_kind == TokenType::Dedent {
