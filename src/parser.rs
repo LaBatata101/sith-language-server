@@ -14,6 +14,7 @@ pub enum Statement {
     If(IfStmt),
     Assignment(Assignment, Expression),
     Pass(Span),
+    While(While),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -42,6 +43,13 @@ pub struct ElIfStmt {
 #[derive(Debug, PartialEq, Eq)]
 pub struct ElseStmt {
     pub block: Block,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct While {
+    pub condition: Expression,
+    pub else_stmt: Option<ElseStmt>,
     pub span: Span,
 }
 
@@ -262,6 +270,13 @@ impl Parser {
 
                 (Statement::If(if_stmt), if_span)
             }
+            TokenType::Keyword(KeywordType::While) => {
+                let mut while_stmt = self.parse_while(index);
+                while_stmt.span.start = span.start;
+                let while_span = while_stmt.span;
+
+                (Statement::While(while_stmt), while_span)
+            }
             TokenType::Keyword(KeywordType::Pass) => (Statement::Pass(*span), *span),
             _ => panic!("ERROR: unexpected token {kind:?} at position {span:?}"),
         }
@@ -340,5 +355,47 @@ impl Parser {
         }
 
         if_stmt
+    }
+
+    fn parse_while(&self, index: &mut usize) -> While {
+        let (condition_expr, _) = self.parse_expression(index);
+        let mut token = self.tokens.get(*index).unwrap();
+        if !matches!(token.kind, TokenType::Colon) {
+            panic!("Invalid syntax: expecting ':' got {:?}", token.kind)
+        }
+        *index += 1;
+
+        let while_block = self.parse_block(index);
+
+        let mut while_stmt = While {
+            condition: condition_expr,
+            else_stmt: None,
+            span: Span {
+                start: 0,
+                end: while_block.span.end,
+            },
+        };
+
+        token = self.tokens.get(*index).unwrap();
+        if token.kind == TokenType::Keyword(KeywordType::Else) {
+            *index += 1;
+            let else_start = token.span.start;
+            token = self.tokens.get(*index).unwrap();
+            if !matches!(token.kind, TokenType::Colon) {
+                panic!("Invalid syntax: expecting ':' got {:?}", token.kind)
+            }
+            *index += 1;
+            let else_block = self.parse_block(index);
+            while_stmt.span.end = else_block.span.end;
+            while_stmt.else_stmt = Some(ElseStmt {
+                span: Span {
+                    start: else_start,
+                    end: else_block.span.end,
+                },
+                block: else_block,
+            });
+        }
+
+        while_stmt
     }
 }

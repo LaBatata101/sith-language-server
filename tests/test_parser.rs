@@ -2,7 +2,9 @@
 mod tests_parser {
     use python_parser::{
         lexer::token::Span,
-        parser::{Assignment, Block, ElIfStmt, ElseStmt, Expression, Function, IfStmt, ParsedFile, Parser, Statement},
+        parser::{
+            Assignment, Block, ElIfStmt, ElseStmt, Expression, Function, IfStmt, ParsedFile, Parser, Statement, While,
+        },
     };
 
     #[test]
@@ -267,6 +269,53 @@ else:
                     }),
                     span: Span { start: 0, end: 72 },
                 })],
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_while() {
+        let parser = Parser::new(
+            "while True:
+    pass
+",
+        );
+
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::While(While {
+                    condition: Expression::Bool(true, Span { start: 6, end: 10 }),
+                    else_stmt: None,
+                    span: Span { start: 0, end: 20 }
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_while_else() {
+        let parser = Parser::new(
+            "while True:
+    pass
+else:
+    pass",
+        );
+
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::While(While {
+                    condition: Expression::Bool(true, Span { start: 6, end: 10 },),
+                    else_stmt: Some(ElseStmt {
+                        block: Block {
+                            stmts: vec![Statement::Pass(Span { start: 31, end: 35 },),],
+                            span: Span { start: 31, end: 35 },
+                        },
+                        span: Span { start: 21, end: 35 },
+                    },),
+                    span: Span { start: 0, end: 35 },
+                })]
             }
         )
     }
