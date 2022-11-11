@@ -352,7 +352,7 @@ impl<'a> Lexer<'a> {
             ('<', _) => (TokenType::Operator(OperatorType::LessThan), 1),
             ('=', _) => (TokenType::Operator(OperatorType::Assign), 1),
             ('>', _) => (TokenType::Operator(OperatorType::GreaterThan), 1),
-            ('^', _) => (TokenType::Operator(OperatorType::BitwiseXOr), 1),
+            ('^', _) => (TokenType::Operator(OperatorType::BitwiseXOR), 1),
             ('|', _) => (TokenType::Operator(OperatorType::BitwiseOr), 1),
             ('~', _) => (TokenType::Operator(OperatorType::BitwiseNot), 1),
             ('@', _) => (TokenType::Operator(OperatorType::At), 1),

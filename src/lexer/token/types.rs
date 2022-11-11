@@ -44,7 +44,7 @@ pub enum OperatorType {
     BitwiseOrEqual,
     BitwiseRightShift,
     BitwiseRightShiftEqual,
-    BitwiseXOr,
+    BitwiseXOR,
     BitwiseXOrEqual,
     ColonEqual,
     Divide,
