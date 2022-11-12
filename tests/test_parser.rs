@@ -3,7 +3,8 @@ mod tests_parser {
     use python_parser::{
         lexer::token::Span,
         parser::{
-            Assignment, Block, ElIfStmt, ElseStmt, Expression, Function, IfStmt, ParsedFile, Parser, Statement, While,
+            Assignment, BinaryOperator, Block, ElIfStmt, ElseStmt, Expression, Function, IfStmt, ParsedFile, Parser,
+            Statement, UnaryOperator, While,
         },
     };
 
@@ -316,6 +317,259 @@ else:
                     },),
                     span: Span { start: 0, end: 35 },
                 })]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_expression() {
+        let parser = Parser::new("x = 1 + 2 + 3");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::Assignment(
+                    Assignment::new("x".to_string(), Span { start: 0, end: 13 }),
+                    Expression::BinaryOp(
+                        Box::new(Expression::BinaryOp(
+                            Box::new(Expression::Number("1".to_string(), Span { start: 4, end: 5 })),
+                            BinaryOperator::Add,
+                            Box::new(Expression::Number("2".to_string(), Span { start: 8, end: 9 })),
+                            Span { start: 4, end: 9 },
+                        )),
+                        BinaryOperator::Add,
+                        Box::new(Expression::Number("3".to_string(), Span { start: 12, end: 13 })),
+                        Span { start: 4, end: 13 },
+                    )
+                )]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_expression2() {
+        let parser = Parser::new("x = 1 + 2 * 3 / 2");
+
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::Assignment(
+                    Assignment::new("x".to_string(), Span { start: 0, end: 17 }),
+                    Expression::BinaryOp(
+                        Box::new(Expression::Number("1".to_string(), Span { start: 4, end: 5 })),
+                        BinaryOperator::Add,
+                        Box::new(Expression::BinaryOp(
+                            Box::new(Expression::BinaryOp(
+                                Box::new(Expression::Number("2".to_string(), Span { start: 8, end: 9 })),
+                                BinaryOperator::Multiply,
+                                Box::new(Expression::Number("3".to_string(), Span { start: 12, end: 13 })),
+                                Span { start: 8, end: 13 }
+                            )),
+                            BinaryOperator::Divide,
+                            Box::new(Expression::Number("2".to_string(), Span { start: 16, end: 17 })),
+                            Span { start: 8, end: 17 }
+                        )),
+                        Span { start: 4, end: 17 }
+                    )
+                )]
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_expression3() {
+        let parser = Parser::new("x = 3 + -5");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::Assignment(
+                    Assignment::new("x".to_string(), Span { start: 0, end: 10 }),
+                    Expression::BinaryOp(
+                        Box::new(Expression::Number("3".to_string(), Span { start: 4, end: 5 })),
+                        BinaryOperator::Add,
+                        Box::new(Expression::UnaryOp(
+                            Box::new(Expression::Number("5".to_string(), Span { start: 9, end: 10 })),
+                            UnaryOperator::Minus,
+                            Span { start: 8, end: 10 }
+                        )),
+                        Span { start: 4, end: 10 },
+                    )
+                )]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_expression4() {
+        let parser = Parser::new("x = not 3 + -5");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::Assignment(
+                    Assignment::new("x".to_string(), Span { start: 0, end: 14 }),
+                    Expression::UnaryOp(
+                        Box::new(Expression::BinaryOp(
+                            Box::new(Expression::Number("3".to_string(), Span { start: 8, end: 9 })),
+                            BinaryOperator::Add,
+                            Box::new(Expression::UnaryOp(
+                                Box::new(Expression::Number("5".to_string(), Span { start: 13, end: 14 })),
+                                UnaryOperator::Minus,
+                                Span { start: 12, end: 14 }
+                            )),
+                            Span { start: 8, end: 14 }
+                        )),
+                        UnaryOperator::LogicalNot,
+                        Span { start: 4, end: 14 }
+                    )
+                )]
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_expression5() {
+        let parser = Parser::new("x = x + +5");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::Assignment(
+                    Assignment::new("x".to_string(), Span { start: 0, end: 10 }),
+                    Expression::BinaryOp(
+                        Box::new(Expression::Id("x".to_string(), Span { start: 4, end: 5 })),
+                        BinaryOperator::Add,
+                        Box::new(Expression::UnaryOp(
+                            Box::new(Expression::Number("5".to_string(), Span { start: 9, end: 10 })),
+                            UnaryOperator::Plus,
+                            Span { start: 8, end: 10 }
+                        )),
+                        Span { start: 4, end: 10 }
+                    )
+                )]
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_expression6() {
+        let parser = Parser::new("a = x < y or 69 > 9 and not 101 >> 666");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::Assignment(
+                    Assignment::new("a".to_string(), Span { start: 0, end: 38 }),
+                    Expression::BinaryOp(
+                        Box::new(Expression::BinaryOp(
+                            Box::new(Expression::Id("x".to_string(), Span { start: 4, end: 5 })),
+                            BinaryOperator::LessThan,
+                            Box::new(Expression::Id("y".to_string(), Span { start: 8, end: 9 })),
+                            Span { start: 4, end: 9 }
+                        )),
+                        BinaryOperator::LogicalOr,
+                        Box::new(Expression::BinaryOp(
+                            Box::new(Expression::BinaryOp(
+                                Box::new(Expression::Number("69".to_string(), Span { start: 13, end: 15 })),
+                                BinaryOperator::GreaterThan,
+                                Box::new(Expression::Number("9".to_string(), Span { start: 18, end: 19 })),
+                                Span { start: 13, end: 19 }
+                            )),
+                            BinaryOperator::LogicalAnd,
+                            Box::new(Expression::UnaryOp(
+                                Box::new(Expression::BinaryOp(
+                                    Box::new(Expression::Number("101".to_string(), Span { start: 28, end: 31 })),
+                                    BinaryOperator::BitwiseRightShift,
+                                    Box::new(Expression::Number("666".to_string(), Span { start: 35, end: 38 })),
+                                    Span { start: 28, end: 38 }
+                                )),
+                                UnaryOperator::LogicalNot,
+                                Span { start: 24, end: 38 }
+                            )),
+                            Span { start: 13, end: 38 }
+                        )),
+                        Span { start: 4, end: 38 }
+                    )
+                )]
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_expression7() {
+        let parser = Parser::new("x = a.b.c");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::Assignment(
+                    Assignment::new("x".to_string(), Span { start: 0, end: 9 }),
+                    Expression::BinaryOp(
+                        Box::new(Expression::Id("a".to_string(), Span { start: 4, end: 5 })),
+                        BinaryOperator::AttributeRef,
+                        Box::new(Expression::BinaryOp(
+                            Box::new(Expression::Id("b".to_string(), Span { start: 6, end: 7 })),
+                            BinaryOperator::AttributeRef,
+                            Box::new(Expression::Id("c".to_string(), Span { start: 8, end: 9 })),
+                            Span { start: 6, end: 9 }
+                        )),
+                        Span { start: 4, end: 9 }
+                    )
+                )]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_expression8() {
+        let parser = Parser::new("x = hello()");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::Assignment(
+                    Assignment::new("x".to_string(), Span { start: 0, end: 9 }),
+                    Expression::Call(
+                        Box::new(Expression::Id("hello".to_string(), Span { start: 4, end: 9 })),
+                        Span { start: 4, end: 9 }
+                    )
+                )]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_expression9() {
+        let parser = Parser::new("x = l[1 + 2]");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::Assignment(
+                    Assignment::new("x".to_string(), Span { start: 0, end: 5 }),
+                    Expression::Slice(
+                        Box::new(Expression::Id("l".to_string(), Span { start: 4, end: 5 })),
+                        Box::new(Expression::BinaryOp(
+                            Box::new(Expression::Number("1".to_string(), Span { start: 6, end: 7 })),
+                            BinaryOperator::Add,
+                            Box::new(Expression::Number("2".to_string(), Span { start: 10, end: 11 })),
+                            Span { start: 6, end: 11 }
+                        )),
+                        Span { start: 4, end: 12 }
+                    )
+                )]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_expression10() {
+        let parser = Parser::new("x = a not in b");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::Assignment(
+                    Assignment::new("x".to_string(), Span { start: 0, end: 14 }),
+                    Expression::BinaryOp(
+                        Box::new(Expression::Id("a".to_string(), Span { start: 4, end: 5 })),
+                        BinaryOperator::NotIn,
+                        Box::new(Expression::Id("b".to_string(), Span { start: 13, end: 14 })),
+                        Span { start: 4, end: 14 }
+                    )
+                )]
             }
         )
     }
