@@ -613,7 +613,7 @@ else:
             parser.parse(),
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 38 }),
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 39 }),
                     Expression::Tuple(
                         vec![
                             Expression::BinaryOp(
@@ -634,7 +634,7 @@ else:
                                 Span { start: 32, end: 36 }
                             )
                         ],
-                        Span { start: 4, end: 38 }
+                        Span { start: 4, end: 39 }
                     )
                 )]
             }

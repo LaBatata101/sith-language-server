@@ -480,7 +480,7 @@ impl Parser {
         );
         *index += 1;
 
-        tuple_span.end = self.tokens.get(*index).map(|token| token.span.end).unwrap();
+        tuple_span.end = self.tokens.get(*index).map(|token| token.span.end).unwrap() + 1;
 
         (Expression::Tuple(expressions, tuple_span), tuple_span)
     }
