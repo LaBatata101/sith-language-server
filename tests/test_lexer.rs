@@ -576,4 +576,70 @@ for i in range(len(l)):             # error: not indented
             ]
         )
     }
+
+    #[test]
+    fn test_lex_explicit_line_joining() {
+        let mut lexer = Lexer::new(
+            "if True and \\
+            True:\n    pass",
+        );
+        lexer.tokenize();
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token::new(TokenType::Keyword(KeywordType::If), 0, 2),
+                Token::new(TokenType::Keyword(KeywordType::True), 3, 7),
+                Token::new(TokenType::Keyword(KeywordType::And), 8, 11),
+                Token::new(TokenType::Keyword(KeywordType::True), 26, 30),
+                Token::new(TokenType::Colon, 30, 31),
+                Token::new(TokenType::NewLine, 31, 32),
+                Token::new(TokenType::Ident, 0, 0),
+                Token::new(TokenType::Keyword(KeywordType::Pass), 36, 40),
+                Token::new(TokenType::Dedent, 0, 0),
+                Token::new(TokenType::Eof, 40, 41),
+            ]
+        )
+    }
+
+    #[test]
+    fn test_lex_explicit_line_joining_str() {
+        let mut lexer = Lexer::new(
+            "\"Hello \\
+World!\"",
+        );
+        lexer.tokenize();
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token::new(TokenType::String("Hello World!".to_string()), 0, 16),
+                Token::new(TokenType::Eof, 16, 17)
+            ]
+        );
+    }
+
+    #[test]
+    fn test_lex_explicit_line_joining_str2() {
+        let mut lexer = Lexer::new(
+            "\"\\\"Hello \\
+World!\\\"\"",
+        );
+        lexer.tokenize();
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token::new(TokenType::String("\\\"Hello World!\\\"".to_string()), 0, 20),
+                Token::new(TokenType::Eof, 20, 21)
+            ]
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "Missing closing quote \"!")]
+    fn test_lex_explicit_line_joining_str3() {
+        let mut lexer = Lexer::new(
+            "\"Hello \\
+",
+        );
+        lexer.tokenize();
+    }
 }

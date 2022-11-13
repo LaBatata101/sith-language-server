@@ -123,6 +123,14 @@ impl<'a> Lexer<'a> {
 
                     self.handle_indentation(whitespace_total);
                 }
+                '\\' => {
+                    if self.cs.next_char().map_or(false, |char| char == '\n') {
+                        self.cs.advance_by(2);
+                    } else {
+                        panic!("SyntaxError: unexpected character after line continuation character");
+                    }
+                }
+
                 c => self.lex_single_char(TokenType::Invalid(c)),
             }
         }
@@ -254,6 +262,8 @@ impl<'a> Lexer<'a> {
     // TODO: Define a different string type for string prefixes
     //https://docs.python.org/3/reference/lexical_analysis.html#string-and-bytes-literals
     fn lex_string(&mut self) {
+        let mut has_explicit_line_join = false;
+        let mut backslash_positions = vec![];
         let mut start_quote_total = 0;
         let mut end_quote_total = 0;
 
@@ -268,14 +278,23 @@ impl<'a> Lexer<'a> {
         }
 
         while self.cs.current_char().map_or(false, |char| char != quote_char) {
-            // Skip escaped `quote_char`
-            if self.cs.current_char().map_or(false, |char| char == '\\')
-                && self.cs.next_char().map_or(false, |char| char == quote_char)
-            {
-                self.cs.advance_by(2);
-                continue;
-            }
+            // If current char is \ and next is \n then join line
+            // create flag for the presence of \ and \n, and store the index of the \ and after the \n
 
+            if self.cs.current_char().map_or(false, |char| char == '\\') {
+                // store the backslashes positions
+                if self.cs.next_char().map_or(false, |char| char == '\n') {
+                    has_explicit_line_join = true;
+                    backslash_positions.push(self.cs.pos());
+                    self.cs.advance_by(2);
+                }
+
+                // Skip escaped `quote_char`
+                if self.cs.next_char().map_or(false, |char| char == quote_char) {
+                    self.cs.advance_by(2);
+                    continue;
+                }
+            }
             self.cs.advance_by(1);
         }
 
@@ -290,18 +309,44 @@ impl<'a> Lexer<'a> {
             panic!("Missing closing quote {quote_char}!")
         }
 
-        self.tokens.push(Token::new(
-            TokenType::String(
-                String::from_utf8_lossy(
+        if has_explicit_line_join {
+            let mut str_bytes = vec![];
+            // string literals are the only type of Token that can be split accross lines,
+            // so we need to take every string char until the backslash, for every string line that
+            // has a backslash, to join as one string.
+            for backslash_position in &backslash_positions {
+                str_bytes.extend_from_slice(
                     self.cs
-                        .get_slice(start + start_quote_total..end - end_quote_total)
+                        .get_slice(start + start_quote_total..*backslash_position)
                         .unwrap(),
-                )
-                .into(),
-            ),
-            start,
-            end,
-        ));
+                );
+            }
+            // Here we join the last string line that doesn't have the backslash.
+            str_bytes.extend_from_slice(
+                self.cs
+                    .get_slice(*backslash_positions.last().unwrap() + 2..end - end_quote_total)
+                    .unwrap(),
+            );
+
+            self.tokens.push(Token::new(
+                TokenType::String(String::from_utf8(str_bytes).unwrap()),
+                start,
+                end,
+            ));
+        } else {
+            self.tokens.push(Token::new(
+                TokenType::String(
+                    String::from_utf8_lossy(
+                        self.cs
+                            .get_slice(start + start_quote_total..end - end_quote_total)
+                            .unwrap(),
+                    )
+                    .into(),
+                ),
+                start,
+                end,
+            ));
+        }
     }
 
     fn lex_operator(&mut self) {
