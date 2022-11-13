@@ -12,7 +12,7 @@ pub enum Statement {
     Block(Block),
     FunctionDef(Function),
     If(IfStmt),
-    Assignment(Assignment, Expression),
+    VarAsgmt(VarAsgmt, Expression),
     Pass(Span),
     While(While),
 }
@@ -129,12 +129,12 @@ pub struct While {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct Assignment {
+pub struct VarAsgmt {
     name: String,
     span: Span,
 }
 
-impl Assignment {
+impl VarAsgmt {
     pub fn new(name: String, span: Span) -> Self {
         Self { name, span }
     }
@@ -415,9 +415,9 @@ impl Parser {
                     start: token.span.start,
                     end: expr_span.end,
                 };
-                let assign = Assignment::new(name.clone(), assign_span);
+                let assign = VarAsgmt::new(name.clone(), assign_span);
 
-                (Statement::Assignment(assign, expr), assign_span)
+                (Statement::VarAsgmt(assign, expr), assign_span)
             }
             TokenType::Keyword(KeywordType::Def) => {
                 if let Some(Token {

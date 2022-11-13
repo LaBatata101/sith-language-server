@@ -3,8 +3,8 @@ mod tests_parser {
     use python_parser::{
         lexer::token::Span,
         parser::{
-            Assignment, BinaryOperator, Block, ElIfStmt, ElseStmt, Expression, Function, IfStmt, ParsedFile, Parser,
-            Statement, UnaryOperator, While,
+            BinaryOperator, Block, ElIfStmt, ElseStmt, Expression, Function, IfStmt, ParsedFile, Parser, Statement,
+            UnaryOperator, VarAsgmt, While,
         },
     };
 
@@ -14,8 +14,8 @@ mod tests_parser {
         assert_eq!(
             parser.parse(),
             ParsedFile {
-                stmts: vec![Statement::Assignment(
-                    Assignment::new("test".to_string(), Span { start: 0, end: 21 }),
+                stmts: vec![Statement::VarAsgmt(
+                    VarAsgmt::new("test".to_string(), Span { start: 0, end: 21 }),
                     Expression::String("Hello World!".to_string(), Span { start: 7, end: 21 })
                 )]
             }
@@ -29,12 +29,12 @@ mod tests_parser {
             parser.parse(),
             ParsedFile {
                 stmts: vec![
-                    Statement::Assignment(
-                        Assignment::new("test".to_string(), Span { start: 0, end: 9 }),
+                    Statement::VarAsgmt(
+                        VarAsgmt::new("test".to_string(), Span { start: 0, end: 9 }),
                         Expression::Number("42".to_string(), Span { start: 7, end: 9 })
                     ),
-                    Statement::Assignment(
-                        Assignment::new("x".to_string(), Span { start: 11, end: 17 }),
+                    Statement::VarAsgmt(
+                        VarAsgmt::new("x".to_string(), Span { start: 11, end: 17 }),
                         Expression::Number("12".to_string(), Span { start: 15, end: 17 })
                     )
                 ]
@@ -49,12 +49,12 @@ mod tests_parser {
             parser.parse(),
             ParsedFile {
                 stmts: vec![
-                    Statement::Assignment(
-                        Assignment::new("x".to_string(), Span { start: 0, end: 8 }),
+                    Statement::VarAsgmt(
+                        VarAsgmt::new("x".to_string(), Span { start: 0, end: 8 }),
                         Expression::Bool(true, Span { start: 4, end: 8 })
                     ),
-                    Statement::Assignment(
-                        Assignment::new("y".to_string(), Span { start: 9, end: 18 }),
+                    Statement::VarAsgmt(
+                        VarAsgmt::new("y".to_string(), Span { start: 9, end: 18 }),
                         Expression::Bool(false, Span { start: 13, end: 18 })
                     )
                 ]
@@ -327,8 +327,8 @@ else:
         assert_eq!(
             parser.parse(),
             ParsedFile {
-                stmts: vec![Statement::Assignment(
-                    Assignment::new("x".to_string(), Span { start: 0, end: 13 }),
+                stmts: vec![Statement::VarAsgmt(
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 13 }),
                     Expression::BinaryOp(
                         Box::new(Expression::BinaryOp(
                             Box::new(Expression::Number("1".to_string(), Span { start: 4, end: 5 })),
@@ -352,8 +352,8 @@ else:
         assert_eq!(
             parser.parse(),
             ParsedFile {
-                stmts: vec![Statement::Assignment(
-                    Assignment::new("x".to_string(), Span { start: 0, end: 17 }),
+                stmts: vec![Statement::VarAsgmt(
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 17 }),
                     Expression::BinaryOp(
                         Box::new(Expression::Number("1".to_string(), Span { start: 4, end: 5 })),
                         BinaryOperator::Add,
@@ -381,8 +381,8 @@ else:
         assert_eq!(
             parser.parse(),
             ParsedFile {
-                stmts: vec![Statement::Assignment(
-                    Assignment::new("x".to_string(), Span { start: 0, end: 10 }),
+                stmts: vec![Statement::VarAsgmt(
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 10 }),
                     Expression::BinaryOp(
                         Box::new(Expression::Number("3".to_string(), Span { start: 4, end: 5 })),
                         BinaryOperator::Add,
@@ -404,8 +404,8 @@ else:
         assert_eq!(
             parser.parse(),
             ParsedFile {
-                stmts: vec![Statement::Assignment(
-                    Assignment::new("x".to_string(), Span { start: 0, end: 14 }),
+                stmts: vec![Statement::VarAsgmt(
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 14 }),
                     Expression::UnaryOp(
                         Box::new(Expression::BinaryOp(
                             Box::new(Expression::Number("3".to_string(), Span { start: 8, end: 9 })),
@@ -431,8 +431,8 @@ else:
         assert_eq!(
             parser.parse(),
             ParsedFile {
-                stmts: vec![Statement::Assignment(
-                    Assignment::new("x".to_string(), Span { start: 0, end: 10 }),
+                stmts: vec![Statement::VarAsgmt(
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 10 }),
                     Expression::BinaryOp(
                         Box::new(Expression::Id("x".to_string(), Span { start: 4, end: 5 })),
                         BinaryOperator::Add,
@@ -454,8 +454,8 @@ else:
         assert_eq!(
             parser.parse(),
             ParsedFile {
-                stmts: vec![Statement::Assignment(
-                    Assignment::new("a".to_string(), Span { start: 0, end: 38 }),
+                stmts: vec![Statement::VarAsgmt(
+                    VarAsgmt::new("a".to_string(), Span { start: 0, end: 38 }),
                     Expression::BinaryOp(
                         Box::new(Expression::BinaryOp(
                             Box::new(Expression::Id("x".to_string(), Span { start: 4, end: 5 })),
@@ -497,8 +497,8 @@ else:
         assert_eq!(
             parser.parse(),
             ParsedFile {
-                stmts: vec![Statement::Assignment(
-                    Assignment::new("x".to_string(), Span { start: 0, end: 9 }),
+                stmts: vec![Statement::VarAsgmt(
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 9 }),
                     Expression::BinaryOp(
                         Box::new(Expression::Id("a".to_string(), Span { start: 4, end: 5 })),
                         BinaryOperator::AttributeRef,
@@ -521,8 +521,8 @@ else:
         assert_eq!(
             parser.parse(),
             ParsedFile {
-                stmts: vec![Statement::Assignment(
-                    Assignment::new("x".to_string(), Span { start: 0, end: 9 }),
+                stmts: vec![Statement::VarAsgmt(
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 9 }),
                     Expression::Call(
                         Box::new(Expression::Id("hello".to_string(), Span { start: 4, end: 9 })),
                         Span { start: 4, end: 9 }
@@ -538,8 +538,8 @@ else:
         assert_eq!(
             parser.parse(),
             ParsedFile {
-                stmts: vec![Statement::Assignment(
-                    Assignment::new("x".to_string(), Span { start: 0, end: 5 }),
+                stmts: vec![Statement::VarAsgmt(
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 5 }),
                     Expression::Slice(
                         Box::new(Expression::Id("l".to_string(), Span { start: 4, end: 5 })),
                         Box::new(Expression::BinaryOp(
@@ -561,8 +561,8 @@ else:
         assert_eq!(
             parser.parse(),
             ParsedFile {
-                stmts: vec![Statement::Assignment(
-                    Assignment::new("x".to_string(), Span { start: 0, end: 14 }),
+                stmts: vec![Statement::VarAsgmt(
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 14 }),
                     Expression::BinaryOp(
                         Box::new(Expression::Id("a".to_string(), Span { start: 4, end: 5 })),
                         BinaryOperator::NotIn,
@@ -580,8 +580,8 @@ else:
         assert_eq!(
             parser.parse(),
             ParsedFile {
-                stmts: vec![Statement::Assignment(
-                    Assignment::new("x".to_string(), Span { start: 0, end: 22 }),
+                stmts: vec![Statement::VarAsgmt(
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 22 }),
                     Expression::BinaryOp(
                         Box::new(Expression::BinaryOp(
                             Box::new(Expression::BinaryOp(
