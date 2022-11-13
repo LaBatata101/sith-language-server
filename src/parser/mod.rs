@@ -63,6 +63,7 @@ impl Parser {
             TokenType::Operator(OperatorType::Plus | OperatorType::Minus | OperatorType::BitwiseNot)
             | TokenType::Keyword(KeywordType::Not) => self.parse_unary_operator(index, token),
             TokenType::OpenParenthesis => self.parse_parenthesized_expr(index, token),
+            TokenType::OpenBrackets => self.parse_list_expr(index),
             TokenType::NewLine | TokenType::SemiColon | TokenType::Eof => panic!("Invalid syntax!"),
             _ => panic!("ERROR: Unexpected token! {token:?}"),
         };
@@ -483,6 +484,42 @@ impl Parser {
         tuple_span.end = self.tokens.get(*index).map(|token| token.span.end).unwrap() + 1;
 
         (Expression::Tuple(expressions, tuple_span), tuple_span)
+    }
+
+    fn parse_list_expr(&self, index: &mut usize) -> (Expression, Span) {
+        *index += 1;
+
+        let (lhs, lhs_span) = self.pratt_parsing(index, 0);
+        let mut expressions = vec![lhs];
+        let mut last_expr_span = Span { start: 0, end: 0 };
+        let mut list_span = Span {
+            start: lhs_span.start - 1,
+            end: 0,
+        };
+
+        while self
+            .tokens
+            .get(*index)
+            .map_or(false, |token| token.kind == TokenType::Comma)
+        {
+            *index += 1;
+            let (expr, expr_span) = self.pratt_parsing(index, 0);
+            last_expr_span = expr_span;
+            expressions.push(expr);
+        }
+
+        assert_eq!(
+            self.tokens.get(*index).map(|token| &token.kind),
+            Some(&TokenType::CloseBrackets),
+            "Expecting a \")\"! at position: {}",
+            // FIXME: Showing incorrect position
+            last_expr_span.end + 1
+        );
+        *index += 1;
+
+        list_span.end = self.tokens.get(*index).map(|token| token.span.end).unwrap() + 1;
+
+        (Expression::List(expressions, list_span), list_span)
     }
 
     fn get_expr_operation(&self, token: &Token, index: &mut usize) -> Operation {

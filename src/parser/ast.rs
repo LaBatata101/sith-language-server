@@ -21,6 +21,7 @@ pub enum Expression {
     Id(String, Span),
     Call(Box<Expression>, Span),
     Slice(Box<Expression>, Box<Expression>, Span),
+    List(Vec<Expression>, Span),
     Tuple(Vec<Expression>, Span),
 }
 
