@@ -11,7 +11,7 @@ pub enum TokenType {
     Eof,
     Ellipsis,
     Id(String),
-    Ident,
+    Indent,
     Invalid(char),
     Keyword(KeywordType),
     NewLine,

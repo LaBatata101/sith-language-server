@@ -174,7 +174,7 @@ impl<'a> Lexer<'a> {
             }
             std::cmp::Ordering::Greater => {
                 self.indent_stack.push(whitespace_total);
-                self.tokens.push(Token::new(TokenType::Ident, 0, 0));
+                self.tokens.push(Token::new(TokenType::Indent, 0, 0));
             }
             std::cmp::Ordering::Equal => (), // Do nothing!
         }

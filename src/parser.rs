@@ -349,7 +349,7 @@ impl Parser {
         }
         *index += 1;
         token = self.tokens.get(*index).unwrap();
-        if !matches!(token.kind, TokenType::Ident) {
+        if !matches!(token.kind, TokenType::Indent) {
             panic!("Expected a indented block!")
         }
         *index += 1;
