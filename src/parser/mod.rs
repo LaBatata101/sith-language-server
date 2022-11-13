@@ -62,18 +62,7 @@ impl Parser {
             TokenType::Keyword(KeywordType::False) => (Expression::Bool(false, token.span), token.span),
             TokenType::Operator(OperatorType::Plus | OperatorType::Minus | OperatorType::BitwiseNot)
             | TokenType::Keyword(KeywordType::Not) => self.parse_unary_operator(index, token),
-            TokenType::OpenParenthesis => {
-                *index += 1;
-                let (lhs, lhs_span) = self.pratt_parsing(index, 0);
-                assert_eq!(
-                    self.tokens.get(*index).map(|token| &token.kind),
-                    Some(&TokenType::CloseParenthesis),
-                    "Expecting a \")\"! at position: {}",
-                    lhs_span.end + 1
-                );
-
-                (lhs, lhs_span)
-            }
+            TokenType::OpenParenthesis => self.parse_parenthesized_expr(index, token),
             TokenType::NewLine | TokenType::SemiColon | TokenType::Eof => panic!("Invalid syntax!"),
             _ => panic!("ERROR: Unexpected token! {token:?}"),
         };
@@ -426,6 +415,74 @@ impl Parser {
             Expression::UnaryOp(Box::new(rhs), op.get_unary_op(), rhs_span),
             rhs_span,
         )
+    }
+
+    fn parse_parenthesized_expr(&self, index: &mut usize, token: &Token) -> (Expression, Span) {
+        *index += 1;
+        let paren_span_start = token.span.start;
+        let next_token = self.tokens.get(*index).unwrap();
+
+        if next_token.kind == TokenType::Operator(OperatorType::Asterisk) {
+            panic!("SyntaxError: cannot use starred expression inside parenthesis!");
+        } else if next_token.kind == TokenType::Operator(OperatorType::Exponent) {
+            panic!("SyntaxError: cannot use double starred expression inside parenthesis!");
+        }
+
+        let (lhs, lhs_span) = self.pratt_parsing(index, 0);
+        if self
+            .tokens
+            .get(*index)
+            .map_or(false, |token| token.kind == TokenType::Comma)
+        {
+            return self.parse_tuple_expression(index, lhs, paren_span_start);
+        }
+        assert_eq!(
+            self.tokens.get(*index).map(|token| &token.kind),
+            Some(&TokenType::CloseParenthesis),
+            // FIXME: Showing incorrect position
+            "Expecting a \")\"! at position: {}",
+            lhs_span.end + 1
+        );
+
+        (lhs, lhs_span)
+    }
+
+    fn parse_tuple_expression(
+        &self,
+        index: &mut usize,
+        first_expr: Expression,
+        tuple_span_start: usize,
+    ) -> (Expression, Span) {
+        let mut expressions = vec![first_expr];
+        let mut tuple_span = Span {
+            start: tuple_span_start,
+            end: 0,
+        };
+        let mut last_expr_span = Span { start: 0, end: 0 };
+
+        while self
+            .tokens
+            .get(*index)
+            .map_or(false, |token| token.kind == TokenType::Comma)
+        {
+            *index += 1;
+            let (expr, expr_span) = self.pratt_parsing(index, 0);
+            last_expr_span = expr_span;
+            expressions.push(expr);
+        }
+
+        assert_eq!(
+            self.tokens.get(*index).map(|token| &token.kind),
+            Some(&TokenType::CloseParenthesis),
+            "Expecting a \")\"! at position: {}",
+            // FIXME: Showing incorrect position
+            last_expr_span.end + 1
+        );
+        *index += 1;
+
+        tuple_span.end = self.tokens.get(*index).map(|token| token.span.end).unwrap();
+
+        (Expression::Tuple(expressions, tuple_span), tuple_span)
     }
 
     fn get_expr_operation(&self, token: &Token, index: &mut usize) -> Operation {

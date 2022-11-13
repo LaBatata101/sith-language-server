@@ -605,4 +605,39 @@ else:
             }
         );
     }
+
+    #[test]
+    fn test_parse_tuple_expression() {
+        let parser = Parser::new("x = (1 + 2, True, y(), \"Hello\", l[i])");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::VarAsgmt(
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 38 }),
+                    Expression::Tuple(
+                        vec![
+                            Expression::BinaryOp(
+                                Box::new(Expression::Number("1".to_string(), Span { start: 5, end: 6 })),
+                                BinaryOperator::Add,
+                                Box::new(Expression::Number("2".to_string(), Span { start: 9, end: 10 })),
+                                Span { start: 5, end: 10 }
+                            ),
+                            Expression::Bool(true, Span { start: 12, end: 16 }),
+                            Expression::Call(
+                                Box::new(Expression::Id("y".to_string(), Span { start: 18, end: 19 })),
+                                Span { start: 18, end: 19 }
+                            ),
+                            Expression::String("Hello".to_string(), Span { start: 23, end: 30 }),
+                            Expression::Slice(
+                                Box::new(Expression::Id("l".to_string(), Span { start: 32, end: 33 })),
+                                Box::new(Expression::Id("i".to_string(), Span { start: 34, end: 35 })),
+                                Span { start: 32, end: 36 }
+                            )
+                        ],
+                        Span { start: 4, end: 38 }
+                    )
+                )]
+            }
+        );
+    }
 }
