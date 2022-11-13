@@ -1,3 +1,6 @@
+pub mod ast;
+mod helpers;
+
 use crate::lexer::{
     token::{
         types::{KeywordType, OperatorType, TokenType},
@@ -5,176 +8,11 @@ use crate::lexer::{
     },
     Lexer,
 };
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum Statement {
-    Expression(Expression),
-    Block(Block),
-    FunctionDef(Function),
-    If(IfStmt),
-    VarAsgmt(VarAsgmt, Expression),
-    Pass(Span),
-    While(While),
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum Expression {
-    String(String, Span),
-    Number(String, Span),
-    Bool(bool, Span),
-    BinaryOp(Box<Expression>, BinaryOperator, Box<Expression>, Span),
-    UnaryOp(Box<Expression>, UnaryOperator, Span),
-    Id(String, Span),
-    Call(Box<Expression>, Span),
-    Slice(Box<Expression>, Box<Expression>, Span),
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum BinaryOperator {
-    Add,
-    BitwiseAnd,
-    BitwiseLeftShift,
-    BitwiseOr,
-    BitwiseRightShift,
-    BitwiseXOR,
-    Divide,
-    Equals,
-    Exponent,
-    FloorDivision,
-    GreaterThan,
-    GreaterThanOrEqual,
-    LessThan,
-    LessThanOrEqual,
-    LogicalAnd,
-    LogicalOr,
-    Modulo,
-    Multiply,
-    NotEqual,
-    Subtract,
-    At,
-    In,
-    NotIn,
-    Is,
-    IsNot,
-    IfElse,
-    Walrus,
-    Lambda,
-    AttributeRef,
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum UnaryOperator {
-    Plus,
-    Minus,
-    BitwiseNot,
-    LogicalNot,
-    OpenParenthesis,
-    OpenBrackets,
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-enum Operation {
-    Binary(BinaryOperator),
-    Unary(UnaryOperator),
-}
-
-impl Operation {
-    fn get_binary_op(&self) -> BinaryOperator {
-        match self {
-            Operation::Binary(op) => *op,
-            op => panic!("Current Operation is not binary: {:?}", op),
-        }
-    }
-
-    fn get_unary_op(&self) -> UnaryOperator {
-        match self {
-            Operation::Unary(op) => *op,
-            op => panic!("Current Operation is not unary: {:?}", op),
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct CallExpr {
-    pub name: String,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct IfStmt {
-    pub condition: Expression,
-    pub block: Block,
-    pub elif_stms: Vec<ElIfStmt>,
-    pub else_stmt: Option<ElseStmt>,
-    pub span: Span,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct ElIfStmt {
-    pub condition: Expression,
-    pub block: Block,
-    pub span: Span,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct ElseStmt {
-    pub block: Block,
-    pub span: Span,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct While {
-    pub condition: Expression,
-    pub else_stmt: Option<ElseStmt>,
-    pub span: Span,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct VarAsgmt {
-    name: String,
-    span: Span,
-}
-
-impl VarAsgmt {
-    pub fn new(name: String, span: Span) -> Self {
-        Self { name, span }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct Function {
-    pub name: String,
-    pub name_span: Span,
-    pub block: Block,
-    pub span: Span,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct Block {
-    pub stmts: Vec<Statement>,
-    pub span: Span,
-}
-
-impl Block {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> Self {
-        Self {
-            stmts: Vec::new(),
-            span: Span { start: 0, end: 0 },
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct ParsedFile {
-    pub stmts: Vec<Statement>,
-}
-
-impl ParsedFile {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> Self {
-        Self { stmts: Vec::new() }
-    }
-}
+use ast::{
+    BinaryOperator, Block, ElIfStmt, ElseStmt, Expression, Function, IfStmt, Operation, ParsedFile, Statement,
+    UnaryOperator, VarAsgmt, While,
+};
+use helpers::{infix_binding_power, postfix_binding_power, prefix_binding_power};
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -647,55 +485,5 @@ impl Parser {
             TokenType::OpenBrackets => Operation::Unary(UnaryOperator::OpenBrackets),
             _ => panic!("ERROR: Unexpected token! {token:?}"),
         }
-    }
-}
-
-fn postfix_binding_power(op: Operation) -> Option<(u8, ())> {
-    match op {
-        Operation::Unary(UnaryOperator::OpenParenthesis) => Some((22, ())),
-        Operation::Unary(UnaryOperator::OpenBrackets) => Some((22, ())),
-        _ => None,
-    }
-}
-
-fn prefix_binding_power(op: Operation) -> Option<((), u8)> {
-    match op {
-        Operation::Unary(UnaryOperator::LogicalNot) => Some(((), 6)),
-        Operation::Unary(UnaryOperator::Plus | UnaryOperator::Minus | UnaryOperator::BitwiseNot) => Some(((), 16)),
-        _ => None,
-    }
-}
-
-fn infix_binding_power(op: Operation) -> Option<(u8, u8)> {
-    match op {
-        Operation::Binary(BinaryOperator::Walrus) => Some((1, 1)),
-        Operation::Binary(BinaryOperator::Lambda) => Some((2, 2)),
-        Operation::Binary(BinaryOperator::IfElse) => Some((3, 3)),
-        Operation::Binary(BinaryOperator::LogicalOr) => Some((4, 4)),
-        Operation::Binary(BinaryOperator::LogicalAnd) => Some((5, 5)),
-        Operation::Binary(
-            BinaryOperator::In
-            | BinaryOperator::NotIn
-            | BinaryOperator::Is
-            | BinaryOperator::IsNot
-            | BinaryOperator::LessThan
-            | BinaryOperator::LessThanOrEqual
-            | BinaryOperator::GreaterThan
-            | BinaryOperator::GreaterThanOrEqual
-            | BinaryOperator::Equals
-            | BinaryOperator::NotEqual,
-        ) => Some((7, 7)),
-        Operation::Binary(BinaryOperator::BitwiseOr) => Some((8, 8)),
-        Operation::Binary(BinaryOperator::BitwiseXOR) => Some((9, 9)),
-        Operation::Binary(BinaryOperator::BitwiseAnd) => Some((10, 10)),
-        Operation::Binary(BinaryOperator::BitwiseLeftShift | BinaryOperator::BitwiseRightShift) => Some((11, 11)),
-        Operation::Binary(BinaryOperator::Add | BinaryOperator::Subtract) => Some((12, 13)),
-        Operation::Binary(BinaryOperator::Divide | BinaryOperator::FloorDivision | BinaryOperator::Modulo) => {
-            Some((14, 14))
-        }
-        Operation::Binary(BinaryOperator::Multiply) => Some((14, 15)),
-        Operation::Binary(BinaryOperator::Exponent) => Some((18, 18)),
-        Operation::Binary(BinaryOperator::AttributeRef) => Some((22, 22)),
-        _ => None,
     }
 }

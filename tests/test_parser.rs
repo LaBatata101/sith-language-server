@@ -3,8 +3,11 @@ mod tests_parser {
     use python_parser::{
         lexer::token::Span,
         parser::{
-            BinaryOperator, Block, ElIfStmt, ElseStmt, Expression, Function, IfStmt, ParsedFile, Parser, Statement,
-            UnaryOperator, VarAsgmt, While,
+            ast::{
+                BinaryOperator, Block, ElIfStmt, ElseStmt, Expression, Function, IfStmt, ParsedFile, Statement,
+                UnaryOperator, VarAsgmt, While,
+            },
+            Parser,
         },
     };
 
