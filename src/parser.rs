@@ -224,6 +224,18 @@ impl Parser {
             TokenType::Keyword(KeywordType::False) => (Expression::Bool(false, token.span), token.span),
             TokenType::Operator(OperatorType::Plus | OperatorType::Minus | OperatorType::BitwiseNot)
             | TokenType::Keyword(KeywordType::Not) => self.parse_unary_operator(index, token),
+            TokenType::OpenParenthesis => {
+                *index += 1;
+                let (lhs, lhs_span) = self.pratt_parsing(index, 0);
+                assert_eq!(
+                    self.tokens.get(*index).map(|token| &token.kind),
+                    Some(&TokenType::CloseParenthesis),
+                    "Expecting a \")\"! at position: {}",
+                    lhs_span.end + 1
+                );
+
+                (lhs, lhs_span)
+            }
             TokenType::NewLine | TokenType::SemiColon | TokenType::Eof => panic!("Invalid syntax!"),
             _ => panic!("ERROR: Unexpected token! {token:?}"),
         };

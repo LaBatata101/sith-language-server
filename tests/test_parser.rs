@@ -573,4 +573,33 @@ else:
             }
         )
     }
+
+    #[test]
+    fn test_parse_expression11() {
+        let parser = Parser::new("x = ((1 + 2) * 54) / 3");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::Assignment(
+                    Assignment::new("x".to_string(), Span { start: 0, end: 22 }),
+                    Expression::BinaryOp(
+                        Box::new(Expression::BinaryOp(
+                            Box::new(Expression::BinaryOp(
+                                Box::new(Expression::Number("1".to_string(), Span { start: 6, end: 7 })),
+                                BinaryOperator::Add,
+                                Box::new(Expression::Number("2".to_string(), Span { start: 10, end: 11 })),
+                                Span { start: 6, end: 11 }
+                            )),
+                            BinaryOperator::Multiply,
+                            Box::new(Expression::Number("54".to_string(), Span { start: 15, end: 17 })),
+                            Span { start: 6, end: 17 }
+                        )),
+                        BinaryOperator::Divide,
+                        Box::new(Expression::Number("3".to_string(), Span { start: 21, end: 22 })),
+                        Span { start: 6, end: 22 }
+                    )
+                )]
+            }
+        );
+    }
 }
