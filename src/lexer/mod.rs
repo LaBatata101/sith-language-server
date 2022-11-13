@@ -73,6 +73,7 @@ impl<'a> Lexer<'a> {
                     }
                 }
                 ';' => self.lex_single_char(TokenType::SemiColon),
+                ',' => self.lex_single_char(TokenType::Comma),
                 ':' => {
                     if let Some('=') = self.cs.next_char() {
                         let start = self.cs.pos();
