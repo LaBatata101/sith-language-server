@@ -66,6 +66,7 @@ pub enum UnaryOperator {
     LogicalNot,
     OpenParenthesis,
     OpenBrackets,
+    UnpackIterable,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]

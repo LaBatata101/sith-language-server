@@ -675,4 +675,40 @@ else:
             }
         );
     }
+
+    #[test]
+    fn test_parse_list_expression2() {
+        let parser = Parser::new("x = [*l, *[1,2,3], True]");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::VarAsgmt(
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 39 }),
+                    Expression::List(
+                        vec![
+                            Expression::UnaryOp(
+                                Box::new(Expression::Id("l".to_string(), Span { start: 6, end: 7 })),
+                                UnaryOperator::UnpackIterable,
+                                Span { start: 5, end: 7 }
+                            ),
+                            Expression::UnaryOp(
+                                Box::new(Expression::List(
+                                    vec![
+                                        Expression::Number("1".to_string(), Span { start: 11, end: 12 }),
+                                        Expression::Number("2".to_string(), Span { start: 13, end: 14 }),
+                                        Expression::Number("3".to_string(), Span { start: 15, end: 16 })
+                                    ],
+                                    Span { start: 10, end: 18 }
+                                )),
+                                UnaryOperator::UnpackIterable,
+                                Span { start: 9, end: 18 }
+                            ),
+                            Expression::Bool(true, Span { start: 19, end: 23 })
+                        ],
+                        Span { start: 4, end: 25 }
+                    )
+                )]
+            }
+        );
+    }
 }

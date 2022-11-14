@@ -404,6 +404,7 @@ impl Parser {
             TokenType::Operator(OperatorType::BitwiseNot) => Operation::Unary(UnaryOperator::BitwiseNot),
             TokenType::Operator(OperatorType::Plus) => Operation::Unary(UnaryOperator::Plus),
             TokenType::Operator(OperatorType::Minus) => Operation::Unary(UnaryOperator::Minus),
+            TokenType::Operator(OperatorType::Asterisk) => Operation::Unary(UnaryOperator::UnpackIterable),
             TokenType::Keyword(KeywordType::Not) => Operation::Unary(UnaryOperator::LogicalNot),
             _ => panic!("ERROR: Unexpected operator! {token:?}"),
         };
@@ -489,7 +490,12 @@ impl Parser {
     fn parse_list_expr(&self, index: &mut usize) -> (Expression, Span) {
         *index += 1;
 
-        let (lhs, lhs_span) = self.pratt_parsing(index, 0);
+        let mut token = self.tokens.get(*index).unwrap();
+        let (lhs, lhs_span) = if token.kind == TokenType::Operator(OperatorType::Asterisk) {
+            self.parse_unary_operator(index, token)
+        } else {
+            self.pratt_parsing(index, 0)
+        };
         let mut expressions = vec![lhs];
         let mut last_expr_span = Span { start: 0, end: 0 };
         let mut list_span = Span {
@@ -503,7 +509,13 @@ impl Parser {
             .map_or(false, |token| token.kind == TokenType::Comma)
         {
             *index += 1;
-            let (expr, expr_span) = self.pratt_parsing(index, 0);
+            token = self.tokens.get(*index).unwrap();
+            let (expr, expr_span) = if token.kind == TokenType::Operator(OperatorType::Asterisk) {
+                self.parse_unary_operator(index, token)
+            } else {
+                self.pratt_parsing(index, 0)
+            };
+
             last_expr_span = expr_span;
             expressions.push(expr);
         }
@@ -511,11 +523,10 @@ impl Parser {
         assert_eq!(
             self.tokens.get(*index).map(|token| &token.kind),
             Some(&TokenType::CloseBrackets),
-            "Expecting a \")\"! at position: {}",
+            "Expecting a \"]\"! at position: {}",
             // FIXME: Showing incorrect position
             last_expr_span.end + 1
         );
-        *index += 1;
 
         list_span.end = self.tokens.get(*index).map(|token| token.span.end).unwrap() + 1;
 
