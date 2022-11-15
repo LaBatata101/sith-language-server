@@ -55,19 +55,35 @@ impl Parser {
     fn pratt_parsing(&self, index: &mut usize, min_precedence_weight: u8) -> (Expression, Span) {
         let mut token = self.tokens.get(*index).unwrap();
         let (mut lhs, mut lhs_span) = match &token.kind {
-            TokenType::Id(name) => (Expression::Id(name.to_string(), token.span), token.span),
-            TokenType::String(str) => (Expression::String(str.to_string(), token.span), token.span),
-            TokenType::Number(num) => (Expression::Number(num.to_string(), token.span), token.span),
-            TokenType::Keyword(KeywordType::True) => (Expression::Bool(true, token.span), token.span),
-            TokenType::Keyword(KeywordType::False) => (Expression::Bool(false, token.span), token.span),
-            TokenType::Operator(OperatorType::Plus | OperatorType::Minus | OperatorType::BitwiseNot)
+            TokenType::Id(name) => {
+                *index += 1;
+                (Expression::Id(name.to_string(), token.span), token.span)
+            }
+            TokenType::String(str) => {
+                *index += 1;
+                (Expression::String(str.to_string(), token.span), token.span)
+            }
+            TokenType::Number(num) => {
+                *index += 1;
+                (Expression::Number(num.to_string(), token.span), token.span)
+            }
+            TokenType::Keyword(KeywordType::True) => {
+                *index += 1;
+                (Expression::Bool(true, token.span), token.span)
+            }
+            TokenType::Keyword(KeywordType::False) => {
+                *index += 1;
+                (Expression::Bool(false, token.span), token.span)
+            }
+            TokenType::Operator(
+                OperatorType::Plus | OperatorType::Minus | OperatorType::BitwiseNot | OperatorType::Asterisk,
+            )
             | TokenType::Keyword(KeywordType::Not) => self.parse_unary_operator(index, token),
             TokenType::OpenParenthesis => self.parse_parenthesized_expr(index, token),
             TokenType::OpenBrackets => self.parse_list_expr(index),
             TokenType::NewLine | TokenType::SemiColon | TokenType::Eof => panic!("Invalid syntax!"),
             _ => panic!("ERROR: Unexpected token! {token:?}"),
         };
-        *index += 1;
 
         while self.tokens.get(*index).map_or(false, |token| {
             !matches!(
