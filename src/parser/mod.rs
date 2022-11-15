@@ -254,7 +254,7 @@ impl Parser {
 
                 *index += 1;
                 let (expr, expr_span) = self.parse_expression(index);
-                *index += 1;
+
                 let assign_span = Span {
                     start: token.span.start,
                     end: expr_span.end,
