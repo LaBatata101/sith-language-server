@@ -613,7 +613,7 @@ else:
             parser.parse(),
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 39 }),
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 37 }),
                     Expression::Tuple(
                         vec![
                             Expression::BinaryOp(
@@ -634,7 +634,7 @@ else:
                                 Span { start: 32, end: 36 }
                             )
                         ],
-                        Span { start: 4, end: 39 }
+                        Span { start: 4, end: 37 }
                     )
                 )]
             }
@@ -648,7 +648,7 @@ else:
             parser.parse(),
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 39 }),
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 37 }),
                     Expression::List(
                         vec![
                             Expression::BinaryOp(
@@ -669,7 +669,7 @@ else:
                                 Span { start: 32, end: 36 }
                             )
                         ],
-                        Span { start: 4, end: 39 }
+                        Span { start: 4, end: 37 }
                     )
                 )]
             }
@@ -683,7 +683,7 @@ else:
             parser.parse(),
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 39 }),
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 24 }),
                     Expression::List(
                         vec![
                             Expression::UnaryOp(
@@ -698,14 +698,14 @@ else:
                                         Expression::Number("2".to_string(), Span { start: 13, end: 14 }),
                                         Expression::Number("3".to_string(), Span { start: 15, end: 16 })
                                     ],
-                                    Span { start: 10, end: 18 }
+                                    Span { start: 10, end: 17 }
                                 )),
                                 UnaryOperator::UnpackIterable,
-                                Span { start: 9, end: 18 }
+                                Span { start: 9, end: 17 }
                             ),
                             Expression::Bool(true, Span { start: 19, end: 23 })
                         ],
-                        Span { start: 4, end: 25 }
+                        Span { start: 4, end: 24 }
                     )
                 )]
             }
