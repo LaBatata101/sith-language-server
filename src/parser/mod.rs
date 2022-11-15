@@ -508,6 +508,7 @@ impl Parser {
     }
 
     fn parse_list_expr(&self, index: &mut usize) -> (Expression, Span) {
+        // Consume [
         *index += 1;
 
         let mut token = self.tokens.get(*index).unwrap();
@@ -528,6 +529,7 @@ impl Parser {
             .get(*index)
             .map_or(false, |token| token.kind == TokenType::Comma)
         {
+            // consume the comma
             *index += 1;
             token = self.tokens.get(*index).unwrap();
             let (expr, expr_span) = if token.kind == TokenType::Operator(OperatorType::Asterisk) {
@@ -549,6 +551,8 @@ impl Parser {
         );
 
         list_span.end = self.tokens.get(*index).map(|token| token.span.end).unwrap() + 1;
+        // Consume ]
+        *index += 1;
 
         (Expression::List(expressions, list_span), list_span)
     }
