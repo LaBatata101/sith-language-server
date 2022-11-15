@@ -511,12 +511,8 @@ impl Parser {
         // Consume [
         *index += 1;
 
-        let mut token = self.tokens.get(*index).unwrap();
-        let (lhs, lhs_span) = if token.kind == TokenType::Operator(OperatorType::Asterisk) {
-            self.parse_unary_operator(index, token)
-        } else {
-            self.pratt_parsing(index, 0)
-        };
+        let (lhs, lhs_span) = self.pratt_parsing(index, 0);
+
         let mut expressions = vec![lhs];
         let mut last_expr_span = Span { start: 0, end: 0 };
         let mut list_span = Span {
@@ -531,12 +527,8 @@ impl Parser {
         {
             // consume the comma
             *index += 1;
-            token = self.tokens.get(*index).unwrap();
-            let (expr, expr_span) = if token.kind == TokenType::Operator(OperatorType::Asterisk) {
-                self.parse_unary_operator(index, token)
-            } else {
-                self.pratt_parsing(index, 0)
-            };
+
+            let (expr, expr_span) = self.pratt_parsing(index, 0);
 
             last_expr_span = expr_span;
             expressions.push(expr);
