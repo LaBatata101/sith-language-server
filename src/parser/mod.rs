@@ -48,7 +48,18 @@ impl Parser {
     }
 
     fn parse_expression(&self, index: &mut usize) -> (Expression, Span) {
-        self.pratt_parsing(index, 0)
+        let expr = self.pratt_parsing(index, 0);
+
+        if self.tokens.get(*index).map_or(false, |token| {
+            matches!(
+                &token.kind,
+                TokenType::NewLine | TokenType::SemiColon | TokenType::Eof | TokenType::Comma
+            )
+        }) {
+            *index += 1;
+        }
+
+        expr
     }
 
     /// Parse `expressions` using Pratt Parsing algorithm
