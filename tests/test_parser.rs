@@ -711,4 +711,22 @@ else:
             }
         );
     }
+
+    #[test]
+    fn test_parse_unpack_iterable_assignment() {
+        let parser = Parser::new("x = *iterable");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::VarAsgmt(
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 13 }),
+                    Expression::UnaryOp(
+                        Box::new(Expression::Id("iterable".to_string(), Span { start: 5, end: 13 })),
+                        UnaryOperator::UnpackIterable,
+                        Span { start: 4, end: 13 }
+                    )
+                )]
+            }
+        )
+    }
 }
