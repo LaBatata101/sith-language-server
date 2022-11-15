@@ -436,6 +436,7 @@ impl Parser {
     }
 
     fn parse_parenthesized_expr(&self, index: &mut usize, token: &Token) -> (Expression, Span) {
+        // Consume (
         *index += 1;
         let paren_span_start = token.span.start;
         let next_token = self.tokens.get(*index).unwrap();
@@ -461,6 +462,8 @@ impl Parser {
             "Expecting a \")\"! at position: {}",
             lhs_span.end + 1
         );
+        // Consume )
+        *index += 1;
 
         (lhs, lhs_span)
     }
