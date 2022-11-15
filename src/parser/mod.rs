@@ -542,7 +542,8 @@ impl Parser {
             last_expr_span.end + 1
         );
 
-        list_span.end = self.tokens.get(*index).map(|token| token.span.end).unwrap() + 1;
+        list_span.end = self.tokens.get(*index).map(|token| token.span.end).unwrap();
+
         // Consume ]
         *index += 1;
 
