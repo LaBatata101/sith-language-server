@@ -499,9 +499,10 @@ impl Parser {
             // FIXME: Showing incorrect position
             last_expr_span.end + 1
         );
-        *index += 1;
 
-        tuple_span.end = self.tokens.get(*index).map(|token| token.span.end).unwrap() + 1;
+        tuple_span.end = self.tokens.get(*index).map(|token| token.span.end).unwrap();
+
+        *index += 1;
 
         (Expression::Tuple(expressions, tuple_span), tuple_span)
     }
