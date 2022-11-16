@@ -755,4 +755,45 @@ else:
             }
         )
     }
+
+    #[test]
+    fn test_parse_dict_expression() {
+        let parser = Parser::new("x = {1: \"Hello\", 1 + 3: True, (6, 6): False}");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::VarAsgmt(
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 44 }),
+                    Expression::Dict(
+                        vec![
+                            (
+                                Expression::Number("1".to_string(), Span { start: 5, end: 6 }),
+                                Expression::String("Hello".to_string(), Span { start: 8, end: 15 })
+                            ),
+                            (
+                                Expression::BinaryOp(
+                                    Box::new(Expression::Number("1".to_string(), Span { start: 17, end: 18 })),
+                                    BinaryOperator::Add,
+                                    Box::new(Expression::Number("3".to_string(), Span { start: 21, end: 22 })),
+                                    Span { start: 17, end: 22 }
+                                ),
+                                Expression::Bool(true, Span { start: 24, end: 28 })
+                            ),
+                            (
+                                Expression::Tuple(
+                                    vec![
+                                        Expression::Number("6".to_string(), Span { start: 31, end: 32 }),
+                                        Expression::Number("6".to_string(), Span { start: 34, end: 35 })
+                                    ],
+                                    Span { start: 30, end: 36 }
+                                ),
+                                Expression::Bool(false, Span { start: 38, end: 43 })
+                            )
+                        ],
+                        Span { start: 4, end: 44 }
+                    )
+                )]
+            }
+        )
+    }
 }

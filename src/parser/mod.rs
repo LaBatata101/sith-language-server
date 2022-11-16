@@ -567,6 +567,59 @@ impl Parser {
 
         (Expression::Set(expressions, set_span), set_span)
     }
+
+    fn parse_dict_expression(&self, index: &mut usize, lhs: Expression, brace_span_start: usize) -> (Expression, Span) {
+        // Consume :
+        *index += 1;
+        let (rhs, rhs_span) = self.pratt_parsing(index, 0);
+        let mut key_values = vec![(lhs, rhs)];
+        let mut last_expr_span = rhs_span;
+        let mut dict_span = Span {
+            start: brace_span_start,
+            end: 0,
+        };
+
+        while self
+            .tokens
+            .get(*index)
+            .map_or(false, |token| token.kind == TokenType::Comma)
+        {
+            // Consume ,
+            *index += 1;
+
+            let (lhs, lhs_span) = self.pratt_parsing(index, 0);
+            assert_eq!(
+                self.tokens.get(*index).map(|token| &token.kind),
+                Some(&TokenType::Colon),
+                "Expecting a \":\"! at position: {}",
+                // FIXME: Showing incorrect position
+                lhs_span.end + 1
+            );
+
+            // Consume :
+            *index += 1;
+            let (rhs, rhs_span) = self.pratt_parsing(index, 0);
+            last_expr_span = rhs_span;
+
+            key_values.push((lhs, rhs));
+        }
+
+        assert_eq!(
+            self.tokens.get(*index).map(|token| &token.kind),
+            Some(&TokenType::CloseBrace),
+            "Expecting a \"}}\"! at position: {}",
+            // FIXME: Showing incorrect position
+            last_expr_span.end + 1
+        );
+
+        dict_span.end = self.tokens.get(*index).map(|token| token.span.end).unwrap();
+
+        // Consume }
+        *index += 1;
+
+        (Expression::Dict(key_values, dict_span), dict_span)
+    }
+
     fn parse_list_expr(&self, index: &mut usize) -> (Expression, Span) {
         // Consume [
         *index += 1;
