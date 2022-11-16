@@ -729,4 +729,30 @@ else:
             }
         )
     }
+
+    #[test]
+    fn test_parse_set_expression() {
+        let parser = Parser::new("x = {1, True, \"hello\", *l}");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::VarAsgmt(
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 26 }),
+                    Expression::Set(
+                        vec![
+                            Expression::Number("1".to_string(), Span { start: 5, end: 6 }),
+                            Expression::Bool(true, Span { start: 8, end: 12 }),
+                            Expression::String("hello".to_string(), Span { start: 14, end: 21 }),
+                            Expression::UnaryOp(
+                                Box::new(Expression::Id("l".to_string(), Span { start: 24, end: 25 })),
+                                UnaryOperator::UnpackIterable,
+                                Span { start: 23, end: 25 }
+                            )
+                        ],
+                        Span { start: 4, end: 26 }
+                    )
+                )]
+            }
+        )
+    }
 }

@@ -22,6 +22,7 @@ pub enum Expression {
     Call(Box<Expression>, Span),
     Slice(Box<Expression>, Box<Expression>, Span),
     List(Vec<Expression>, Span),
+    Set(Vec<Expression>, Span),
     Tuple(Vec<Expression>, Span),
 }
 

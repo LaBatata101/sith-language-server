@@ -92,6 +92,7 @@ impl Parser {
             | TokenType::Keyword(KeywordType::Not) => self.parse_unary_operator(index, token),
             TokenType::OpenParenthesis => self.parse_parenthesized_expr(index, token),
             TokenType::OpenBrackets => self.parse_list_expr(index),
+            TokenType::OpenBrace => self.parse_bracesized_expr(index, token),
             TokenType::NewLine | TokenType::SemiColon | TokenType::Eof => panic!("Invalid syntax!"),
             _ => panic!("ERROR: Unexpected token! {token:?}"),
         };
@@ -518,6 +519,54 @@ impl Parser {
         (Expression::Tuple(expressions, tuple_span), tuple_span)
     }
 
+    fn parse_bracesized_expr(&self, index: &mut usize, token: &Token) -> (Expression, Span) {
+        // Consume {
+        *index += 1;
+        let brace_span_start = token.span.start;
+
+        let (lhs, lhs_span) = self.pratt_parsing(index, 0);
+
+        if self
+            .tokens
+            .get(*index)
+            .map_or(false, |token| token.kind == TokenType::Colon)
+        {
+            return self.parse_dict_expression(index, lhs, brace_span_start);
+        }
+
+        let mut expressions = vec![lhs];
+        let mut last_expr_span = lhs_span;
+        let mut set_span = Span {
+            start: brace_span_start,
+            end: 0,
+        };
+
+        while self
+            .tokens
+            .get(*index)
+            .map_or(false, |token| token.kind == TokenType::Comma)
+        {
+            *index += 1;
+            let (expr, expr_span) = self.pratt_parsing(index, 0);
+            last_expr_span = expr_span;
+
+            expressions.push(expr);
+        }
+
+        assert_eq!(
+            self.tokens.get(*index).map(|token| &token.kind),
+            Some(&TokenType::CloseBrace),
+            "Expecting a \"}}\"! at position: {}",
+            // FIXME: Showing incorrect position
+            last_expr_span.end + 1
+        );
+
+        set_span.end = self.tokens.get(*index).map(|token| token.span.end).unwrap();
+        // Consume }
+        *index += 1;
+
+        (Expression::Set(expressions, set_span), set_span)
+    }
     fn parse_list_expr(&self, index: &mut usize) -> (Expression, Span) {
         // Consume [
         *index += 1;
