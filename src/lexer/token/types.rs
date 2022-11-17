@@ -71,7 +71,9 @@ pub enum OperatorType {
 pub enum KeywordType {
     And,
     As,
+    Async,
     Assert,
+    Await,
     Break,
     Class,
     Continue,

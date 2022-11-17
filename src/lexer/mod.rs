@@ -211,6 +211,8 @@ impl<'a> Lexer<'a> {
             b"and" => TokenType::Keyword(KeywordType::And),
             b"as" => TokenType::Keyword(KeywordType::As),
             b"assert" => TokenType::Keyword(KeywordType::Assert),
+            b"async" => TokenType::Keyword(KeywordType::Async),
+            b"await" => TokenType::Keyword(KeywordType::Await),
             b"break" => TokenType::Keyword(KeywordType::Break),
             b"case" => TokenType::SoftKeyword(SoftKeywordType::Case),
             b"class" => TokenType::Keyword(KeywordType::Class),
