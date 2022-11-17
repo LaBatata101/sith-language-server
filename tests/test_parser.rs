@@ -870,4 +870,56 @@ else:
             }
         )
     }
+
+    #[test]
+    fn test_parse_single_expression() {
+        let parser = Parser::new("1 + 2; 3 + 4, 7, 8");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![
+                    Statement::Expression(
+                        Expression::BinaryOp(
+                            Box::new(Expression::Number("1".to_string(), Span { start: 0, end: 1 })),
+                            BinaryOperator::Add,
+                            Box::new(Expression::Number("2".to_string(), Span { start: 4, end: 5 })),
+                            Span { start: 0, end: 5 }
+                        ),
+                        Span { start: 0, end: 5 }
+                    ),
+                    Statement::Expression(
+                        Expression::BinaryOp(
+                            Box::new(Expression::Number("3".to_string(), Span { start: 7, end: 8 })),
+                            BinaryOperator::Add,
+                            Box::new(Expression::Number("4".to_string(), Span { start: 11, end: 12 })),
+                            Span { start: 7, end: 12 }
+                        ),
+                        Span { start: 7, end: 12 }
+                    ),
+                    Statement::Expression(
+                        Expression::Number("7".to_string(), Span { start: 14, end: 15 }),
+                        Span { start: 14, end: 15 }
+                    ),
+                    Statement::Expression(
+                        Expression::Number("8".to_string(), Span { start: 17, end: 18 }),
+                        Span { start: 17, end: 18 }
+                    )
+                ]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_single_expression2() {
+        let parser = Parser::new("x");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::Expression(
+                    Expression::Id("x".to_string(), Span { start: 0, end: 1 }),
+                    Span { start: 0, end: 1 }
+                )]
+            }
+        )
+    }
 }

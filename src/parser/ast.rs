@@ -2,7 +2,7 @@ use crate::lexer::token::Span;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Statement {
-    Expression(Expression),
+    Expression(Expression, Span),
     Block(Block),
     FunctionDef(Function),
     If(IfStmt),

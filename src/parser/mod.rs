@@ -112,6 +112,7 @@ impl Parser {
                     | TokenType::CloseBrackets
                     | TokenType::CloseParenthesis
                     | TokenType::Comma
+                    | TokenType::Dedent
                     | TokenType::Keyword(KeywordType::Else)
             )
         }) {
@@ -264,15 +265,11 @@ impl Parser {
         }
 
         match &token.kind {
-            TokenType::Id(name) => {
-                if self
-                    .tokens
-                    .get(*index)
-                    .map_or(false, |token| token.kind != TokenType::Operator(OperatorType::Assign))
-                {
-                    panic!("Invalid syntax: expecting '=' got {:?}", token.kind);
-                }
-
+            // Check if the current token is an identifier and the next token a "="
+            // and starts parsing the Variable Assignment Statement.
+            TokenType::Id(name)
+                if self.tokens.get(*index).unwrap().kind == TokenType::Operator(OperatorType::Assign) =>
+            {
                 *index += 1;
                 let (expr, expr_span) = self.parse_expression(index);
 
@@ -317,7 +314,11 @@ impl Parser {
             TokenType::Keyword(KeywordType::Pass) => (Statement::Pass(token.span), token.span),
             TokenType::Keyword(KeywordType::Continue) => (Statement::Continue(token.span), token.span),
             TokenType::Keyword(KeywordType::Break) => (Statement::Break(token.span), token.span),
-            _ => panic!("ERROR: unexpected token {:?} at position {:?}", token.kind, token.span),
+            _ => {
+                *index -= 1;
+                let (expr, expr_span) = self.parse_expression(index);
+                (Statement::Expression(expr, expr_span), expr_span)
+            }
         }
     }
 
