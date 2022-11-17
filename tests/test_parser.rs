@@ -713,6 +713,13 @@ else:
     }
 
     #[test]
+    #[should_panic(expected = "Invalid Syntax: can't unpack dictionary inside list!")]
+    fn test_parse_list_expression3() {
+        let parser = Parser::new("[**d]");
+        parser.parse();
+    }
+
+    #[test]
     fn test_parse_unpack_iterable_assignment() {
         let parser = Parser::new("x = *iterable");
         assert_eq!(

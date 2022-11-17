@@ -642,6 +642,10 @@ impl Parser {
         // Consume [
         *index += 1;
 
+        if self.tokens.get(*index).unwrap().kind == TokenType::Operator(OperatorType::Exponent) {
+            panic!("Invalid Syntax: can't unpack dictionary inside list!")
+        }
+
         let (lhs, lhs_span) = self.pratt_parsing(index, 0);
 
         let mut expressions = vec![lhs];
@@ -658,6 +662,10 @@ impl Parser {
         {
             // consume the comma
             *index += 1;
+
+            if self.tokens.get(*index).unwrap().kind == TokenType::Operator(OperatorType::Exponent) {
+                panic!("Invalid Syntax: can't unpack dictionary inside list!")
+            }
 
             let (expr, expr_span) = self.pratt_parsing(index, 0);
 
