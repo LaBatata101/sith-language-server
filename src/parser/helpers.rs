@@ -11,6 +11,7 @@ pub fn postfix_binding_power(op: Operation) -> Option<(u8, ())> {
 pub fn prefix_binding_power(op: Operation) -> Option<((), u8)> {
     match op {
         Operation::Unary(UnaryOperator::LogicalNot) => Some(((), 6)),
+        Operation::Unary(UnaryOperator::Await) => Some(((), 20)),
         Operation::Unary(
             UnaryOperator::Plus | UnaryOperator::Minus | UnaryOperator::BitwiseNot | UnaryOperator::UnpackIterable,
         ) => Some(((), 16)),

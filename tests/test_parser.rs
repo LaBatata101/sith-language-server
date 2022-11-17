@@ -965,4 +965,40 @@ else:
         let parser = Parser::new("x := 5 + 5");
         parser.parse();
     }
+
+    #[test]
+    fn test_parse_await_operator() {
+        let parser = Parser::new("await func() * x ** 5 / 3");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::Expression(
+                    Expression::BinaryOp(
+                        Box::new(Expression::BinaryOp(
+                            Box::new(Expression::UnaryOp(
+                                Box::new(Expression::Call(
+                                    Box::new(Expression::Id("func".to_string(), Span { start: 6, end: 10 })),
+                                    Span { start: 6, end: 10 }
+                                )),
+                                UnaryOperator::Await,
+                                Span { start: 0, end: 10 }
+                            )),
+                            BinaryOperator::Multiply,
+                            Box::new(Expression::BinaryOp(
+                                Box::new(Expression::Id("x".to_string(), Span { start: 15, end: 16 })),
+                                BinaryOperator::Exponent,
+                                Box::new(Expression::Number("5".to_string(), Span { start: 20, end: 21 })),
+                                Span { start: 15, end: 21 }
+                            )),
+                            Span { start: 0, end: 21 }
+                        )),
+                        BinaryOperator::Divide,
+                        Box::new(Expression::Number("3".to_string(), Span { start: 24, end: 25 })),
+                        Span { start: 0, end: 25 }
+                    ),
+                    Span { start: 0, end: 25 }
+                )]
+            }
+        )
+    }
 }

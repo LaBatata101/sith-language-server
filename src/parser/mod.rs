@@ -92,7 +92,7 @@ impl Parser {
             TokenType::Operator(
                 OperatorType::Plus | OperatorType::Minus | OperatorType::BitwiseNot | OperatorType::Asterisk,
             )
-            | TokenType::Keyword(KeywordType::Not) => self.parse_unary_operator(index, token),
+            | TokenType::Keyword(KeywordType::Not | KeywordType::Await) => self.parse_unary_operator(index, token),
             TokenType::OpenParenthesis => self.parse_parenthesized_expr(index, token),
             TokenType::OpenBrackets => self.parse_list_expr(index),
             TokenType::OpenBrace => self.parse_bracesized_expr(index, token),
@@ -451,6 +451,7 @@ impl Parser {
             TokenType::Operator(OperatorType::Minus) => Operation::Unary(UnaryOperator::Minus),
             TokenType::Operator(OperatorType::Asterisk) => Operation::Unary(UnaryOperator::UnpackIterable),
             TokenType::Keyword(KeywordType::Not) => Operation::Unary(UnaryOperator::LogicalNot),
+            TokenType::Keyword(KeywordType::Await) => Operation::Unary(UnaryOperator::Await),
             _ => panic!("ERROR: Unexpected operator! {token:?}"),
         };
         *index += 1;
@@ -759,6 +760,7 @@ impl Parser {
                     Operation::Unary(UnaryOperator::LogicalNot)
                 }
             }
+            TokenType::Keyword(KeywordType::Await) => Operation::Unary(UnaryOperator::Await),
             TokenType::OpenParenthesis => Operation::Unary(UnaryOperator::OpenParenthesis),
             TokenType::OpenBrackets => Operation::Unary(UnaryOperator::OpenBrackets),
             _ => panic!("ERROR: Unexpected token! {token:?}"),
