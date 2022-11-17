@@ -265,21 +265,26 @@ impl Parser {
         }
 
         match &token.kind {
-            // Check if the current token is an identifier and the next token a "="
-            // and starts parsing the Variable Assignment Statement.
-            TokenType::Id(name)
-                if self.tokens.get(*index).unwrap().kind == TokenType::Operator(OperatorType::Assign) =>
-            {
-                *index += 1;
-                let (expr, expr_span) = self.parse_expression(index);
+            TokenType::Id(name) => {
+                let next_token = self.tokens.get(*index).unwrap();
+                if next_token.kind == TokenType::Operator(OperatorType::Assign) {
+                    *index += 1;
+                    let (expr, expr_span) = self.parse_expression(index);
 
-                let assign_span = Span {
-                    start: token.span.start,
-                    end: expr_span.end,
-                };
-                let assign = VarAsgmt::new(name.clone(), assign_span);
+                    let assign_span = Span {
+                        start: token.span.start,
+                        end: expr_span.end,
+                    };
+                    let assign = VarAsgmt::new(name.clone(), assign_span);
 
-                (Statement::VarAsgmt(assign, expr), assign_span)
+                    (Statement::VarAsgmt(assign, expr), assign_span)
+                } else if next_token.kind == TokenType::Operator(OperatorType::ColonEqual) {
+                    panic!("Syntax Error: Invalid assignment statement!")
+                } else {
+                    *index -= 1;
+                    let (expr, expr_span) = self.parse_expression(index);
+                    (Statement::Expression(expr, expr_span), expr_span)
+                }
             }
             TokenType::Keyword(KeywordType::Def) => {
                 if let Some(Token {
@@ -724,6 +729,7 @@ impl Parser {
             TokenType::Operator(OperatorType::BitwiseRightShift) => {
                 Operation::Binary(BinaryOperator::BitwiseRightShift)
             }
+            TokenType::Operator(OperatorType::ColonEqual) => Operation::Binary(BinaryOperator::Walrus),
             TokenType::Dot => Operation::Binary(BinaryOperator::AttributeRef),
             TokenType::Keyword(KeywordType::And) => Operation::Binary(BinaryOperator::LogicalAnd),
             TokenType::Keyword(KeywordType::Or) => Operation::Binary(BinaryOperator::LogicalOr),

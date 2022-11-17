@@ -922,4 +922,47 @@ else:
             }
         )
     }
+
+    #[test]
+    fn test_parse_walrus_operator() {
+        let parser = Parser::new(
+            "if (x := 15) > 5:
+    x",
+        );
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::If(IfStmt {
+                    condition: Expression::BinaryOp(
+                        Box::new(Expression::BinaryOp(
+                            Box::new(Expression::Id("x".to_string(), Span { start: 4, end: 5 })),
+                            BinaryOperator::Walrus,
+                            Box::new(Expression::Number("15".to_string(), Span { start: 9, end: 11 })),
+                            Span { start: 4, end: 11 }
+                        )),
+                        BinaryOperator::GreaterThan,
+                        Box::new(Expression::Number("5".to_string(), Span { start: 15, end: 16 })),
+                        Span { start: 4, end: 16 }
+                    ),
+                    block: Block {
+                        stmts: vec![Statement::Expression(
+                            Expression::Id("x".to_string(), Span { start: 22, end: 23 }),
+                            Span { start: 22, end: 23 }
+                        )],
+                        span: Span { start: 22, end: 23 }
+                    },
+                    elif_stms: vec![],
+                    else_stmt: None,
+                    span: Span { start: 0, end: 23 }
+                })]
+            }
+        )
+    }
+
+    #[test]
+    #[should_panic(expected = "Syntax Error: Invalid assignment statement!")]
+    fn test_parse_walrus_operator2() {
+        let parser = Parser::new("x := 5 + 5");
+        parser.parse();
+    }
 }
