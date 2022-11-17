@@ -4,8 +4,8 @@ mod tests_parser {
         lexer::token::Span,
         parser::{
             ast::{
-                BinaryOperator, Block, ElIfStmt, ElseStmt, Expression, Function, IfElseExpr, IfStmt, ParsedFile,
-                Statement, UnaryOperator, VarAsgmt, While,
+                BinaryOperator, Block, DictItemType, ElIfStmt, ElseStmt, Expression, Function, IfElseExpr, IfStmt,
+                ParsedFile, Statement, UnaryOperator, VarAsgmt, While,
             },
             Parser,
         },
@@ -773,11 +773,11 @@ else:
                     VarAsgmt::new("x".to_string(), Span { start: 0, end: 44 }),
                     Expression::Dict(
                         vec![
-                            (
+                            DictItemType::KeyValue(
                                 Expression::Number("1".to_string(), Span { start: 5, end: 6 }),
                                 Expression::String("Hello".to_string(), Span { start: 8, end: 15 })
                             ),
-                            (
+                            DictItemType::KeyValue(
                                 Expression::BinaryOp(
                                     Box::new(Expression::Number("1".to_string(), Span { start: 17, end: 18 })),
                                     BinaryOperator::Add,
@@ -786,7 +786,7 @@ else:
                                 ),
                                 Expression::Bool(true, Span { start: 24, end: 28 })
                             ),
-                            (
+                            DictItemType::KeyValue(
                                 Expression::Tuple(
                                     vec![
                                         Expression::Number("6".to_string(), Span { start: 31, end: 32 }),
@@ -802,6 +802,45 @@ else:
                 )]
             }
         )
+    }
+
+    #[test]
+    fn test_parse_dict_expression2() {
+        let parser = Parser::new("x = {**d, 2: 5, **x}");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::VarAsgmt(
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 20 }),
+                    Expression::Dict(
+                        vec![
+                            DictItemType::DictUnpack(Expression::UnaryOp(
+                                Box::new(Expression::Id("d".to_string(), Span { start: 7, end: 8 })),
+                                UnaryOperator::UnpackDictionary,
+                                Span { start: 5, end: 8 }
+                            )),
+                            DictItemType::KeyValue(
+                                Expression::Number("2".to_string(), Span { start: 10, end: 11 }),
+                                Expression::Number("5".to_string(), Span { start: 13, end: 14 })
+                            ),
+                            DictItemType::DictUnpack(Expression::UnaryOp(
+                                Box::new(Expression::Id("x".to_string(), Span { start: 18, end: 19 })),
+                                UnaryOperator::UnpackDictionary,
+                                Span { start: 16, end: 19 }
+                            ))
+                        ],
+                        Span { start: 4, end: 20 }
+                    )
+                )]
+            }
+        )
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid Syntax: can't unpack iterable inside dictionary!")]
+    fn test_parse_dict_expression3() {
+        let parser = Parser::new("x = {**d, *x}");
+        parser.parse();
     }
 
     #[test]

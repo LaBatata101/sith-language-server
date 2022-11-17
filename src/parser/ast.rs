@@ -24,7 +24,7 @@ pub enum Expression {
     Call(Box<Expression>, Span),
     Slice(Box<Expression>, Box<Expression>, Span),
     List(Vec<Expression>, Span),
-    Dict(Vec<(Expression, Expression)>, Span),
+    Dict(Vec<DictItemType>, Span),
     Set(Vec<Expression>, Span),
     Tuple(Vec<Expression>, Span),
     IfElse(IfElseExpr),
@@ -96,6 +96,12 @@ impl Operation {
             op => panic!("Current Operation is not unary: {:?}", op),
         }
     }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum DictItemType {
+    KeyValue(Expression, Expression),
+    DictUnpack(Expression),
 }
 
 #[derive(Debug, PartialEq, Eq)]

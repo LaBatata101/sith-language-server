@@ -9,7 +9,7 @@ use crate::{
         },
         Lexer,
     },
-    parser::ast::IfElseExpr,
+    parser::ast::{DictItemType, IfElseExpr},
 };
 use ast::{
     BinaryOperator, Block, ElIfStmt, ElseStmt, Expression, Function, IfStmt, Operation, ParsedFile, Statement,
@@ -547,6 +547,20 @@ impl Parser {
         *index += 1;
         let brace_span_start = token.span.start;
 
+        // If we see the "**" operator that means we are unpacking a dictionary, therefore, we
+        // should parse as a dictionary instead of a set.
+        if self.tokens.get(*index).unwrap().kind == TokenType::Operator(OperatorType::Exponent) {
+            let (lhs, lhs_span) = self.pratt_parsing(index, 0);
+            assert_eq!(
+                self.tokens.get(*index).map(|token| &token.kind),
+                Some(&TokenType::Comma),
+                "Expecting a \",\"! at position: {}",
+                // FIXME: Showing incorrect position
+                lhs_span.end + 1
+            );
+            return self.parse_dict_expression(index, DictItemType::DictUnpack(lhs), brace_span_start);
+        }
+
         let (lhs, lhs_span) = self.pratt_parsing(index, 0);
 
         if self
@@ -554,7 +568,17 @@ impl Parser {
             .get(*index)
             .map_or(false, |token| token.kind == TokenType::Colon)
         {
-            return self.parse_dict_expression(index, lhs, brace_span_start);
+            // Consume :
+            *index += 1;
+            let (rhs, _) = self.pratt_parsing(index, 0);
+            assert_eq!(
+                self.tokens.get(*index).map(|token| &token.kind),
+                Some(&TokenType::Comma),
+                "Expecting a \",\"! at position: {}",
+                // FIXME: Showing incorrect position
+                lhs_span.end + 1
+            );
+            return self.parse_dict_expression(index, DictItemType::KeyValue(lhs, rhs), brace_span_start);
         }
 
         let mut expressions = vec![lhs];
@@ -591,26 +615,38 @@ impl Parser {
         (Expression::Set(expressions, set_span), set_span)
     }
 
-    fn parse_dict_expression(&self, index: &mut usize, lhs: Expression, brace_span_start: usize) -> (Expression, Span) {
-        // Consume :
-        *index += 1;
-        let (rhs, rhs_span) = self.pratt_parsing(index, 0);
-        let mut key_values = vec![(lhs, rhs)];
-        let mut last_expr_span = rhs_span;
+    fn parse_dict_expression(
+        &self,
+        index: &mut usize,
+        lhs: DictItemType,
+        brace_span_start: usize,
+    ) -> (Expression, Span) {
+        let mut dict_items = vec![lhs];
+        let mut last_expr_span = Span { start: 0, end: 0 };
         let mut dict_span = Span {
             start: brace_span_start,
             end: 0,
         };
 
-        while self
-            .tokens
-            .get(*index)
-            .map_or(false, |token| token.kind == TokenType::Comma)
-        {
-            // Consume ,
+        while self.tokens.get(*index).unwrap().kind == TokenType::Comma {
             *index += 1;
+            if self.tokens.get(*index).unwrap().kind == TokenType::Operator(OperatorType::Asterisk) {
+                panic!("Invalid Syntax: can't unpack iterable inside dictionary!")
+            }
 
             let (lhs, lhs_span) = self.pratt_parsing(index, 0);
+
+            if self.tokens.get(*index).unwrap().kind == TokenType::CloseBrace {
+                dict_items.push(DictItemType::DictUnpack(lhs));
+                break;
+            }
+
+            if self.tokens.get(*index).unwrap().kind == TokenType::Comma {
+                *index += 1;
+                dict_items.push(DictItemType::DictUnpack(lhs));
+                continue;
+            }
+
             assert_eq!(
                 self.tokens.get(*index).map(|token| &token.kind),
                 Some(&TokenType::Colon),
@@ -624,7 +660,7 @@ impl Parser {
             let (rhs, rhs_span) = self.pratt_parsing(index, 0);
             last_expr_span = rhs_span;
 
-            key_values.push((lhs, rhs));
+            dict_items.push(DictItemType::KeyValue(lhs, rhs));
         }
 
         assert_eq!(
@@ -640,7 +676,7 @@ impl Parser {
         // Consume }
         *index += 1;
 
-        (Expression::Dict(key_values, dict_span), dict_span)
+        (Expression::Dict(dict_items, dict_span), dict_span)
     }
 
     fn parse_list_expr(&self, index: &mut usize) -> (Expression, Span) {
