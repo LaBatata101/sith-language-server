@@ -90,7 +90,11 @@ impl Parser {
                 (Expression::Bool(false, token.span), token.span)
             }
             TokenType::Operator(
-                OperatorType::Plus | OperatorType::Minus | OperatorType::BitwiseNot | OperatorType::Asterisk,
+                OperatorType::Plus
+                | OperatorType::Minus
+                | OperatorType::BitwiseNot
+                | OperatorType::Asterisk
+                | OperatorType::Exponent,
             )
             | TokenType::Keyword(KeywordType::Not | KeywordType::Await) => self.parse_unary_operator(index, token),
             TokenType::OpenParenthesis => self.parse_parenthesized_expr(index, token),
@@ -450,6 +454,7 @@ impl Parser {
             TokenType::Operator(OperatorType::Plus) => Operation::Unary(UnaryOperator::Plus),
             TokenType::Operator(OperatorType::Minus) => Operation::Unary(UnaryOperator::Minus),
             TokenType::Operator(OperatorType::Asterisk) => Operation::Unary(UnaryOperator::UnpackIterable),
+            TokenType::Operator(OperatorType::Exponent) => Operation::Unary(UnaryOperator::UnpackDictionary),
             TokenType::Keyword(KeywordType::Not) => Operation::Unary(UnaryOperator::LogicalNot),
             TokenType::Keyword(KeywordType::Await) => Operation::Unary(UnaryOperator::Await),
             _ => panic!("ERROR: Unexpected operator! {token:?}"),

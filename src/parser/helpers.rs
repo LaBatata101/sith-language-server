@@ -13,7 +13,11 @@ pub fn prefix_binding_power(op: Operation) -> Option<((), u8)> {
         Operation::Unary(UnaryOperator::LogicalNot) => Some(((), 6)),
         Operation::Unary(UnaryOperator::Await) => Some(((), 20)),
         Operation::Unary(
-            UnaryOperator::Plus | UnaryOperator::Minus | UnaryOperator::BitwiseNot | UnaryOperator::UnpackIterable,
+            UnaryOperator::Plus
+            | UnaryOperator::Minus
+            | UnaryOperator::BitwiseNot
+            | UnaryOperator::UnpackIterable
+            | UnaryOperator::UnpackDictionary,
         ) => Some(((), 16)),
         _ => None,
     }

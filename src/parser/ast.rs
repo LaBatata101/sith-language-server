@@ -72,6 +72,7 @@ pub enum UnaryOperator {
     OpenParenthesis,
     OpenBrackets,
     UnpackIterable,
+    UnpackDictionary,
     Await,
 }
 
