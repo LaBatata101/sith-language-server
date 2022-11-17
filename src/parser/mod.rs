@@ -315,6 +315,8 @@ impl Parser {
                 (Statement::While(while_stmt), while_span)
             }
             TokenType::Keyword(KeywordType::Pass) => (Statement::Pass(token.span), token.span),
+            TokenType::Keyword(KeywordType::Continue) => (Statement::Continue(token.span), token.span),
+            TokenType::Keyword(KeywordType::Break) => (Statement::Break(token.span), token.span),
             _ => panic!("ERROR: unexpected token {:?} at position {:?}", token.kind, token.span),
         }
     }

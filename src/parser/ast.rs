@@ -9,6 +9,8 @@ pub enum Statement {
     VarAsgmt(VarAsgmt, Expression),
     Pass(Span),
     While(While),
+    Break(Span),
+    Continue(Span),
 }
 
 #[derive(Debug, PartialEq, Eq)]
