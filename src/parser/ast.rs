@@ -25,6 +25,7 @@ pub enum Expression {
     Dict(Vec<(Expression, Expression)>, Span),
     Set(Vec<Expression>, Span),
     Tuple(Vec<Expression>, Span),
+    IfElse(IfElseExpr),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -173,4 +174,12 @@ impl ParsedFile {
     pub fn new() -> Self {
         Self { stmts: Vec::new() }
     }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct IfElseExpr {
+    pub lhs: Box<Expression>,
+    pub rhs: Box<Expression>,
+    pub condition: Box<Expression>,
+    pub span: Span,
 }

@@ -4,8 +4,8 @@ mod tests_parser {
         lexer::token::Span,
         parser::{
             ast::{
-                BinaryOperator, Block, ElIfStmt, ElseStmt, Expression, Function, IfStmt, ParsedFile, Statement,
-                UnaryOperator, VarAsgmt, While,
+                BinaryOperator, Block, ElIfStmt, ElseStmt, Expression, Function, IfElseExpr, IfStmt, ParsedFile,
+                Statement, UnaryOperator, VarAsgmt, While,
             },
             Parser,
         },
@@ -792,6 +792,80 @@ else:
                         ],
                         Span { start: 4, end: 44 }
                     )
+                )]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_if_else_expression() {
+        let parser = Parser::new("x = 15 if 5 < x else 45");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::VarAsgmt(
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 6 }),
+                    Expression::IfElse(IfElseExpr {
+                        lhs: Box::new(Expression::Number("15".to_string(), Span { start: 4, end: 6 })),
+                        rhs: Box::new(Expression::Number("45".to_string(), Span { start: 21, end: 23 })),
+                        condition: Box::new(Expression::BinaryOp(
+                            Box::new(Expression::Number("5".to_string(), Span { start: 10, end: 11 })),
+                            BinaryOperator::LessThan,
+                            Box::new(Expression::Id("x".to_string(), Span { start: 14, end: 15 })),
+                            Span { start: 10, end: 15 }
+                        )),
+                        span: Span { start: 4, end: 23 }
+                    })
+                )]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_if_else_expression2() {
+        let parser = Parser::new("x = func() if (5 < x or x >= y) and is_id else func2() * 5");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::VarAsgmt(
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 8 }),
+                    Expression::IfElse(IfElseExpr {
+                        lhs: Box::new(Expression::Call(
+                            Box::new(Expression::Id("func".to_string(), Span { start: 4, end: 8 })),
+                            Span { start: 4, end: 8 }
+                        )),
+                        rhs: Box::new(Expression::BinaryOp(
+                            Box::new(Expression::Call(
+                                Box::new(Expression::Id("func2".to_string(), Span { start: 47, end: 52 })),
+                                Span { start: 47, end: 52 }
+                            )),
+                            BinaryOperator::Multiply,
+                            Box::new(Expression::Number("5".to_string(), Span { start: 57, end: 58 })),
+                            Span { start: 47, end: 58 }
+                        )),
+                        condition: Box::new(Expression::BinaryOp(
+                            Box::new(Expression::BinaryOp(
+                                Box::new(Expression::BinaryOp(
+                                    Box::new(Expression::Number("5".to_string(), Span { start: 15, end: 16 })),
+                                    BinaryOperator::LessThan,
+                                    Box::new(Expression::Id("x".to_string(), Span { start: 19, end: 20 })),
+                                    Span { start: 15, end: 20 }
+                                )),
+                                BinaryOperator::LogicalOr,
+                                Box::new(Expression::BinaryOp(
+                                    Box::new(Expression::Id("x".to_string(), Span { start: 24, end: 25 })),
+                                    BinaryOperator::GreaterThanOrEqual,
+                                    Box::new(Expression::Id("y".to_string(), Span { start: 29, end: 30 })),
+                                    Span { start: 24, end: 30 }
+                                )),
+                                Span { start: 15, end: 30 }
+                            )),
+                            BinaryOperator::LogicalAnd,
+                            Box::new(Expression::Id("is_id".to_string(), Span { start: 36, end: 41 })),
+                            Span { start: 15, end: 41 }
+                        )),
+                        span: Span { start: 4, end: 58 }
+                    })
                 )]
             }
         )

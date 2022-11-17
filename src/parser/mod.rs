@@ -1,12 +1,15 @@
 pub mod ast;
 mod helpers;
 
-use crate::lexer::{
-    token::{
-        types::{KeywordType, OperatorType, TokenType},
-        Span, Token,
+use crate::{
+    lexer::{
+        token::{
+            types::{KeywordType, OperatorType, TokenType},
+            Span, Token,
+        },
+        Lexer,
     },
-    Lexer,
+    parser::ast::IfElseExpr,
 };
 use ast::{
     BinaryOperator, Block, ElIfStmt, ElseStmt, Expression, Function, IfStmt, Operation, ParsedFile, Statement,
@@ -109,6 +112,7 @@ impl Parser {
                     | TokenType::CloseBrackets
                     | TokenType::CloseParenthesis
                     | TokenType::Comma
+                    | TokenType::Keyword(KeywordType::Else)
             )
         }) {
             token = self.tokens.get(*index).unwrap();
@@ -167,6 +171,11 @@ impl Parser {
                 }
 
                 *index += 1;
+
+                if op == Operation::Binary(BinaryOperator::IfElse) {
+                    lhs = self.parse_if_else_expr(index, lhs, lhs_span);
+                    continue;
+                }
 
                 let (rhs, rhs_span) = self.pratt_parsing(index, rhs_bp);
                 lhs_span = Span {
@@ -663,6 +672,30 @@ impl Parser {
         (Expression::List(expressions, list_span), list_span)
     }
 
+    /// This function assumes that `lhs` is already parsed and the "if" Token consumed.
+    fn parse_if_else_expr(&self, index: &mut usize, lhs: Expression, lhs_span: Span) -> Expression {
+        let (condition, _) = self.pratt_parsing(index, 0);
+        assert_eq!(
+            self.tokens.get(*index).map(|token| &token.kind),
+            Some(&TokenType::Keyword(KeywordType::Else)),
+            "Expecting \"else\" keyword!"
+        );
+
+        // Consume "else" keyword
+        *index += 1;
+        let (rhs, rhs_span) = self.pratt_parsing(index, 0);
+
+        Expression::IfElse(IfElseExpr {
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+            condition: Box::new(condition),
+            span: Span {
+                start: lhs_span.start,
+                end: rhs_span.end,
+            },
+        })
+    }
+
     fn get_expr_operation(&self, token: &Token, index: &mut usize) -> Operation {
         match token.kind {
             TokenType::Operator(OperatorType::Exponent) => Operation::Binary(BinaryOperator::Exponent),
@@ -692,6 +725,7 @@ impl Parser {
             TokenType::Keyword(KeywordType::And) => Operation::Binary(BinaryOperator::LogicalAnd),
             TokenType::Keyword(KeywordType::Or) => Operation::Binary(BinaryOperator::LogicalOr),
             TokenType::Keyword(KeywordType::In) => Operation::Binary(BinaryOperator::In),
+            TokenType::Keyword(KeywordType::If) => Operation::Binary(BinaryOperator::IfElse),
             TokenType::Keyword(KeywordType::Is) => {
                 if self
                     .tokens
