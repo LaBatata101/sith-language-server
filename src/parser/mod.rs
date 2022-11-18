@@ -536,6 +536,11 @@ impl Parser {
             .map_or(false, |token| token.kind == TokenType::Comma)
         {
             *index += 1;
+
+            if self.tokens.get(*index).unwrap().kind == TokenType::CloseParenthesis {
+                break;
+            }
+
             let (expr, expr_span) = self.pratt_parsing(index, 0);
             last_expr_span = expr_span;
             expressions.push(expr);
@@ -608,6 +613,11 @@ impl Parser {
             .map_or(false, |token| token.kind == TokenType::Comma)
         {
             *index += 1;
+
+            if self.tokens.get(*index).unwrap().kind == TokenType::CloseBrace {
+                break;
+            }
+
             let (expr, expr_span) = self.pratt_parsing(index, 0);
             last_expr_span = expr_span;
 
@@ -646,6 +656,10 @@ impl Parser {
             *index += 1;
             if self.tokens.get(*index).unwrap().kind == TokenType::Operator(OperatorType::Asterisk) {
                 panic!("Invalid Syntax: can't unpack iterable inside dictionary!")
+            }
+
+            if self.tokens.get(*index).unwrap().kind == TokenType::CloseBrace {
+                break;
             }
 
             let (lhs, lhs_span) = self.pratt_parsing(index, 0);
@@ -717,6 +731,11 @@ impl Parser {
         {
             // consume the comma
             *index += 1;
+
+            // allow trailing comma
+            if self.tokens.get(*index).unwrap().kind == TokenType::CloseBrackets {
+                break;
+            }
 
             if self.tokens.get(*index).unwrap().kind == TokenType::Operator(OperatorType::Exponent) {
                 panic!("Invalid Syntax: can't unpack dictionary inside list!")

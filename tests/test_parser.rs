@@ -684,12 +684,12 @@ else:
 
     #[test]
     fn test_parse_tuple_expression() {
-        let parser = Parser::new("x = (1 + 2, True, y(), \"Hello\", l[i])");
+        let parser = Parser::new("x = (1 + 2, True, y(), \"Hello\", l[i],)");
         assert_eq!(
             parser.parse(),
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 37 }),
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 38 }),
                     Expression::Tuple(
                         vec![
                             Expression::BinaryOp(
@@ -710,7 +710,7 @@ else:
                                 Span { start: 32, end: 36 }
                             )
                         ],
-                        Span { start: 4, end: 37 }
+                        Span { start: 4, end: 38 }
                     )
                 )]
             }
@@ -719,13 +719,12 @@ else:
 
     #[test]
     fn test_parse_list_expression() {
-        // FIXME: trailing comma is allowed inside of the list
-        let parser = Parser::new("x = [1 + 2, True, y(), \"Hello\", l[i]]");
+        let parser = Parser::new("x = [1 + 2, True, y(), \"Hello\", l[i],]");
         assert_eq!(
             parser.parse(),
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 37 }),
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 38 }),
                     Expression::List(
                         vec![
                             Expression::BinaryOp(
@@ -746,7 +745,7 @@ else:
                                 Span { start: 32, end: 36 }
                             )
                         ],
-                        Span { start: 4, end: 37 }
+                        Span { start: 4, end: 38 }
                     )
                 )]
             }
@@ -816,12 +815,12 @@ else:
 
     #[test]
     fn test_parse_set_expression() {
-        let parser = Parser::new("x = {1, True, \"hello\", *l}");
+        let parser = Parser::new("x = {1, True, \"hello\", *l,}");
         assert_eq!(
             parser.parse(),
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 26 }),
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 27 }),
                     Expression::Set(
                         vec![
                             Expression::Number("1".to_string(), Span { start: 5, end: 6 }),
@@ -833,7 +832,7 @@ else:
                                 Span { start: 23, end: 25 }
                             )
                         ],
-                        Span { start: 4, end: 26 }
+                        Span { start: 4, end: 27 }
                     )
                 )]
             }
@@ -842,12 +841,12 @@ else:
 
     #[test]
     fn test_parse_dict_expression() {
-        let parser = Parser::new("x = {1: \"Hello\", 1 + 3: True, (6, 6): False}");
+        let parser = Parser::new("x = {1: \"Hello\", 1 + 3: True, (6, 6): False,}");
         assert_eq!(
             parser.parse(),
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 44 }),
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 45 }),
                     Expression::Dict(
                         vec![
                             DictItemType::KeyValue(
@@ -874,7 +873,7 @@ else:
                                 Expression::Bool(false, Span { start: 38, end: 43 })
                             )
                         ],
-                        Span { start: 4, end: 44 }
+                        Span { start: 4, end: 45 }
                     )
                 )]
             }
@@ -883,12 +882,12 @@ else:
 
     #[test]
     fn test_parse_dict_expression2() {
-        let parser = Parser::new("x = {**d, 2: 5, **x}");
+        let parser = Parser::new("x = {**d, 2: 5, **x,}");
         assert_eq!(
             parser.parse(),
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 20 }),
+                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 21 }),
                     Expression::Dict(
                         vec![
                             DictItemType::DictUnpack(Expression::UnaryOp(
@@ -906,7 +905,7 @@ else:
                                 Span { start: 16, end: 19 }
                             ))
                         ],
-                        Span { start: 4, end: 20 }
+                        Span { start: 4, end: 21 }
                     )
                 )]
             }
