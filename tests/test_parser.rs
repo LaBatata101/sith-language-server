@@ -4,9 +4,9 @@ mod tests_parser {
         lexer::token::Span,
         parser::{
             ast::{
-                BinaryOperator, Block, DictItemType, ElIfStmt, ElseStmt, Expression, FuncParameter, Function,
-                IfElseExpr, IfStmt, LambdaExpr, ParsedFile, StarParameterType, Statement, UnaryOperator, VarAsgmt,
-                While,
+                BinaryOperator, Block, ClassStmt, DictItemType, ElIfStmt, ElseStmt, Expression, FuncParameter,
+                Function, IfElseExpr, IfStmt, LambdaExpr, ParsedFile, StarParameterType, Statement, UnaryOperator,
+                VarAsgmt, While,
             },
             Parser,
         },
@@ -1180,6 +1180,85 @@ else:
                     ),
                     Span { start: 1, end: 16 }
                 )]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_class() {
+        let parser = Parser::new(
+            "class Test:
+    def __init__(self):
+        pass",
+        );
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::Class(ClassStmt {
+                    name: "Test".to_string(),
+                    block: Block {
+                        stmts: vec![Statement::FunctionDef(Function {
+                            name: "__init__".to_string(),
+                            name_span: Span { start: 20, end: 28 },
+                            parameters: vec![FuncParameter {
+                                name: "self".to_string(),
+                                default_value: None,
+                                star_parameter_type: None,
+                                span: Span { start: 29, end: 33 }
+                            }],
+                            block: Block {
+                                stmts: vec![Statement::Pass(Span { start: 44, end: 48 })],
+                                span: Span { start: 44, end: 48 }
+                            },
+                            span: Span { start: 16, end: 48 }
+                        })],
+                        span: Span { start: 16, end: 48 }
+                    },
+                    super_classes: vec![],
+                    span: Span { start: 0, end: 48 }
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_class2() {
+        let parser = Parser::new(
+            "class Dog(Animal):
+    def __init__(self):
+        pass",
+        );
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::Class(ClassStmt {
+                    name: "Dog".to_string(),
+                    block: Block {
+                        stmts: vec![Statement::FunctionDef(Function {
+                            name: "__init__".to_string(),
+                            name_span: Span { start: 27, end: 35 },
+                            parameters: vec![FuncParameter {
+                                name: "self".to_string(),
+                                default_value: None,
+                                star_parameter_type: None,
+                                span: Span { start: 36, end: 40 }
+                            }],
+                            block: Block {
+                                stmts: vec![Statement::Pass(Span { start: 51, end: 55 })],
+                                span: Span { start: 51, end: 55 }
+                            },
+                            span: Span { start: 23, end: 55 }
+                        })],
+                        span: Span { start: 23, end: 55 }
+                    },
+                    super_classes: vec![FuncParameter {
+                        name: "Animal".to_string(),
+                        default_value: None,
+                        star_parameter_type: None,
+                        span: Span { start: 10, end: 16 }
+                    }],
+                    span: Span { start: 0, end: 55 }
+                })]
             }
         )
     }

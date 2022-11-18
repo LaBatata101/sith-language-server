@@ -13,6 +13,7 @@ pub enum Statement {
     Continue(Span),
     #[default]
     None,
+    Class(ClassStmt),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -131,6 +132,14 @@ pub struct FuncParameter {
 #[derive(Debug, PartialEq, Eq)]
 pub struct CallExpr {
     pub name: String,
+}
+
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct ClassStmt {
+    pub name: String,
+    pub block: Block,
+    pub super_classes: Vec<FuncParameter>,
+    pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq)]

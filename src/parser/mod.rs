@@ -17,7 +17,7 @@ use ast::{
 };
 use helpers::{infix_binding_power, postfix_binding_power, prefix_binding_power};
 
-use self::ast::{FuncParameter, LambdaExpr, StarParameterType};
+use self::ast::{ClassStmt, FuncParameter, LambdaExpr, StarParameterType};
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -335,6 +335,13 @@ impl Parser {
                 let while_span = while_stmt.span;
 
                 (Statement::While(while_stmt), while_span)
+            }
+            TokenType::Keyword(KeywordType::Class) => {
+                let mut class_stmt = self.parse_class(index);
+                class_stmt.span.start = token.span.start;
+                let class_span = class_stmt.span;
+
+                (Statement::Class(class_stmt), class_span)
             }
             TokenType::Keyword(KeywordType::Pass) => (Statement::Pass(token.span), token.span),
             TokenType::Keyword(KeywordType::Continue) => (Statement::Continue(token.span), token.span),
@@ -943,5 +950,42 @@ impl Parser {
             TokenType::OpenBrackets => Operation::Unary(UnaryOperator::OpenBrackets),
             _ => panic!("ERROR: Unexpected token! {token:?}"),
         }
+    }
+
+    fn parse_class(&self, index: &mut usize) -> ClassStmt {
+        let mut class = ClassStmt::default();
+
+        let mut token = self.tokens.get(*index).unwrap();
+        match &token.kind {
+            TokenType::Id(name) => {
+                *index += 1;
+                class.name = name.to_string();
+            }
+            _ => panic!("Syntax Error: expected identifier, got {token:?}"),
+        }
+
+        token = self.tokens.get(*index).unwrap();
+
+        if token.kind == TokenType::OpenParenthesis {
+            // Consume (
+            *index += 1;
+            class.super_classes = self.parse_function_parameters(index);
+
+            assert_eq!(
+                self.tokens.get(*index).map(|token| &token.kind),
+                Some(&TokenType::CloseParenthesis),
+                "Expecting a \")\"!",
+            );
+            // Consume )
+            *index += 1;
+        }
+
+        // Consume :
+        *index += 1;
+
+        class.block = self.parse_block(index);
+        class.span.end = class.block.span.end;
+
+        class
     }
 }
