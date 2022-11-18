@@ -17,7 +17,7 @@ use ast::{
 };
 use helpers::{infix_binding_power, postfix_binding_power, prefix_binding_power};
 
-use self::ast::{FuncParameter, StarParameterType};
+use self::ast::{FuncParameter, LambdaExpr, StarParameterType};
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -98,7 +98,9 @@ impl Parser {
                 | OperatorType::Asterisk
                 | OperatorType::Exponent,
             )
-            | TokenType::Keyword(KeywordType::Not | KeywordType::Await) => self.parse_unary_operator(index, token),
+            | TokenType::Keyword(KeywordType::Not | KeywordType::Await | KeywordType::Lambda) => {
+                self.parse_unary_operator(index, token)
+            }
             TokenType::OpenParenthesis => self.parse_parenthesized_expr(index, token),
             TokenType::OpenBrackets => self.parse_list_expr(index),
             TokenType::OpenBrace => self.parse_bracesized_expr(index, token),
@@ -471,11 +473,33 @@ impl Parser {
             TokenType::Operator(OperatorType::Exponent) => Operation::Unary(UnaryOperator::UnpackDictionary),
             TokenType::Keyword(KeywordType::Not) => Operation::Unary(UnaryOperator::LogicalNot),
             TokenType::Keyword(KeywordType::Await) => Operation::Unary(UnaryOperator::Await),
+            TokenType::Keyword(KeywordType::Lambda) => Operation::Unary(UnaryOperator::Lambda),
             _ => panic!("ERROR: Unexpected operator! {token:?}"),
         };
         *index += 1;
 
         let ((), r_bp) = prefix_binding_power(op).unwrap();
+
+        if op == Operation::Unary(UnaryOperator::Lambda) {
+            let parameters = self.parse_function_parameters(index);
+            // Consume :
+            *index += 1;
+            let (expr, expr_span) = self.pratt_parsing(index, r_bp);
+            let lambda_span = Span {
+                start: token.span.start,
+                end: expr_span.end,
+            };
+
+            return (
+                Expression::Lambda(LambdaExpr {
+                    parameters,
+                    expression: Box::new(expr),
+                    span: lambda_span,
+                }),
+                lambda_span,
+            );
+        }
+
         let (rhs, mut rhs_span) = self.pratt_parsing(index, r_bp);
         rhs_span.start = token.span.start;
         (

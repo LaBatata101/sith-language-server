@@ -5,7 +5,8 @@ mod tests_parser {
         parser::{
             ast::{
                 BinaryOperator, Block, DictItemType, ElIfStmt, ElseStmt, Expression, FuncParameter, Function,
-                IfElseExpr, IfStmt, ParsedFile, StarParameterType, Statement, UnaryOperator, VarAsgmt, While,
+                IfElseExpr, IfStmt, LambdaExpr, ParsedFile, StarParameterType, Statement, UnaryOperator, VarAsgmt,
+                While,
             },
             Parser,
         },
@@ -1119,6 +1120,65 @@ else:
                         Span { start: 0, end: 25 }
                     ),
                     Span { start: 0, end: 25 }
+                )]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_lambda_expr() {
+        let parser = Parser::new("lambda x: x + 1");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::Expression(
+                    Expression::Lambda(LambdaExpr {
+                        parameters: vec![FuncParameter {
+                            name: "x".to_string(),
+                            default_value: None,
+                            star_parameter_type: None,
+                            span: Span { start: 7, end: 8 }
+                        }],
+                        expression: Box::new(Expression::BinaryOp(
+                            Box::new(Expression::Id("x".to_string(), Span { start: 10, end: 11 })),
+                            BinaryOperator::Add,
+                            Box::new(Expression::Number("1".to_string(), Span { start: 14, end: 15 })),
+                            Span { start: 10, end: 15 }
+                        )),
+                        span: Span { start: 0, end: 15 }
+                    }),
+                    Span { start: 0, end: 15 }
+                )]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_lambda_expr2() {
+        let parser = Parser::new("(lambda x: x + 1)()");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::Expression(
+                    Expression::Call(
+                        Box::new(Expression::Lambda(LambdaExpr {
+                            parameters: vec![FuncParameter {
+                                name: "x".to_string(),
+                                default_value: None,
+                                star_parameter_type: None,
+                                span: Span { start: 8, end: 9 }
+                            }],
+                            expression: Box::new(Expression::BinaryOp(
+                                Box::new(Expression::Id("x".to_string(), Span { start: 11, end: 12 })),
+                                BinaryOperator::Add,
+                                Box::new(Expression::Number("1".to_string(), Span { start: 15, end: 16 })),
+                                Span { start: 11, end: 16 }
+                            )),
+                            span: Span { start: 1, end: 16 }
+                        })),
+                        Span { start: 1, end: 16 }
+                    ),
+                    Span { start: 1, end: 16 }
                 )]
             }
         )

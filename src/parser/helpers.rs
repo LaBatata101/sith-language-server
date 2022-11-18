@@ -10,8 +10,8 @@ pub fn postfix_binding_power(op: Operation) -> Option<(u8, ())> {
 
 pub fn prefix_binding_power(op: Operation) -> Option<((), u8)> {
     match op {
+        Operation::Unary(UnaryOperator::Lambda) => Some(((), 2)),
         Operation::Unary(UnaryOperator::LogicalNot) => Some(((), 6)),
-        Operation::Unary(UnaryOperator::Await) => Some(((), 20)),
         Operation::Unary(
             UnaryOperator::Plus
             | UnaryOperator::Minus
@@ -19,6 +19,7 @@ pub fn prefix_binding_power(op: Operation) -> Option<((), u8)> {
             | UnaryOperator::UnpackIterable
             | UnaryOperator::UnpackDictionary,
         ) => Some(((), 16)),
+        Operation::Unary(UnaryOperator::Await) => Some(((), 20)),
         _ => None,
     }
 }
@@ -26,7 +27,6 @@ pub fn prefix_binding_power(op: Operation) -> Option<((), u8)> {
 pub fn infix_binding_power(op: Operation) -> Option<(u8, u8)> {
     match op {
         Operation::Binary(BinaryOperator::Walrus) => Some((1, 1)),
-        Operation::Binary(BinaryOperator::Lambda) => Some((2, 2)),
         Operation::Binary(BinaryOperator::IfElse) => Some((3, 3)),
         Operation::Binary(BinaryOperator::LogicalOr) => Some((4, 4)),
         Operation::Binary(BinaryOperator::LogicalAnd) => Some((5, 5)),

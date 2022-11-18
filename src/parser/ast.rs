@@ -30,6 +30,7 @@ pub enum Expression {
     Set(Vec<Expression>, Span),
     Tuple(Vec<Expression>, Span),
     IfElse(IfElseExpr),
+    Lambda(LambdaExpr),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -61,7 +62,6 @@ pub enum BinaryOperator {
     IsNot,
     IfElse,
     Walrus,
-    Lambda,
     AttributeRef,
 }
 
@@ -76,6 +76,7 @@ pub enum UnaryOperator {
     UnpackIterable,
     UnpackDictionary,
     Await,
+    Lambda,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -110,6 +111,13 @@ pub enum DictItemType {
 pub enum StarParameterType {
     Kargs,
     KWargs,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct LambdaExpr {
+    pub parameters: Vec<FuncParameter>,
+    pub expression: Box<Expression>,
+    pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
