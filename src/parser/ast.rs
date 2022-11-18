@@ -32,6 +32,7 @@ pub enum Expression {
     Tuple(Vec<Expression>, Span),
     IfElse(IfElseExpr),
     Lambda(LambdaExpr),
+    Ellipsis(Span),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]

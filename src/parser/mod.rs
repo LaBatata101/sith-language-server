@@ -91,6 +91,10 @@ impl Parser {
                 *index += 1;
                 (Expression::Bool(false, token.span), token.span)
             }
+            TokenType::Ellipsis => {
+                *index += 1;
+                (Expression::Ellipsis(token.span), token.span)
+            }
             TokenType::Operator(
                 OperatorType::Plus
                 | OperatorType::Minus
