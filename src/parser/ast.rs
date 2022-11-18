@@ -1,6 +1,6 @@
 use crate::lexer::token::Span;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Default)]
 pub enum Statement {
     Expression(Expression, Span),
     Block(Block),
@@ -11,6 +11,8 @@ pub enum Statement {
     While(While),
     Break(Span),
     Continue(Span),
+    #[default]
+    None,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -105,6 +107,20 @@ pub enum DictItemType {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+pub enum StarParameterType {
+    Kargs,
+    KWargs,
+}
+
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct FuncParameter {
+    pub name: String,
+    pub default_value: Option<Expression>,
+    pub star_parameter_type: Option<StarParameterType>,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub struct CallExpr {
     pub name: String,
 }
@@ -154,11 +170,12 @@ impl VarAsgmt {
 pub struct Function {
     pub name: String,
     pub name_span: Span,
+    pub parameters: Vec<FuncParameter>,
     pub block: Block,
     pub span: Span,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Default)]
 pub struct Block {
     pub stmts: Vec<Statement>,
     pub span: Span,

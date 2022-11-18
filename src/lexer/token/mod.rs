@@ -2,7 +2,7 @@ pub mod types;
 
 use self::types::TokenType;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
 pub struct Span {
     // TODO: add field to know which file the Span belongs to
     pub start: usize,

@@ -4,8 +4,8 @@ mod tests_parser {
         lexer::token::Span,
         parser::{
             ast::{
-                BinaryOperator, Block, DictItemType, ElIfStmt, ElseStmt, Expression, Function, IfElseExpr, IfStmt,
-                ParsedFile, Statement, UnaryOperator, VarAsgmt, While,
+                BinaryOperator, Block, DictItemType, ElIfStmt, ElseStmt, Expression, FuncParameter, Function,
+                IfElseExpr, IfStmt, ParsedFile, StarParameterType, Statement, UnaryOperator, VarAsgmt, While,
             },
             Parser,
         },
@@ -88,7 +88,8 @@ mod tests_parser {
                         stmts: vec![Statement::Pass(Span { start: 13, end: 17 })],
                         span: Span { start: 13, end: 17 }
                     },
-                    span: Span { start: 0, end: 17 }
+                    span: Span { start: 0, end: 17 },
+                    parameters: vec![]
                 })]
             }
         )
@@ -109,6 +110,7 @@ mod tests_parser {
                 stmts: vec![Statement::FunctionDef(Function {
                     name: "x".to_string(),
                     name_span: Span { start: 4, end: 5 },
+                    parameters: vec![],
                     block: Block {
                         stmts: vec![
                             Statement::Pass(Span { start: 13, end: 17 }),
@@ -118,6 +120,80 @@ mod tests_parser {
                         span: Span { start: 13, end: 35 }
                     },
                     span: Span { start: 0, end: 35 }
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_function3() {
+        let parser = Parser::new(
+            "def test(x, y = 42):
+    pass",
+        );
+
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::FunctionDef(Function {
+                    name: "test".to_string(),
+                    name_span: Span { start: 4, end: 8 },
+                    parameters: vec![
+                        FuncParameter {
+                            name: "x".to_string(),
+                            default_value: None,
+                            span: Span { start: 9, end: 10 },
+                            star_parameter_type: None
+                        },
+                        FuncParameter {
+                            name: "y".to_string(),
+                            default_value: Some(Expression::Number("42".to_string(), Span { start: 16, end: 18 })),
+                            span: Span { start: 12, end: 18 },
+                            star_parameter_type: None
+                        }
+                    ],
+                    block: Block {
+                        stmts: vec![Statement::Pass(Span { start: 25, end: 29 })],
+                        span: Span { start: 25, end: 29 }
+                    },
+                    span: Span { start: 0, end: 29 }
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_function4() {
+        let parser = Parser::new(
+            "def test(*kargs, **kwargs):
+    pass",
+        );
+
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::FunctionDef(Function {
+                    name: "test".to_string(),
+                    name_span: Span { start: 4, end: 8 },
+                    parameters: vec![
+                        FuncParameter {
+                            name: "kargs".to_string(),
+                            default_value: None,
+                            span: Span { start: 10, end: 15 },
+                            star_parameter_type: Some(StarParameterType::Kargs)
+                        },
+                        FuncParameter {
+                            name: "kwargs".to_string(),
+                            default_value: None,
+                            span: Span { start: 19, end: 25 },
+                            star_parameter_type: Some(StarParameterType::KWargs)
+                        }
+                    ],
+                    block: Block {
+                        stmts: vec![Statement::Pass(Span { start: 32, end: 36 })],
+                        span: Span { start: 32, end: 36 }
+                    },
+                    span: Span { start: 0, end: 36 }
                 })]
             }
         )
@@ -643,6 +719,7 @@ else:
 
     #[test]
     fn test_parse_list_expression() {
+        // FIXME: trailing comma is allowed inside of the list
         let parser = Parser::new("x = [1 + 2, True, y(), \"Hello\", l[i]]");
         assert_eq!(
             parser.parse(),

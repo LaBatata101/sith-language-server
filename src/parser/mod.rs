@@ -17,6 +17,8 @@ use ast::{
 };
 use helpers::{infix_binding_power, postfix_binding_power, prefix_binding_power};
 
+use self::ast::{FuncParameter, StarParameterType};
+
 pub struct Parser {
     tokens: Vec<Token>,
 }
@@ -195,13 +197,29 @@ impl Parser {
         (lhs, lhs_span)
     }
 
-    fn parse_function(&self, index: &mut usize, name: String, name_span: Span) -> Function {
+    fn parse_function(&self, index: &mut usize, func_span_start: usize, name: String, name_span: Span) -> Function {
+        let mut function = Function {
+            name,
+            name_span,
+            span: Span {
+                start: func_span_start,
+                end: 0,
+            },
+            block: Block::default(),
+            parameters: vec![],
+        };
+
         let mut token = self.tokens.get(*index).unwrap();
         if !matches!(token.kind, TokenType::OpenParenthesis) {
             panic!("Invalid syntax: expecting '(' got {:?}", token.kind)
         }
         *index += 1;
         token = self.tokens.get(*index).unwrap();
+        if token.kind != TokenType::CloseParenthesis {
+            function.parameters = self.parse_function_parameters(index);
+            token = self.tokens.get(*index).unwrap();
+        }
+
         if !matches!(token.kind, TokenType::CloseParenthesis) {
             panic!("Invalid syntax: expecting ')' got {:?}", token.kind)
         }
@@ -213,15 +231,10 @@ impl Parser {
         *index += 1;
         let block = self.parse_block(index);
 
-        Function {
-            name,
-            name_span,
-            span: Span {
-                start: 0,
-                end: block.span.end,
-            },
-            block,
-        }
+        function.span.end = block.span.end;
+        function.block = block;
+
+        function
     }
 
     fn parse_block(&self, index: &mut usize) -> Block {
@@ -291,13 +304,14 @@ impl Parser {
                 }
             }
             TokenType::Keyword(KeywordType::Def) => {
+                // TODO: move this check into `parse_function`
                 if let Some(Token {
                     kind: TokenType::Id(name),
                     span: func_name_span,
                 }) = self.tokens.get(*index)
                 {
                     *index += 1;
-                    let mut func = self.parse_function(index, name.to_string(), *func_name_span);
+                    let mut func = self.parse_function(index, token.span.start, name.to_string(), *func_name_span);
                     func.span.start = token.span.start;
                     let func_span = func.span;
 
@@ -752,6 +766,78 @@ impl Parser {
                 end: rhs_span.end,
             },
         })
+    }
+
+    fn parse_function_parameters(&self, index: &mut usize) -> Vec<FuncParameter> {
+        let mut parameters = vec![];
+
+        loop {
+            let mut func_parameter = FuncParameter::default();
+            let token = self.tokens.get(*index).unwrap();
+            match &token.kind {
+                TokenType::Id(name) => {
+                    func_parameter.name = name.to_string();
+                    func_parameter.span = token.span;
+
+                    // Consume Id
+                    *index += 1;
+                    // TODO: Maybe use the assignment parse function here
+                    if self.tokens.get(*index).unwrap().kind == TokenType::Operator(OperatorType::Assign) {
+                        *index += 1;
+                        // TODO: use parse_expression instead
+                        let (expr, expr_span) = self.pratt_parsing(index, 0);
+                        func_parameter.default_value = Some(expr);
+                        func_parameter.span.end = expr_span.end;
+                    }
+
+                    parameters.push(func_parameter);
+                }
+                TokenType::Operator(OperatorType::Asterisk) => {
+                    // Consume *
+                    *index += 1;
+                    let next_token = self.tokens.get(*index).unwrap();
+                    match &next_token.kind {
+                        TokenType::Id(name) => {
+                            // Consume Id
+                            *index += 1;
+                            func_parameter.name = name.to_string();
+                            func_parameter.star_parameter_type = Some(StarParameterType::Kargs);
+                            func_parameter.span = next_token.span;
+
+                            parameters.push(func_parameter);
+                        }
+                        _ => panic!("Invalid Syntax: expecting identifier, got {next_token:?}"),
+                    }
+                }
+                TokenType::Operator(OperatorType::Exponent) => {
+                    // Consume **
+                    *index += 1;
+                    let next_token = self.tokens.get(*index).unwrap();
+                    match &next_token.kind {
+                        TokenType::Id(name) => {
+                            // Consume Id
+                            *index += 1;
+                            func_parameter.name = name.to_string();
+                            func_parameter.star_parameter_type = Some(StarParameterType::KWargs);
+                            func_parameter.span = next_token.span;
+
+                            parameters.push(func_parameter);
+                        }
+                        _ => panic!("Invalid Syntax: expecting identifier, got {next_token:?}"),
+                    }
+                }
+                _ => panic!("Invalid syntax! {:?}", token),
+            }
+
+            if self.tokens.get(*index).unwrap().kind != TokenType::Comma {
+                break;
+            }
+
+            // Consume ,
+            *index += 1;
+        }
+
+        parameters
     }
 
     fn get_expr_operation(&self, token: &Token, index: &mut usize) -> Operation {
