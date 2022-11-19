@@ -17,7 +17,7 @@ use ast::{
 };
 use helpers::{infix_binding_power, postfix_binding_power, prefix_binding_power};
 
-use self::ast::{ClassStmt, FuncParameter, LambdaExpr, StarParameterType};
+use self::ast::{ClassStmt, FromImportStmt, FuncParameter, ImportModule, ImportStmt, LambdaExpr, StarParameterType};
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -346,6 +346,20 @@ impl Parser {
                 let class_span = class_stmt.span;
 
                 (Statement::Class(class_stmt), class_span)
+            }
+            TokenType::Keyword(KeywordType::Import) => {
+                let mut import_stmt = self.parse_import(index);
+                import_stmt.span.start = token.span.start;
+                let import_span = import_stmt.span;
+
+                (Statement::Import(import_stmt), import_span)
+            }
+            TokenType::Keyword(KeywordType::From) => {
+                let mut from_import_stmt = self.parse_from_import(index);
+                from_import_stmt.span.start = token.span.start;
+                let from_import_span = from_import_stmt.span;
+
+                (Statement::FromImport(from_import_stmt), from_import_span)
             }
             TokenType::Keyword(KeywordType::Pass) => (Statement::Pass(token.span), token.span),
             TokenType::Keyword(KeywordType::Continue) => (Statement::Continue(token.span), token.span),
@@ -991,5 +1005,194 @@ impl Parser {
         class.span.end = class.block.span.end;
 
         class
+    }
+
+    fn parse_import(&self, index: &mut usize) -> ImportStmt {
+        let mut import_stmt = ImportStmt::default();
+
+        loop {
+            let (name, span_end) = self.parse_import_module_name(index);
+            let mut import_module = ImportModule { name, alias: None };
+            import_stmt.span.end = span_end;
+
+            if self.tokens.get(*index).unwrap().kind == TokenType::Keyword(KeywordType::As) {
+                // Consume "as"
+                *index += 1;
+                import_module.alias = Some(match self.tokens.get(*index).unwrap() {
+                    Token {
+                        kind: TokenType::Id(alias_name),
+                        span,
+                    } => {
+                        // Consume Id
+                        *index += 1;
+                        import_stmt.span.end = span.end;
+
+                        alias_name.to_string()
+                    }
+                    token => panic!("Syntax Error: Expected identifier, got {token:?}"),
+                });
+            }
+
+            import_stmt.modules.push(import_module);
+
+            if self.tokens.get(*index).unwrap().kind != TokenType::Comma {
+                break;
+            }
+
+            // Consume ,
+            *index += 1;
+        }
+
+        import_stmt
+    }
+
+    fn parse_from_import(&self, index: &mut usize) -> FromImportStmt {
+        let mut from_import_stmt = FromImportStmt::default();
+        let mut token = self.tokens.get(*index).unwrap();
+
+        // Get the relative part
+        let mut has_dots = false;
+        if let TokenType::Dot | TokenType::Ellipsis = token.kind {
+            has_dots = true;
+            let mut dots = vec![];
+
+            while let Token {
+                kind: TokenType::Dot | TokenType::Ellipsis,
+                ..
+            } = token
+            {
+                if token.kind == TokenType::Dot {
+                    dots.push(".".to_string());
+                } else {
+                    dots.extend_from_slice(&[".".to_string(), ".".to_string(), ".".to_string()]);
+                }
+
+                *index += 1;
+                token = self.tokens.get(*index).unwrap();
+            }
+
+            from_import_stmt.module.push(ImportModule {
+                name: dots,
+                alias: None,
+            });
+        }
+
+        token = self.tokens.get(*index).unwrap();
+        if let TokenType::Id(..) = token.kind {
+            let (name, _) = self.parse_import_module_name(index);
+            from_import_stmt.module.push(ImportModule { name, alias: None });
+        } else if !has_dots {
+            panic!("Syntax Error: expecting identifier, got {token:?}");
+        }
+
+        token = self.tokens.get(*index).unwrap();
+        assert_eq!(
+            token.kind,
+            TokenType::Keyword(KeywordType::Import),
+            "Syntax Error: expecting \"import\" keyword, got {token:?}"
+        );
+        // Consume "import"
+        *index += 1;
+        token = self.tokens.get(*index).unwrap();
+
+        if token.kind == TokenType::Operator(OperatorType::Asterisk) {
+            // Consume *
+            *index += 1;
+            from_import_stmt.targets.push(ImportModule {
+                name: vec!["*".to_string()],
+                alias: None,
+            });
+            from_import_stmt.span.end = token.span.end;
+
+            return from_import_stmt;
+        }
+
+        let mut expect_close_paren = false;
+        if token.kind == TokenType::OpenParenthesis {
+            // Consume (
+            *index += 1;
+            expect_close_paren = true;
+        }
+
+        loop {
+            token = self.tokens.get(*index).unwrap();
+            let mut target = ImportModule::default();
+            if let TokenType::Id(ref target_name) = token.kind {
+                // Consume Id
+                *index += 1;
+
+                from_import_stmt.span.end = token.span.end;
+                target.name = vec![target_name.to_string()];
+            } else {
+                panic!("Syntax Error: Expected identifier, got {token:?}")
+            }
+
+            if self.tokens.get(*index).unwrap().kind == TokenType::Keyword(KeywordType::As) {
+                // Consume "as"
+                *index += 1;
+                target.alias = Some(match self.tokens.get(*index).unwrap() {
+                    Token {
+                        kind: TokenType::Id(alias_name),
+                        span,
+                    } => {
+                        // Consume Id
+                        *index += 1;
+                        from_import_stmt.span.end = span.end;
+
+                        alias_name.to_string()
+                    }
+                    token => panic!("Syntax Error: Expected identifier, got {token:?}"),
+                });
+            }
+
+            from_import_stmt.targets.push(target);
+
+            if self.tokens.get(*index).unwrap().kind != TokenType::Comma {
+                break;
+            }
+
+            // Consume ,
+            *index += 1;
+        }
+
+        token = self.tokens.get(*index).unwrap();
+        if expect_close_paren {
+            assert_eq!(
+                token.kind,
+                TokenType::CloseParenthesis,
+                "Syntax Error: expecting \")\", got {token:?}"
+            );
+            // Consume )
+            *index += 1;
+        }
+
+        from_import_stmt
+    }
+
+    fn parse_import_module_name(&self, index: &mut usize) -> (Vec<String>, usize) {
+        let mut module_name = vec![];
+        let mut span_end = 0;
+
+        loop {
+            let token = self.tokens.get(*index).unwrap();
+            if let TokenType::Id(ref target) = token.kind {
+                // Consume Id
+                *index += 1;
+
+                span_end = token.span.end;
+                module_name.push(target.to_string());
+            } else {
+                panic!("Syntax Error: Expected identifier, got {token:?}")
+            }
+
+            if self.tokens.get(*index).unwrap().kind != TokenType::Dot {
+                break;
+            }
+
+            // Consume .
+            *index += 1;
+        }
+
+        (module_name, span_end)
     }
 }

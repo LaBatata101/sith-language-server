@@ -4,9 +4,9 @@ mod tests_parser {
         lexer::token::Span,
         parser::{
             ast::{
-                BinaryOperator, Block, ClassStmt, DictItemType, ElIfStmt, ElseStmt, Expression, FuncParameter,
-                Function, IfElseExpr, IfStmt, LambdaExpr, ParsedFile, StarParameterType, Statement, UnaryOperator,
-                VarAsgmt, While,
+                BinaryOperator, Block, ClassStmt, DictItemType, ElIfStmt, ElseStmt, Expression, FromImportStmt,
+                FuncParameter, Function, IfElseExpr, IfStmt, ImportModule, ImportStmt, LambdaExpr, ParsedFile,
+                StarParameterType, Statement, UnaryOperator, VarAsgmt, While,
             },
             Parser,
         },
@@ -1258,6 +1258,152 @@ else:
                         span: Span { start: 10, end: 16 }
                     }],
                     span: Span { start: 0, end: 55 }
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_import() {
+        let parser = Parser::new("import os");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::Import(ImportStmt {
+                    modules: vec![ImportModule {
+                        name: vec!["os".to_string()],
+                        alias: None
+                    }],
+                    span: Span { start: 0, end: 9 }
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_import2() {
+        let parser = Parser::new("import os.walk as O, sys as S");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::Import(ImportStmt {
+                    modules: vec![
+                        ImportModule {
+                            name: vec!["os".to_string(), "walk".to_string()],
+                            alias: Some("O".to_string())
+                        },
+                        ImportModule {
+                            name: vec!["sys".to_string()],
+                            alias: Some("S".to_string())
+                        }
+                    ],
+                    span: Span { start: 0, end: 29 }
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_from_import() {
+        let parser = Parser::new("from os import *");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::FromImport(FromImportStmt {
+                    module: vec![ImportModule {
+                        name: vec!["os".to_string()],
+                        alias: None
+                    }],
+                    targets: vec![ImportModule {
+                        name: vec!["*".to_string()],
+                        alias: None
+                    }],
+                    span: Span { start: 0, end: 16 }
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_from_import2() {
+        let parser = Parser::new("from ... import *");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::FromImport(FromImportStmt {
+                    module: vec![ImportModule {
+                        name: vec![".".to_string(), ".".to_string(), ".".to_string()],
+                        alias: None
+                    }],
+                    targets: vec![ImportModule {
+                        name: vec!["*".to_string()],
+                        alias: None
+                    }],
+                    span: Span { start: 0, end: 17 }
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_from_import3() {
+        let parser = Parser::new("from .subpackage.module1 import func");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::FromImport(FromImportStmt {
+                    module: vec![
+                        ImportModule {
+                            name: vec![".".to_string()],
+                            alias: None
+                        },
+                        ImportModule {
+                            name: vec!["subpackage".to_string(), "module1".to_string()],
+                            alias: None
+                        }
+                    ],
+                    targets: vec![ImportModule {
+                        name: vec!["func".to_string()],
+                        alias: None
+                    }],
+                    span: Span { start: 0, end: 36 }
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_from_import4() {
+        let parser = Parser::new("from .subpackage.module1 import (func, func2, func3)");
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::FromImport(FromImportStmt {
+                    module: vec![
+                        ImportModule {
+                            name: vec![".".to_string()],
+                            alias: None
+                        },
+                        ImportModule {
+                            name: vec!["subpackage".to_string(), "module1".to_string()],
+                            alias: None
+                        }
+                    ],
+                    targets: vec![
+                        ImportModule {
+                            name: vec!["func".to_string()],
+                            alias: None
+                        },
+                        ImportModule {
+                            name: vec!["func2".to_string()],
+                            alias: None
+                        },
+                        ImportModule {
+                            name: vec!["func3".to_string()],
+                            alias: None
+                        }
+                    ],
+                    span: Span { start: 0, end: 51 }
                 })]
             }
         )

@@ -11,9 +11,12 @@ pub enum Statement {
     While(While),
     Break(Span),
     Continue(Span),
+    Class(ClassStmt),
+    Import(ImportStmt),
+    FromImport(FromImportStmt),
+
     #[default]
     None,
-    Class(ClassStmt),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -226,5 +229,26 @@ pub struct IfElseExpr {
     pub lhs: Box<Expression>,
     pub rhs: Box<Expression>,
     pub condition: Box<Expression>,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct ImportStmt {
+    pub modules: Vec<ImportModule>,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct ImportModule {
+    /// Store the module name and it's parents, e.g., "module1.module2.class.function" will become
+    /// vec!["module1", "module2", "class", "function"]
+    pub name: Vec<String>,
+    pub alias: Option<String>,
+}
+
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct FromImportStmt {
+    pub module: Vec<ImportModule>,
+    pub targets: Vec<ImportModule>,
     pub span: Span,
 }
