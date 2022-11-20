@@ -15,12 +15,13 @@ pub enum Statement {
     Import(ImportStmt),
     FromImport(FromImportStmt),
     With(WithStmt),
+    Try(TryStmt),
 
     #[default]
     None,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Default)]
 pub enum Expression {
     String(String, Span),
     Number(String, Span),
@@ -37,6 +38,9 @@ pub enum Expression {
     IfElse(IfElseExpr),
     Lambda(LambdaExpr),
     Ellipsis(Span),
+
+    #[default]
+    None,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -117,6 +121,13 @@ pub enum DictItemType {
 pub enum StarParameterType {
     Kargs,
     KWargs,
+}
+
+#[derive(Debug, PartialEq, Eq, Default)]
+pub enum ExceptBlockKind {
+    ExceptStar,
+    #[default]
+    Except,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -265,5 +276,29 @@ pub struct WithStmt {
 pub struct WithItem {
     pub item: Expression,
     pub target: Option<Expression>,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct TryStmt {
+    pub block: Block,
+    pub finally_block: Option<FinallyBlock>,
+    pub except_blocks: Vec<ExceptBlock>,
+    pub else_stmt: Option<ElseStmt>,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct ExceptBlock {
+    pub block: Block,
+    pub kind: ExceptBlockKind,
+    pub expr: Option<Expression>,
+    pub expr_alias: Option<String>,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct FinallyBlock {
+    pub block: Block,
     pub span: Span,
 }

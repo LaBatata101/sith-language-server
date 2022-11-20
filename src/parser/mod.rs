@@ -9,7 +9,7 @@ use crate::{
         },
         Lexer,
     },
-    parser::ast::{DictItemType, IfElseExpr},
+    parser::ast::{DictItemType, ExceptBlock, ExceptBlockKind, FinallyBlock, IfElseExpr},
 };
 use ast::{
     BinaryOperator, Block, ElIfStmt, ElseStmt, Expression, Function, IfStmt, Operation, ParsedFile, Statement,
@@ -18,8 +18,8 @@ use ast::{
 use helpers::{infix_binding_power, postfix_binding_power, prefix_binding_power};
 
 use self::ast::{
-    ClassStmt, FromImportStmt, FuncParameter, ImportModule, ImportStmt, LambdaExpr, StarParameterType, WithItem,
-    WithStmt,
+    ClassStmt, FromImportStmt, FuncParameter, ImportModule, ImportStmt, LambdaExpr, StarParameterType, TryStmt,
+    WithItem, WithStmt,
 };
 
 pub struct Parser {
@@ -371,6 +371,13 @@ impl Parser {
                 let with_span = with_stmt.span;
 
                 (Statement::With(with_stmt), with_span)
+            }
+            TokenType::Keyword(KeywordType::Try) => {
+                let mut try_stmt = self.parse_try(index);
+                try_stmt.span.start = token.span.start;
+                let try_span = try_stmt.span;
+
+                (Statement::Try(try_stmt), try_span)
             }
             TokenType::Keyword(KeywordType::Pass) => (Statement::Pass(token.span), token.span),
             TokenType::Keyword(KeywordType::Continue) => (Statement::Continue(token.span), token.span),
@@ -1361,5 +1368,141 @@ impl Parser {
         }
 
         (lhs, lhs_span)
+    }
+
+    fn parse_try(&self, index: &mut usize) -> TryStmt {
+        // TODO: improve error checking
+        let mut token = self.tokens.get(*index).unwrap();
+        assert_eq!(
+            token.kind,
+            TokenType::Colon,
+            "Syntax Error: expecting \":\", got {token:?}"
+        );
+        // Consume :
+        *index += 1;
+        let mut try_stmt = TryStmt {
+            block: self.parse_block(index),
+            finally_block: None,
+            except_blocks: vec![],
+            else_stmt: None,
+            ..Default::default()
+        };
+
+        token = self.tokens.get(*index).unwrap();
+        let mut has_except = false;
+        // TODO: parse more than one except block
+        if token.kind == TokenType::Keyword(KeywordType::Except) {
+            has_except = true;
+            // Consume "except"
+            *index += 1;
+            let mut except_block = ExceptBlock {
+                span: Span {
+                    start: token.span.start,
+                    end: 0,
+                },
+                ..Default::default()
+            };
+
+            if self.tokens.get(*index).unwrap().kind == TokenType::Operator(OperatorType::Asterisk) {
+                // Consume *
+                *index += 1;
+                except_block.kind = ExceptBlockKind::ExceptStar;
+            }
+
+            if self.tokens.get(*index).unwrap().kind != TokenType::Colon {
+                let (expr, _) = self.pratt_parsing(index, 0);
+                except_block.expr = Some(expr);
+
+                if self.tokens.get(*index).unwrap().kind == TokenType::Keyword(KeywordType::As) {
+                    // Consume "as"
+                    *index += 1;
+
+                    match self.tokens.get(*index).unwrap() {
+                        Token {
+                            kind: TokenType::Id(name),
+                            ..
+                        } => {
+                            // Consume Id
+                            *index += 1;
+                            except_block.expr_alias = Some(name.to_string());
+                        }
+                        t => panic!("Syntax Error: Expecting identifier, got {t:?}"),
+                    }
+                }
+            }
+
+            token = self.tokens.get(*index).unwrap();
+            assert_eq!(
+                token.kind,
+                TokenType::Colon,
+                "Syntax Error: expecting \":\", got {token:?}"
+            );
+            // Consume :
+            *index += 1;
+
+            except_block.block = self.parse_block(index);
+            except_block.span.end = except_block.block.span.end;
+
+            try_stmt.span.end = except_block.span.end;
+            try_stmt.except_blocks.push(except_block);
+
+            token = self.tokens.get(*index).unwrap();
+        }
+
+        if has_except && token.kind == TokenType::Keyword(KeywordType::Else) {
+            // Consume "else"
+            *index += 1;
+            let else_start = token.span.start;
+
+            token = self.tokens.get(*index).unwrap();
+            assert_eq!(
+                token.kind,
+                TokenType::Colon,
+                "Syntax Error: expecting \":\", got {token:?}"
+            );
+
+            // Consume :
+            *index += 1;
+
+            let else_block = self.parse_block(index);
+            try_stmt.span.end = else_block.span.end;
+            try_stmt.else_stmt = Some(ElseStmt {
+                span: Span {
+                    start: else_start,
+                    end: else_block.span.end,
+                },
+                block: else_block,
+            });
+
+            token = self.tokens.get(*index).unwrap();
+        }
+
+        if token.kind == TokenType::Keyword(KeywordType::Finally) {
+            // Consume "finally"
+            *index += 1;
+            let finally_start = token.span.start;
+
+            token = self.tokens.get(*index).unwrap();
+            assert_eq!(
+                token.kind,
+                TokenType::Colon,
+                "Syntax Error: expecting \":\", got {token:?}"
+            );
+
+            // Consume :
+            *index += 1;
+
+            let finally_block = self.parse_block(index);
+            try_stmt.span.end = finally_block.span.end;
+            try_stmt.finally_block = Some(FinallyBlock {
+                span: Span {
+                    start: finally_start,
+                    end: finally_block.span.end,
+                },
+                block: finally_block,
+            })
+        }
+
+        try_stmt
     }
 }

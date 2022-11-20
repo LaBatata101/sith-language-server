@@ -4,9 +4,10 @@ mod tests_parser {
         lexer::token::Span,
         parser::{
             ast::{
-                BinaryOperator, Block, ClassStmt, DictItemType, ElIfStmt, ElseStmt, Expression, FromImportStmt,
-                FuncParameter, Function, IfElseExpr, IfStmt, ImportModule, ImportStmt, LambdaExpr, ParsedFile,
-                StarParameterType, Statement, UnaryOperator, VarAsgmt, While, WithItem, WithStmt,
+                BinaryOperator, Block, ClassStmt, DictItemType, ElIfStmt, ElseStmt, ExceptBlock, ExceptBlockKind,
+                Expression, FinallyBlock, FromImportStmt, FuncParameter, Function, IfElseExpr, IfStmt, ImportModule,
+                ImportStmt, LambdaExpr, ParsedFile, StarParameterType, Statement, TryStmt, UnaryOperator, VarAsgmt,
+                While, WithItem, WithStmt,
             },
             Parser,
         },
@@ -1432,6 +1433,200 @@ else:
                         span: Span { start: 25, end: 29 }
                     },
                     span: Span { start: 0, end: 29 }
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_try_except() {
+        let parser = Parser::new(
+            "try:
+    pass
+except:
+    pass",
+        );
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::Try(TryStmt {
+                    block: Block {
+                        stmts: vec![Statement::Pass(Span { start: 9, end: 13 })],
+                        span: Span { start: 9, end: 13 }
+                    },
+                    finally_block: None,
+                    except_blocks: vec![ExceptBlock {
+                        block: Block {
+                            stmts: vec![Statement::Pass(Span { start: 26, end: 30 })],
+                            span: Span { start: 26, end: 30 }
+                        },
+                        kind: ExceptBlockKind::Except,
+                        expr: None,
+                        expr_alias: None,
+                        span: Span { start: 14, end: 30 }
+                    }],
+                    else_stmt: None,
+                    span: Span { start: 0, end: 30 }
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_try_except_as() {
+        let parser = Parser::new(
+            "try:
+    pass
+except Except as e:
+    pass",
+        );
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::Try(TryStmt {
+                    block: Block {
+                        stmts: vec![Statement::Pass(Span { start: 9, end: 13 })],
+                        span: Span { start: 9, end: 13 }
+                    },
+                    finally_block: None,
+                    except_blocks: vec![ExceptBlock {
+                        block: Block {
+                            stmts: vec![Statement::Pass(Span { start: 38, end: 42 })],
+                            span: Span { start: 38, end: 42 }
+                        },
+                        kind: ExceptBlockKind::Except,
+                        expr: Some(Expression::Id("Except".to_string(), Span { start: 21, end: 27 })),
+                        expr_alias: Some("e".to_string()),
+                        span: Span { start: 14, end: 42 }
+                    }],
+                    else_stmt: None,
+                    span: Span { start: 0, end: 42 }
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_try_finally() {
+        let parser = Parser::new(
+            "try:
+    pass
+finally:
+    pass",
+        );
+
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::Try(TryStmt {
+                    block: Block {
+                        stmts: vec![Statement::Pass(Span { start: 9, end: 13 })],
+                        span: Span { start: 9, end: 13 }
+                    },
+                    finally_block: Some(FinallyBlock {
+                        block: Block {
+                            stmts: vec![Statement::Pass(Span { start: 27, end: 31 })],
+                            span: Span { start: 27, end: 31 }
+                        },
+                        span: Span { start: 14, end: 31 }
+                    }),
+                    except_blocks: vec![],
+                    else_stmt: None,
+                    span: Span { start: 0, end: 31 }
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_try_except_finally() {
+        let parser = Parser::new(
+            "try:
+    pass
+except:
+    pass
+finally:
+    pass",
+        );
+
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::Try(TryStmt {
+                    block: Block {
+                        stmts: vec![Statement::Pass(Span { start: 9, end: 13 })],
+                        span: Span { start: 9, end: 13 }
+                    },
+                    finally_block: Some(FinallyBlock {
+                        block: Block {
+                            stmts: vec![Statement::Pass(Span { start: 44, end: 48 })],
+                            span: Span { start: 44, end: 48 }
+                        },
+                        span: Span { start: 31, end: 48 }
+                    }),
+                    except_blocks: vec![ExceptBlock {
+                        block: Block {
+                            stmts: vec![Statement::Pass(Span { start: 26, end: 30 })],
+                            span: Span { start: 26, end: 30 }
+                        },
+                        kind: ExceptBlockKind::Except,
+                        expr: None,
+                        expr_alias: None,
+                        span: Span { start: 14, end: 30 }
+                    }],
+                    else_stmt: None,
+                    span: Span { start: 0, end: 48 }
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_try_except_else_finally() {
+        let parser = Parser::new(
+            "try:
+    pass
+except:
+    pass
+else:
+    pass
+finally:
+    pass",
+        );
+
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::Try(TryStmt {
+                    block: Block {
+                        stmts: vec![Statement::Pass(Span { start: 9, end: 13 })],
+                        span: Span { start: 9, end: 13 }
+                    },
+                    finally_block: Some(FinallyBlock {
+                        block: Block {
+                            stmts: vec![Statement::Pass(Span { start: 59, end: 63 })],
+                            span: Span { start: 59, end: 63 }
+                        },
+                        span: Span { start: 46, end: 63 }
+                    }),
+                    except_blocks: vec![ExceptBlock {
+                        block: Block {
+                            stmts: vec![Statement::Pass(Span { start: 26, end: 30 })],
+                            span: Span { start: 26, end: 30 }
+                        },
+                        kind: ExceptBlockKind::Except,
+                        expr: None,
+                        expr_alias: None,
+                        span: Span { start: 14, end: 30 }
+                    }],
+                    else_stmt: Some(ElseStmt {
+                        block: Block {
+                            stmts: vec![Statement::Pass(Span { start: 41, end: 45 })],
+                            span: Span { start: 41, end: 45 }
+                        },
+                        span: Span { start: 31, end: 45 }
+                    }),
+                    span: Span { start: 0, end: 63 }
                 })]
             }
         )
