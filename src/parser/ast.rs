@@ -14,6 +14,7 @@ pub enum Statement {
     Class(ClassStmt),
     Import(ImportStmt),
     FromImport(FromImportStmt),
+    With(WithStmt),
 
     #[default]
     None,
@@ -250,5 +251,19 @@ pub struct ImportModule {
 pub struct FromImportStmt {
     pub module: Vec<ImportModule>,
     pub targets: Vec<ImportModule>,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct WithStmt {
+    pub items: Vec<WithItem>,
+    pub block: Block,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct WithItem {
+    pub item: Expression,
+    pub target: Option<Expression>,
     pub span: Span,
 }

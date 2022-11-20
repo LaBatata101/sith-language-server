@@ -6,7 +6,7 @@ mod tests_parser {
             ast::{
                 BinaryOperator, Block, ClassStmt, DictItemType, ElIfStmt, ElseStmt, Expression, FromImportStmt,
                 FuncParameter, Function, IfElseExpr, IfStmt, ImportModule, ImportStmt, LambdaExpr, ParsedFile,
-                StarParameterType, Statement, UnaryOperator, VarAsgmt, While,
+                StarParameterType, Statement, UnaryOperator, VarAsgmt, While, WithItem, WithStmt,
             },
             Parser,
         },
@@ -1404,6 +1404,34 @@ else:
                         }
                     ],
                     span: Span { start: 0, end: 51 }
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_with() {
+        let parser = Parser::new(
+            "with open() as file:
+    pass",
+        );
+        assert_eq!(
+            parser.parse(),
+            ParsedFile {
+                stmts: vec![Statement::With(WithStmt {
+                    items: vec![WithItem {
+                        item: Expression::Call(
+                            Box::new(Expression::Id("open".to_string(), Span { start: 5, end: 9 })),
+                            Span { start: 5, end: 9 }
+                        ),
+                        target: Some(Expression::Id("file".to_string(), Span { start: 15, end: 19 })),
+                        span: Span { start: 5, end: 19 }
+                    }],
+                    block: Block {
+                        stmts: vec![Statement::Pass(Span { start: 25, end: 29 })],
+                        span: Span { start: 25, end: 29 }
+                    },
+                    span: Span { start: 0, end: 29 }
                 })]
             }
         )

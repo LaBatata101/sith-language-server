@@ -17,7 +17,10 @@ use ast::{
 };
 use helpers::{infix_binding_power, postfix_binding_power, prefix_binding_power};
 
-use self::ast::{ClassStmt, FromImportStmt, FuncParameter, ImportModule, ImportStmt, LambdaExpr, StarParameterType};
+use self::ast::{
+    ClassStmt, FromImportStmt, FuncParameter, ImportModule, ImportStmt, LambdaExpr, StarParameterType, WithItem,
+    WithStmt,
+};
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -126,6 +129,7 @@ impl Parser {
                     | TokenType::Comma
                     | TokenType::Dedent
                     | TokenType::Keyword(KeywordType::Else)
+                    | TokenType::Keyword(KeywordType::As)
             )
         }) {
             token = self.tokens.get(*index).unwrap();
@@ -360,6 +364,13 @@ impl Parser {
                 let from_import_span = from_import_stmt.span;
 
                 (Statement::FromImport(from_import_stmt), from_import_span)
+            }
+            TokenType::Keyword(KeywordType::With) => {
+                let mut with_stmt = self.parse_with(index);
+                with_stmt.span.start = token.span.start;
+                let with_span = with_stmt.span;
+
+                (Statement::With(with_stmt), with_span)
             }
             TokenType::Keyword(KeywordType::Pass) => (Statement::Pass(token.span), token.span),
             TokenType::Keyword(KeywordType::Continue) => (Statement::Continue(token.span), token.span),
@@ -1194,5 +1205,161 @@ impl Parser {
         }
 
         (module_name, span_end)
+    }
+
+    fn parse_with(&self, index: &mut usize) -> WithStmt {
+        let mut with_stmt = WithStmt::default();
+        let mut expect_close_paren = false;
+
+        let mut token = self.tokens.get(*index).unwrap();
+        if token.kind == TokenType::OpenParenthesis {
+            // Consume (
+            *index += 1;
+            expect_close_paren = true;
+        }
+
+        loop {
+            let (item, item_span) = self.pratt_parsing(index, 0);
+            let mut with_item = WithItem {
+                item,
+                target: None,
+                span: item_span,
+            };
+
+            if self.tokens.get(*index).unwrap().kind == TokenType::Keyword(KeywordType::As) {
+                // Consume "as"
+                *index += 1;
+                let (target, target_span) = self.parse_primary(index);
+                with_item.target = Some(target);
+                with_item.span.end = target_span.end;
+            }
+
+            with_stmt.items.push(with_item);
+
+            if self.tokens.get(*index).unwrap().kind != TokenType::Comma {
+                break;
+            }
+
+            // Consume ,
+            *index += 1;
+        }
+
+        token = self.tokens.get(*index).unwrap();
+        if expect_close_paren {
+            assert_eq!(
+                token.kind,
+                TokenType::CloseParenthesis,
+                "Syntax Error: expecting \")\", got {token:?}"
+            );
+            // Consume )
+            *index += 1;
+        }
+
+        token = self.tokens.get(*index).unwrap();
+        if !matches!(token.kind, TokenType::Colon) {
+            panic!("Invalid syntax: expecting ':' got {:?}", token.kind)
+        }
+        // Consume :
+        *index += 1;
+
+        with_stmt.block = self.parse_block(index);
+        with_stmt.span.end = with_stmt.block.span.end;
+
+        with_stmt
+    }
+
+    fn parse_primary(&self, index: &mut usize) -> (Expression, Span) {
+        let mut token = self.tokens.get(*index).unwrap();
+        let (mut lhs, mut lhs_span) = match &token.kind {
+            TokenType::Id(name) => {
+                *index += 1;
+                (Expression::Id(name.to_string(), token.span), token.span)
+            }
+            TokenType::OpenParenthesis => self.parse_parenthesized_expr(index, token),
+            TokenType::OpenBrackets => self.parse_list_expr(index),
+            TokenType::OpenBrace => self.parse_bracesized_expr(index, token),
+            _ => panic!(""),
+        };
+
+        while self.tokens.get(*index).map_or(false, |token| {
+            !matches!(
+                &token.kind,
+                // Tokens that can end a primary
+                // TODO: Check which tokens are necessary
+                TokenType::NewLine
+                    | TokenType::SemiColon
+                    | TokenType::Colon
+                    | TokenType::CloseBrace
+                    | TokenType::CloseBrackets
+                    | TokenType::CloseParenthesis
+                    | TokenType::Comma
+            )
+        }) {
+            token = self.tokens.get(*index).unwrap();
+            let op = self.get_expr_operation(token, index);
+
+            if let Some((lhs_bp, ())) = postfix_binding_power(op) {
+                // if lhs_bp < min_precedence_weight {
+                //     break;
+                // }
+
+                *index += 1;
+
+                lhs = match op {
+                    Operation::Unary(UnaryOperator::OpenParenthesis) => {
+                        // FIXME: Only parsing function calls with no arguments
+                        let expr = Expression::Call(Box::new(lhs), lhs_span);
+                        assert_eq!(
+                            self.tokens.get(*index).map(|token| &token.kind),
+                            Some(&TokenType::CloseParenthesis),
+                            "Expecting a \")\"! at position: {}",
+                            lhs_span.end + 1
+                        );
+                        *index += 1;
+                        expr
+                    }
+                    Operation::Unary(UnaryOperator::OpenBrackets) => {
+                        // FIXME: Only parsing slice with no start, stop or step attributes
+                        let (rhs, rhs_span) = self.pratt_parsing(index, 0);
+                        assert_eq!(
+                            self.tokens.get(*index).map(|token| &token.kind),
+                            Some(&TokenType::CloseBrackets),
+                            "Expecting a \"]\"! at position: {}",
+                            rhs_span.end + 1
+                        );
+                        *index += 1;
+
+                        Expression::Slice(
+                            Box::new(lhs),
+                            Box::new(rhs),
+                            Span {
+                                start: lhs_span.start,
+                                end: rhs_span.end + 1,
+                            },
+                        )
+                    }
+                    _ => panic!("Invalid postfix operator! {op:?}"),
+                };
+                continue;
+            }
+
+            if let Some((lhs_bp, rhs_bp)) = infix_binding_power(op) {
+                // if lhs_bp < min_precedence_weight {
+                //     break;
+                // }
+
+                *index += 1;
+
+                let (rhs, rhs_span) = self.pratt_parsing(index, rhs_bp);
+                lhs_span = Span {
+                    start: lhs_span.start,
+                    end: rhs_span.end,
+                };
+                lhs = Expression::BinaryOp(Box::new(lhs), op.get_binary_op(), Box::new(rhs), lhs_span);
+                continue;
+            }
+        }
+
+        (lhs, lhs_span)
     }
 }
