@@ -57,4 +57,13 @@ impl<'a> CharStream<'a> {
 
         whitespace_total
     }
+
+    pub fn advance_while<F>(&mut self, step: usize, cond: F)
+    where
+        F: Fn(char) -> bool,
+    {
+        while self.current_char().map_or(false, &cond) {
+            self.advance_by(step);
+        }
+    }
 }
