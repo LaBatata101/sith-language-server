@@ -15,7 +15,7 @@ pub enum TokenType {
     Invalid(char),
     Keyword(KeywordType),
     NewLine,
-    Number(String), // TODO: maybe convert to an actual number in the Lexer
+    Number(NumberType, String),
     OpenBrace,
     OpenBrackets,
     OpenParenthesis,
@@ -25,6 +25,22 @@ pub enum TokenType {
     SoftKeyword(SoftKeywordType),
     String(String),
     RightArrow,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum NumberType {
+    Float,
+    Integer(IntegerType),
+    Imaginary,
+    Invalid,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum IntegerType {
+    Decimal,
+    Binary,
+    Octal,
+    Hex,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]

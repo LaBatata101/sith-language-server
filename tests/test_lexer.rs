@@ -2,7 +2,7 @@
 mod test_lexer {
     use python_parser::lexer::{
         token::{
-            types::{KeywordType, OperatorType, TokenType},
+            types::{IntegerType, KeywordType, NumberType, OperatorType, TokenType},
             Token,
         },
         Lexer,
@@ -17,7 +17,11 @@ mod test_lexer {
             vec![
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::Assign), 5, 6),
-                Token::new(TokenType::Number("12".to_string()), 7, 9),
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Decimal), "12".to_string()),
+                    7,
+                    9
+                ),
                 Token::new(TokenType::Eof, 9, 10),
             ]
         )
@@ -33,7 +37,11 @@ mod test_lexer {
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::Plus), 5, 6),
                 Token::new(TokenType::Invalid('!'), 6, 7),
-                Token::new(TokenType::Number("12".to_string()), 8, 10),
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Decimal), "12".to_string()),
+                    8,
+                    10
+                ),
                 Token::new(TokenType::Eof, 10, 11),
             ]
         )
@@ -48,7 +56,11 @@ mod test_lexer {
             vec![
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::Equals), 5, 7),
-                Token::new(TokenType::Number("12".to_string()), 8, 10),
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Decimal), "12".to_string()),
+                    8,
+                    10
+                ),
                 Token::new(TokenType::Eof, 10, 11),
             ]
         )
@@ -63,7 +75,11 @@ mod test_lexer {
             vec![
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::PlusEqual), 5, 7),
-                Token::new(TokenType::Number("42".to_string()), 8, 10),
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    8,
+                    10
+                ),
                 Token::new(TokenType::Eof, 10, 11),
             ]
         )
@@ -78,7 +94,11 @@ mod test_lexer {
             vec![
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::AsteriskEqual), 5, 7),
-                Token::new(TokenType::Number("42".to_string()), 8, 10),
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    8,
+                    10
+                ),
                 Token::new(TokenType::Eof, 10, 11),
             ]
         )
@@ -93,7 +113,11 @@ mod test_lexer {
             vec![
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::Asterisk), 5, 6),
-                Token::new(TokenType::Number("42".to_string()), 7, 9),
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    7,
+                    9
+                ),
                 Token::new(TokenType::Eof, 9, 10),
             ]
         )
@@ -108,7 +132,11 @@ mod test_lexer {
             vec![
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::Plus), 5, 6),
-                Token::new(TokenType::Number("42".to_string()), 7, 9),
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    7,
+                    9
+                ),
                 Token::new(TokenType::Eof, 9, 10),
             ]
         )
@@ -123,7 +151,11 @@ mod test_lexer {
             vec![
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::Minus), 5, 6),
-                Token::new(TokenType::Number("42".to_string()), 7, 9),
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    7,
+                    9
+                ),
                 Token::new(TokenType::Eof, 9, 10),
             ]
         )
@@ -138,7 +170,11 @@ mod test_lexer {
             vec![
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::MinusEqual), 5, 7),
-                Token::new(TokenType::Number("42".to_string()), 8, 10),
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    8,
+                    10
+                ),
                 Token::new(TokenType::Eof, 10, 11),
             ]
         )
@@ -153,7 +189,11 @@ mod test_lexer {
             vec![
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::Exponent), 5, 7),
-                Token::new(TokenType::Number("42".to_string()), 8, 10),
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    8,
+                    10
+                ),
                 Token::new(TokenType::Eof, 10, 11),
             ]
         )
@@ -168,7 +208,11 @@ mod test_lexer {
             vec![
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::LessThanOrEqual), 5, 7),
-                Token::new(TokenType::Number("42".to_string()), 8, 10),
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    8,
+                    10
+                ),
                 Token::new(TokenType::Eof, 10, 11),
             ]
         )
@@ -183,7 +227,11 @@ mod test_lexer {
             vec![
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::LessThan), 5, 6),
-                Token::new(TokenType::Number("42".to_string()), 7, 9),
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    7,
+                    9
+                ),
                 Token::new(TokenType::Eof, 9, 10),
             ]
         )
@@ -198,7 +246,11 @@ mod test_lexer {
             vec![
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::GreaterThan), 5, 6),
-                Token::new(TokenType::Number("42".to_string()), 7, 9),
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    7,
+                    9
+                ),
                 Token::new(TokenType::Eof, 9, 10),
             ]
         )
@@ -213,7 +265,11 @@ mod test_lexer {
             vec![
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::GreaterThanOrEqual), 5, 7),
-                Token::new(TokenType::Number("42".to_string()), 8, 10),
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    8,
+                    10
+                ),
                 Token::new(TokenType::Eof, 10, 11),
             ]
         )
@@ -228,7 +284,11 @@ mod test_lexer {
             vec![
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::BitwiseOr), 5, 6),
-                Token::new(TokenType::Number("42".to_string()), 7, 9),
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    7,
+                    9
+                ),
                 Token::new(TokenType::Eof, 9, 10),
             ]
         )
@@ -243,7 +303,11 @@ mod test_lexer {
             vec![
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::BitwiseOrEqual), 5, 7),
-                Token::new(TokenType::Number("42".to_string()), 8, 10),
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    8,
+                    10
+                ),
                 Token::new(TokenType::Eof, 10, 11),
             ]
         )
@@ -258,7 +322,11 @@ mod test_lexer {
             vec![
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::BitwiseAnd), 5, 6),
-                Token::new(TokenType::Number("42".to_string()), 7, 9),
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    7,
+                    9
+                ),
                 Token::new(TokenType::Eof, 9, 10),
             ]
         )
@@ -273,7 +341,11 @@ mod test_lexer {
             vec![
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::BitwiseAndEqual), 5, 7),
-                Token::new(TokenType::Number("42".to_string()), 8, 10),
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    8,
+                    10
+                ),
                 Token::new(TokenType::Eof, 10, 11),
             ]
         )
@@ -288,7 +360,11 @@ mod test_lexer {
             vec![
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::BitwiseLeftShift), 5, 7),
-                Token::new(TokenType::Number("42".to_string()), 8, 10),
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    8,
+                    10
+                ),
                 Token::new(TokenType::Eof, 10, 11),
             ]
         )
@@ -303,7 +379,11 @@ mod test_lexer {
             vec![
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::BitwiseLeftShiftEqual), 5, 8),
-                Token::new(TokenType::Number("42".to_string()), 9, 11),
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    9,
+                    11
+                ),
                 Token::new(TokenType::Eof, 11, 12),
             ]
         )
@@ -318,7 +398,11 @@ mod test_lexer {
             vec![
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::BitwiseRightShift), 5, 7),
-                Token::new(TokenType::Number("42".to_string()), 8, 10),
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    8,
+                    10
+                ),
                 Token::new(TokenType::Eof, 10, 11),
             ]
         )
@@ -333,7 +417,11 @@ mod test_lexer {
             vec![
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::BitwiseRightShiftEqual), 5, 8),
-                Token::new(TokenType::Number("42".to_string()), 9, 11),
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    9,
+                    11
+                ),
                 Token::new(TokenType::Eof, 11, 12),
             ]
         )
@@ -362,7 +450,11 @@ mod test_lexer {
             vec![
                 Token::new(TokenType::Id("test".to_string()), 0, 4),
                 Token::new(TokenType::Operator(OperatorType::BitwiseNotEqual), 5, 7),
-                Token::new(TokenType::Number("42".to_string()), 8, 10),
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    8,
+                    10
+                ),
                 Token::new(TokenType::Eof, 10, 11),
             ]
         )
@@ -641,5 +733,121 @@ World!\\\"\"",
 ",
         );
         lexer.tokenize();
+    }
+
+    #[test]
+    fn lex_binary_number() {
+        let mut lexer = Lexer::new("0b_1_1_0");
+        lexer.tokenize();
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Binary), "0b_1_1_0".to_string()),
+                    0,
+                    8
+                ),
+                Token::new(TokenType::Eof, 8, 9)
+            ]
+        )
+    }
+
+    #[test]
+    fn lex_hex_number() {
+        let mut lexer = Lexer::new("0xdeadbeef");
+        lexer.tokenize();
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Hex), "0xdeadbeef".to_string()),
+                    0,
+                    10
+                ),
+                Token::new(TokenType::Eof, 10, 11)
+            ]
+        );
+    }
+
+    #[test]
+    fn lex_octal_number() {
+        let mut lexer = Lexer::new("0o177");
+        lexer.tokenize();
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Octal), "0o177".to_string()),
+                    0,
+                    5
+                ),
+                Token::new(TokenType::Eof, 5, 6)
+            ]
+        );
+    }
+
+    #[test]
+    fn lex_float_number() {
+        let mut lexer = Lexer::new("3.14");
+        lexer.tokenize();
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token::new(TokenType::Number(NumberType::Float, "3.14".to_string()), 0, 4),
+                Token::new(TokenType::Eof, 4, 5)
+            ]
+        );
+    }
+
+    #[test]
+    fn lex_float_number2() {
+        let mut lexer = Lexer::new("3.");
+        lexer.tokenize();
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token::new(TokenType::Number(NumberType::Float, "3.".to_string()), 0, 2),
+                Token::new(TokenType::Eof, 2, 3)
+            ]
+        );
+    }
+
+    #[test]
+    fn lex_float_number3() {
+        let mut lexer = Lexer::new("1.001");
+        lexer.tokenize();
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token::new(TokenType::Number(NumberType::Float, "1.001".to_string()), 0, 5),
+                Token::new(TokenType::Eof, 5, 6)
+            ]
+        );
+    }
+
+    #[test]
+    fn lex_float_number4() {
+        let mut lexer = Lexer::new("1.001E-10");
+        lexer.tokenize();
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token::new(TokenType::Number(NumberType::Float, "1.001E-10".to_string()), 0, 9),
+                Token::new(TokenType::Eof, 9, 10)
+            ]
+        );
+    }
+
+    #[test]
+    fn lex_imaginary_number() {
+        let mut lexer = Lexer::new(".001E-10j");
+        lexer.tokenize();
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token::new(TokenType::Number(NumberType::Imaginary, ".001E-10j".to_string()), 0, 9),
+                Token::new(TokenType::Eof, 9, 10)
+            ]
+        );
     }
 }

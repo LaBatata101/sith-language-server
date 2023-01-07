@@ -7,7 +7,7 @@ use token::Token;
 
 use crate::{valid_id_initial_chars, valid_id_noninitial_chars};
 
-use self::token::types::{KeywordType, OperatorType, SoftKeywordType, TokenType};
+use self::token::types::{IntegerType, KeywordType, NumberType, OperatorType, SoftKeywordType, TokenType};
 
 pub struct Lexer<'a> {
     cs: CharStream<'a>,
@@ -60,6 +60,11 @@ impl<'a> Lexer<'a> {
                     self.lex_single_char(TokenType::CloseBrace);
                 }
                 '.' => {
+                    if self.cs.next_char().map_or(false, |char| char.is_ascii_digit()) {
+                        self.lex_number();
+                        continue;
+                    }
+
                     if matches!(
                         (self.cs.next_char(), self.cs.peek_char(self.cs.pos() + 2)),
                         (Some('.'), Some('.'))
@@ -415,20 +420,73 @@ impl<'a> Lexer<'a> {
         self.tokens.push(Token::new(token_type, start, end));
     }
 
+    // TODO: handle invalid numbers
     fn lex_number(&mut self) {
+        let mut number_type = NumberType::Invalid;
         let start = self.cs.pos();
-        while self
-            .cs
-            .current_char()
-            .map_or(false, |char| char.is_ascii_digit() || char == '_')
-        {
-            self.cs.advance_by(1);
+
+        if self.cs.current_char().unwrap() == '0' {
+            let next_char = self.cs.next_char().unwrap();
+            // Try to lex binary number
+            if next_char == 'b' || next_char == 'B' {
+                self.cs.advance_by(2);
+                self.cs.advance_while(1, |char| matches!(char, '0' | '1' | '_'));
+                number_type = NumberType::Integer(IntegerType::Binary);
+            }
+
+            // Try to lex hex number
+            if next_char == 'x' || next_char == 'X' {
+                self.cs.advance_by(2);
+                self.cs.advance_while(1, |char| char.is_ascii_hexdigit() || char == '_');
+                number_type = NumberType::Integer(IntegerType::Hex);
+            }
+
+            // Try to lex octal number
+            if next_char == 'o' || next_char == 'O' {
+                self.cs.advance_by(2);
+                // FIXME: use `is_ascii_octdigit` when stable
+                self.cs.advance_while(1, |char| matches!(char, '0'..='7' | '_'));
+                number_type = NumberType::Integer(IntegerType::Octal);
+            }
         }
+
+        // Try to lex decimal number
+        if self.cs.current_char().map_or(false, |char| char.is_ascii_digit()) {
+            self.cs.advance_while(1, |char| char.is_ascii_digit() || char == '_');
+            number_type = NumberType::Integer(IntegerType::Decimal);
+        }
+
+        if self.cs.current_char().map_or(false, |char| char == '.') {
+            self.cs.advance_by(1);
+
+            self.cs.advance_while(1, |char| char.is_ascii_digit() || char == '_');
+
+            if self.cs.current_char().map_or(false, |char| matches!(char, 'e' | 'E')) {
+                self.cs.advance_by(1);
+
+                if self.cs.current_char().map_or(false, |char| matches!(char, '+' | '-')) {
+                    self.cs.advance_by(1);
+                }
+
+                self.cs.advance_while(1, |char| char.is_ascii_digit() || char == '_');
+            }
+            number_type = NumberType::Float;
+
+            if self.cs.current_char().map_or(false, |char| matches!(char, 'j' | 'J')) {
+                self.cs.advance_by(1);
+                number_type = NumberType::Imaginary;
+            }
+        }
+
         let end = self.cs.pos();
+
+        if number_type == NumberType::Invalid {
+            panic!("Invalid number!")
+        }
 
         let number = self.cs.get_slice(start..end).unwrap();
         self.tokens.push(Token::new(
-            TokenType::Number(String::from_utf8_lossy(number).into()),
+            TokenType::Number(number_type, String::from_utf8_lossy(number).into()),
             start,
             end,
         ));

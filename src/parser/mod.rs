@@ -82,7 +82,7 @@ impl Parser {
                 *index += 1;
                 (Expression::String(str.to_string(), token.span), token.span)
             }
-            TokenType::Number(num) => {
+            TokenType::Number(_, num) => {
                 *index += 1;
                 (Expression::Number(num.to_string(), token.span), token.span)
             }
