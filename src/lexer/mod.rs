@@ -5,7 +5,11 @@ pub mod token;
 use char_stream::CharStream;
 use token::Token;
 
-use crate::{valid_id_initial_chars, valid_id_noninitial_chars};
+use crate::{
+    error::{PythonError, PythonErrorType},
+    lexer::token::Span,
+    valid_id_initial_chars, valid_id_noninitial_chars,
+};
 
 use self::token::types::{IntegerType, KeywordType, NumberType, OperatorType, SoftKeywordType, TokenType};
 
@@ -24,17 +28,18 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    pub fn tokenize(&mut self) {
+    pub fn tokenize(&mut self) -> Vec<PythonError> {
         // This is used to check if we are inside a [], () or {} and then skip the NewLine Token.
         let mut implicit_line_joining = 0;
+        let mut errors: Vec<PythonError> = vec![];
 
         while !self.cs.is_eof() {
             self.cs.skip_whitespace();
 
             match self.cs.current_char().unwrap() {
                 valid_id_initial_chars!() => self.lex_identifier_or_keyword(),
-                '0'..='9' => self.lex_number(),
-                '"' | '\'' => self.lex_string(),
+                '0'..='9' => errors.extend(self.lex_number()),
+                '"' | '\'' => errors.extend(self.lex_string()),
                 '(' => {
                     implicit_line_joining += 1;
                     self.lex_single_char(TokenType::OpenParenthesis);
@@ -133,11 +138,31 @@ impl<'a> Lexer<'a> {
                     if self.cs.next_char().map_or(false, |char| char == '\n') {
                         self.cs.advance_by(2);
                     } else {
-                        panic!("SyntaxError: unexpected character after line continuation character");
+                        let start = self.cs.pos();
+                        // consume \
+                        self.cs.advance_by(1);
+                        let end = self.cs.pos();
+
+                        errors.push(PythonError {
+                            msg: String::from("SyntaxError: unexpected characters after line continuation character"),
+                            error: PythonErrorType::Syntax,
+                            span: Span { start, end },
+                        });
+                        continue;
                     }
                 }
 
-                c => self.lex_single_char(TokenType::Invalid(c)),
+                _ => {
+                    let start = self.cs.pos();
+                    self.cs.advance_by(1);
+                    let end = self.cs.pos();
+
+                    errors.push(PythonError {
+                        error: PythonErrorType::Syntax,
+                        msg: String::from("SyntaxError: invalid syntax, character only allowed inside string literals"),
+                        span: Span { start, end },
+                    })
+                }
             }
         }
 
@@ -148,6 +173,8 @@ impl<'a> Lexer<'a> {
 
         self.tokens
             .push(Token::new(TokenType::Eof, self.cs.pos(), self.cs.pos() + 1));
+
+        errors
     }
 
     pub fn tokens(&self) -> &[Token] {
@@ -269,7 +296,9 @@ impl<'a> Lexer<'a> {
 
     // TODO: Define a different string type for string prefixes
     //https://docs.python.org/3/reference/lexical_analysis.html#string-and-bytes-literals
-    fn lex_string(&mut self) {
+    fn lex_string(&mut self) -> Vec<PythonError> {
+        let mut errors: Vec<PythonError> = vec![];
+
         let mut has_explicit_line_join = false;
         let mut backslash_positions = vec![];
         let mut start_quote_total = 0;
@@ -285,7 +314,11 @@ impl<'a> Lexer<'a> {
             start_quote_total += 1;
         }
 
-        while self.cs.current_char().map_or(false, |char| char != quote_char) {
+        while self
+            .cs
+            .current_char()
+            .map_or(false, |char| char != quote_char && char != '\n')
+        {
             // If current char is \ and next is \n then join line
             // create flag for the presence of \ and \n, and store the index of the \ and after the \n
 
@@ -314,7 +347,11 @@ impl<'a> Lexer<'a> {
         let end = self.cs.pos();
 
         if start_quote_total != end_quote_total {
-            panic!("Missing closing quote {quote_char}!")
+            errors.push(PythonError {
+                error: PythonErrorType::Syntax,
+                msg: String::from("SyntaxError: unterminated string literal"),
+                span: Span { start, end },
+            });
         }
 
         if has_explicit_line_join {
@@ -355,9 +392,13 @@ impl<'a> Lexer<'a> {
                 end,
             ));
         }
+
+        errors
     }
 
-    fn lex_operator(&mut self) {
+    fn lex_operator(&mut self) -> Vec<PythonError> {
+        let mut errors = vec![];
+
         let start = self.cs.pos();
         let (token_type, advance_offset) = match (self.cs.current_char().unwrap(), self.cs.next_char()) {
             ('=', Some('=')) => (TokenType::Operator(OperatorType::Equals), 2),
@@ -397,6 +438,10 @@ impl<'a> Lexer<'a> {
                 }
             }
 
+            ('+' | '-', Some(next_char)) if next_char.is_ascii_digit() => {
+                return self.lex_number();
+            }
+
             ('%', _) => (TokenType::Operator(OperatorType::Modulus), 1),
             ('&', _) => (TokenType::Operator(OperatorType::BitwiseAnd), 1),
             ('*', _) => (TokenType::Operator(OperatorType::Asterisk), 1),
@@ -418,10 +463,13 @@ impl<'a> Lexer<'a> {
         self.cs.advance_by(advance_offset);
         let end = self.cs.pos();
         self.tokens.push(Token::new(token_type, start, end));
+
+        errors
     }
 
     // TODO: handle invalid numbers
-    fn lex_number(&mut self) {
+    fn lex_number(&mut self) -> Vec<PythonError> {
+        let mut errors = vec![];
         let mut number_type = NumberType::Invalid;
         let start = self.cs.pos();
 
@@ -451,38 +499,30 @@ impl<'a> Lexer<'a> {
         }
 
         // Try to lex decimal number
-        if self.cs.current_char().map_or(false, |char| char.is_ascii_digit()) {
-            self.cs.advance_while(1, |char| char.is_ascii_digit() || char == '_');
-            number_type = NumberType::Integer(IntegerType::Decimal);
+        self.handle_decimal_number();
+        number_type = NumberType::Integer(IntegerType::Decimal);
+        let mut end = self.cs.pos();
+
+        // Check for any character after the digits
+        self.cs
+            .advance_while(1, |char| matches!(char, valid_id_noninitial_chars!()));
+
+        if let Err(error) = self.check_if_decimal_is_valid_in_pos(start, end) {
+            errors.push(error);
         }
 
-        if self.cs.current_char().map_or(false, |char| char == '.') {
-            self.cs.advance_by(1);
-
-            self.cs.advance_while(1, |char| char.is_ascii_digit() || char == '_');
-
-            if self.cs.current_char().map_or(false, |char| matches!(char, 'e' | 'E')) {
-                self.cs.advance_by(1);
-
-                if self.cs.current_char().map_or(false, |char| matches!(char, '+' | '-')) {
-                    self.cs.advance_by(1);
-                }
-
-                self.cs.advance_while(1, |char| char.is_ascii_digit() || char == '_');
-            }
-            number_type = NumberType::Float;
-
-            if self.cs.current_char().map_or(false, |char| matches!(char, 'j' | 'J')) {
-                self.cs.advance_by(1);
-                number_type = NumberType::Imaginary;
-            }
+        // Handle float and imaginary numbers
+        if self
+            .cs
+            .current_char()
+            .map_or(false, |char| matches!(char, '.' | 'e' | 'E'))
+        {
+            let (float_or_imaginary, syntax_errors) = self.handle_float_or_imaginary_number();
+            number_type = float_or_imaginary;
+            errors.extend(syntax_errors);
         }
 
-        let end = self.cs.pos();
-
-        if number_type == NumberType::Invalid {
-            panic!("Invalid number!")
-        }
+        end = self.cs.pos();
 
         let number = self.cs.get_slice(start..end).unwrap();
         self.tokens.push(Token::new(
@@ -490,5 +530,82 @@ impl<'a> Lexer<'a> {
             start,
             end,
         ));
+
+        errors
+    }
+
+    // FIXME: check if the number is correct after lexing it
+    fn handle_float_or_imaginary_number(&mut self) -> (NumberType, Vec<PythonError>) {
+        let mut errors = vec![];
+
+        // Consume . e or E
+        self.cs.advance_by(1);
+
+        let (decimal_start, decimal_end) = self.handle_decimal_number();
+        if let Err(error) = self.check_if_decimal_is_valid_in_pos(decimal_start, decimal_end) {
+            errors.push(error);
+        }
+
+        if matches!(self.cs.current_char(), Some('e' | 'E')) {
+            // Consume e or E
+            self.cs.advance_by(1);
+
+            let (decimal_start, decimal_end) = self.handle_decimal_number();
+            if let Err(error) = self.check_if_decimal_is_valid_in_pos(decimal_start, decimal_end) {
+                errors.push(error);
+            }
+        }
+
+        if self.cs.current_char().map_or(false, |char| matches!(char, 'j' | 'J')) {
+            self.cs.advance_by(1);
+
+            (NumberType::Imaginary, errors)
+        } else {
+            (NumberType::Float, errors)
+        }
+    }
+
+    fn handle_decimal_number(&mut self) -> (usize, usize) {
+        let start = self.cs.pos();
+        if matches!(self.cs.current_char(), Some('+' | '-')) {
+            // Consumer + or -
+            self.cs.advance_by(1);
+        }
+
+        self.cs.advance_while(1, |char| char.is_ascii_digit());
+        let end = self.cs.pos();
+
+        (start, end)
+    }
+
+    /// check if is a valid decimal e.g.: 123, 1_2_3, 1_2344, +1, -1
+    /// invalid decimals: 1_2_, 1__2_3, 1234abc, --42
+    fn check_if_decimal_is_valid_in_pos(&self, start: usize, end: usize) -> Result<(), PythonError> {
+        const VALID_STATE: i8 = 2;
+        const INVALID_STATE: i8 = 0;
+
+        let mut curr_state: i8 = -1;
+
+        for &char in self.cs.get_slice(start..end).unwrap() {
+            if curr_state == INVALID_STATE && char == b'_' {
+                break;
+            }
+
+            if char.is_ascii_digit() {
+                curr_state = VALID_STATE;
+            } else {
+                curr_state = INVALID_STATE;
+            }
+        }
+
+        if curr_state == INVALID_STATE {
+            return Err(PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: invalid decimal literal".to_string(),
+                span: Span { start, end },
+            });
+        }
+
+        Ok(())
     }
 }

@@ -1,11 +1,14 @@
 #[cfg(test)]
 mod test_lexer {
-    use python_parser::lexer::{
-        token::{
-            types::{IntegerType, KeywordType, NumberType, OperatorType, TokenType},
-            Token,
+    use python_parser::{
+        error::{PythonError, PythonErrorType},
+        lexer::{
+            token::{
+                types::{IntegerType, KeywordType, NumberType, OperatorType, TokenType},
+                Span, Token,
+            },
+            Lexer,
         },
-        Lexer,
     };
 
     #[test]
@@ -521,10 +524,19 @@ mod test_lexer {
     }
 
     #[test]
-    #[should_panic(expected = "Missing closing quote \"!")]
     fn test_lex_string3() {
         let mut lexer = Lexer::new("\"\"\"\"\"\"\"\"\"\"\"\"\"\"");
-        lexer.tokenize();
+        let errors = lexer.tokenize();
+
+        assert!(!errors.is_empty());
+        assert_eq!(
+            errors,
+            vec![PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: unterminated string literal".to_string(),
+                span: Span { start: 0, end: 14 }
+            }]
+        );
     }
 
     #[test]
@@ -726,13 +738,45 @@ World!\\\"\"",
     }
 
     #[test]
-    #[should_panic(expected = "Missing closing quote \"!")]
-    fn test_lex_explicit_line_joining_str3() {
+    fn test_lex_invalid_explicit_line_joining() {
         let mut lexer = Lexer::new(
-            "\"Hello \\
-",
+            "\"Hello \\a
+World!\"",
         );
-        lexer.tokenize();
+
+        let errors = lexer.tokenize();
+        assert!(!errors.is_empty());
+        assert_eq!(
+            errors,
+            vec![
+                PythonError {
+                    error: PythonErrorType::Syntax,
+                    msg: "SyntaxError: unterminated string literal".to_string(),
+                    span: Span { start: 0, end: 9 }
+                },
+                PythonError {
+                    error: PythonErrorType::Syntax,
+                    msg: "SyntaxError: unterminated string literal".to_string(),
+                    span: Span { start: 16, end: 17 }
+                }
+            ]
+        );
+    }
+
+    #[test]
+    fn test_lex_invalid_explicit_line_joining2() {
+        let mut lexer = Lexer::new("if True and \\aa True:\n    pass");
+
+        let errors = lexer.tokenize();
+        assert!(!errors.is_empty());
+        assert_eq!(
+            errors,
+            vec![PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: unexpected characters after line continuation character".to_string(),
+                span: Span { start: 12, end: 13 }
+            },]
+        );
     }
 
     #[test]
@@ -828,7 +872,8 @@ World!\\\"\"",
     #[test]
     fn lex_float_number4() {
         let mut lexer = Lexer::new("1.001E-10");
-        lexer.tokenize();
+        assert!(lexer.tokenize().is_empty());
+
         assert_eq!(
             lexer.tokens(),
             vec![
@@ -849,5 +894,92 @@ World!\\\"\"",
                 Token::new(TokenType::Eof, 9, 10)
             ]
         );
+    }
+
+    #[test]
+    fn lex_decimal_number() {
+        let mut lexer = Lexer::new("10_000_000");
+        lexer.tokenize();
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Decimal), "10_000_000".to_string()),
+                    0,
+                    10
+                ),
+                Token::new(TokenType::Eof, 10, 11)
+            ]
+        );
+    }
+
+    #[test]
+    fn lex_decimal_number2() {
+        let mut lexer = Lexer::new("+42");
+        lexer.tokenize();
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token::new(
+                    TokenType::Number(NumberType::Integer(IntegerType::Decimal), "+42".to_string()),
+                    0,
+                    3
+                ),
+                Token::new(TokenType::Eof, 3, 4)
+            ]
+        );
+    }
+
+    #[test]
+    fn lex_invalid_decimal_number() {
+        let mut lexer = Lexer::new("12_5__0");
+        let errors = lexer.tokenize();
+        assert!(!errors.is_empty());
+        assert_eq!(
+            errors,
+            vec![PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: invalid decimal literal".to_string(),
+                span: Span { start: 0, end: 7 }
+            }]
+        );
+    }
+
+    #[test]
+    fn lex_invalid_decimal_number2() {
+        let mut lexer = Lexer::new("10_");
+        let errors = lexer.tokenize();
+        assert!(!errors.is_empty());
+        assert_eq!(
+            errors,
+            vec![PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: invalid decimal literal".to_string(),
+                span: Span { start: 0, end: 3 }
+            }]
+        );
+    }
+
+    #[test]
+    fn lex_invalid_decimal_number3() {
+        let mut lexer = Lexer::new("10abc");
+        let errors = lexer.tokenize();
+        assert!(!errors.is_empty());
+        assert_eq!(
+            errors,
+            vec![PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: invalid decimal literal".to_string(),
+                span: Span { start: 0, end: 5 }
+            }]
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid binary number!")]
+    fn lex_invalid_binary_number() {
+        let mut lexer = Lexer::new("0b_1_1_");
+        lexer.tokenize();
+        dbg!(lexer.tokens());
     }
 }
