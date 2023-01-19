@@ -517,7 +517,7 @@ impl<'a> Lexer<'a> {
             .current_char()
             .map_or(false, |char| matches!(char, '.' | 'e' | 'E'))
         {
-            let (float_or_imaginary, syntax_errors) = self.handle_float_or_imaginary_number();
+            let (float_or_imaginary, syntax_errors) = self.handle_float_or_imaginary_number(start);
             number_type = float_or_imaginary;
             errors.extend(syntax_errors);
         }
@@ -534,33 +534,50 @@ impl<'a> Lexer<'a> {
         errors
     }
 
-    // FIXME: check if the number is correct after lexing it
-    fn handle_float_or_imaginary_number(&mut self) -> (NumberType, Vec<PythonError>) {
+    // Handle the fraction part of the float number
+    fn handle_float_or_imaginary_number(&mut self, float_start: usize) -> (NumberType, Vec<PythonError>) {
         let mut errors = vec![];
 
-        // Consume . e or E
-        self.cs.advance_by(1);
+        // Here we are consuming all the valid characters that a float string can have, we don't care
+        // at this point if the string is valid, the checking if the string is a valid float is done
+        // later. The goal is to keep the float string in one Token, even if it is an invalid float.
+        while self.cs.current_char().map_or(false, |char| {
+            char.is_ascii_digit() || matches!(char, '.' | 'e' | 'E' | '-' | '+' | '_')
+        }) {
+            if self
+                .cs
+                .current_char()
+                .map_or(false, |char| char.is_ascii_digit() || matches!(char, '-' | '+'))
+            {
+                let (decimal_start, decimal_end) = self.handle_decimal_number().unwrap();
 
-        let (decimal_start, decimal_end) = self.handle_decimal_number();
-        if let Err(error) = self.check_if_decimal_is_valid_in_pos(decimal_start, decimal_end) {
-            errors.push(error);
-        }
-
-        if matches!(self.cs.current_char(), Some('e' | 'E')) {
-            // Consume e or E
-            self.cs.advance_by(1);
-
-            let (decimal_start, decimal_end) = self.handle_decimal_number();
-            if let Err(error) = self.check_if_decimal_is_valid_in_pos(decimal_start, decimal_end) {
-                errors.push(error);
+                if let Err(error) = self.check_if_decimal_is_valid_in_pos(decimal_start, decimal_end) {
+                    errors.push(error);
+                }
+            } else {
+                self.cs.advance_by(1);
             }
         }
 
-        if self.cs.current_char().map_or(false, |char| matches!(char, 'j' | 'J')) {
+        if matches!(self.cs.current_char(), Some('j' | 'J')) {
+            // Consume j or J
             self.cs.advance_by(1);
+
+            // In case we have multiple j's, consume all of them.
+            if matches!(self.cs.current_char(), Some('j' | 'J')) {
+                self.cs.advance_while(1, |char| matches!(char, 'j' | 'J'));
+
+                if let Err(mut error) = self.check_if_float_number_is_valid_in_pos(float_start, self.cs.pos()) {
+                    error.msg = "SyntaxError: invalid imaginary literal".to_string();
+                    errors.push(error);
+                }
+            }
 
             (NumberType::Imaginary, errors)
         } else {
+            if let Err(error) = self.check_if_float_number_is_valid_in_pos(float_start, self.cs.pos()) {
+                errors.push(error);
+            }
             (NumberType::Float, errors)
         }
     }
@@ -611,5 +628,54 @@ impl<'a> Lexer<'a> {
         }
 
         Ok(())
+    }
+
+    /// Check if is a valid float syntax e.g.: .2, 1.3, 1_000e+40, 24., 3.14E-2, 1e5J
+    /// https://docs.python.org/3/reference/lexical_analysis.html#floating-point-literals
+    fn check_if_float_number_is_valid_in_pos(&self, start: usize, end: usize) -> Result<(), PythonError> {
+        let mut state: u8 = 1;
+
+        // This is a state machine that validates a float number string
+        for &char in self.cs.get_slice(start..end).unwrap() {
+            if (state == 4 || state == 1) && char == b'.'
+                || state == 7 && matches!(char, b'j' | b'J')
+                || state >= 5 && matches!(char, b'e' | b'E')
+            {
+                state = 0;
+                break;
+            }
+
+            if state == 4 && matches!(char, b'e' | b'E') {
+                state += 1;
+                continue;
+            }
+
+            if (state == 2 || state == 4) && matches!(char, b'e' | b'E' | b'j' | b'J') {
+                state += 3;
+            }
+
+            if matches!(state, 2 | 4 | 6) && char.is_ascii_digit() {
+                continue;
+            }
+
+            if state == 5 && char.is_ascii_digit() || state == 6 && matches!(char, b'j' | b'J') || char.is_ascii_digit()
+            {
+                state += 1;
+            }
+
+            if char == b'.' {
+                state += 2;
+            }
+        }
+
+        if matches!(state, 4 | 6 | 7) {
+            Ok(())
+        } else {
+            Err(PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: invalid float literal".to_string(),
+                span: Span { start, end },
+            })
+        }
     }
 }

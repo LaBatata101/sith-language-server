@@ -897,6 +897,54 @@ World!\"",
     }
 
     #[test]
+    fn lex_incorrect_float_number() {
+        let mut lexer = Lexer::new("1.123.21");
+        let errors = lexer.tokenize();
+
+        assert!(!errors.is_empty());
+        assert_eq!(
+            errors,
+            vec![PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: invalid float literal".to_string(),
+                span: Span { start: 0, end: 8 }
+            }]
+        );
+    }
+
+    #[test]
+    fn lex_incorrect_float_number2() {
+        let mut lexer = Lexer::new("112_3.23e4E-56");
+        let errors = lexer.tokenize();
+
+        assert!(!errors.is_empty());
+        assert_eq!(
+            errors,
+            vec![PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: invalid float literal".to_string(),
+                span: Span { start: 0, end: 14 }
+            }]
+        );
+    }
+
+    #[test]
+    fn lex_incorrect_imaginary_number() {
+        let mut lexer = Lexer::new("3.2_10jJj");
+        let errors = lexer.tokenize();
+
+        assert!(!errors.is_empty());
+        assert_eq!(
+            errors,
+            vec![PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: invalid imaginary literal".to_string(),
+                span: Span { start: 0, end: 9 }
+            }]
+        );
+    }
+
+    #[test]
     fn lex_decimal_number() {
         let mut lexer = Lexer::new("10_000_000");
         lexer.tokenize();
@@ -973,13 +1021,5 @@ World!\"",
                 span: Span { start: 0, end: 5 }
             }]
         );
-    }
-
-    #[test]
-    #[should_panic(expected = "Invalid binary number!")]
-    fn lex_invalid_binary_number() {
-        let mut lexer = Lexer::new("0b_1_1_");
-        lexer.tokenize();
-        dbg!(lexer.tokens());
     }
 }
