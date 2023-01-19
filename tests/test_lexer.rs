@@ -962,23 +962,6 @@ World!\"",
     }
 
     #[test]
-    fn lex_decimal_number2() {
-        let mut lexer = Lexer::new("+42");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token::new(
-                    TokenType::Number(NumberType::Integer(IntegerType::Decimal), "+42".to_string()),
-                    0,
-                    3
-                ),
-                Token::new(TokenType::Eof, 3, 4)
-            ]
-        );
-    }
-
-    #[test]
     fn lex_invalid_decimal_number() {
         let mut lexer = Lexer::new("12_5__0");
         let errors = lexer.tokenize();

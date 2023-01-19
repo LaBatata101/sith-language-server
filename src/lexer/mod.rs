@@ -438,10 +438,6 @@ impl<'a> Lexer<'a> {
                 }
             }
 
-            ('+' | '-', Some(next_char)) if next_char.is_ascii_digit() => {
-                return self.lex_number();
-            }
-
             ('%', _) => (TokenType::Operator(OperatorType::Modulus), 1),
             ('&', _) => (TokenType::Operator(OperatorType::BitwiseAnd), 1),
             ('*', _) => (TokenType::Operator(OperatorType::Asterisk), 1),
