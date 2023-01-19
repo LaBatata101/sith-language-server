@@ -499,16 +499,16 @@ impl<'a> Lexer<'a> {
         }
 
         // Try to lex decimal number
-        self.handle_decimal_number();
-        number_type = NumberType::Integer(IntegerType::Decimal);
-        let mut end = self.cs.pos();
+        if self.handle_decimal_number().is_some() {
+            number_type = NumberType::Integer(IntegerType::Decimal);
 
-        // Check for any character after the digits
-        self.cs
-            .advance_while(1, |char| matches!(char, valid_id_noninitial_chars!()));
+            // Check for any character after the digits
+            self.cs
+                .advance_while(1, |char| matches!(char, valid_id_noninitial_chars!()));
 
-        if let Err(error) = self.check_if_decimal_is_valid_in_pos(start, end) {
-            errors.push(error);
+            if let Err(error) = self.check_if_decimal_is_valid_in_pos(start, self.cs.pos()) {
+                errors.push(error);
+            }
         }
 
         // Handle float and imaginary numbers
@@ -522,7 +522,7 @@ impl<'a> Lexer<'a> {
             errors.extend(syntax_errors);
         }
 
-        end = self.cs.pos();
+        let end = self.cs.pos();
 
         let number = self.cs.get_slice(start..end).unwrap();
         self.tokens.push(Token::new(
@@ -565,7 +565,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn handle_decimal_number(&mut self) -> (usize, usize) {
+    fn handle_decimal_number(&mut self) -> Option<(usize, usize)> {
         let start = self.cs.pos();
         if matches!(self.cs.current_char(), Some('+' | '-')) {
             // Consumer + or -
@@ -575,7 +575,11 @@ impl<'a> Lexer<'a> {
         self.cs.advance_while(1, |char| char.is_ascii_digit());
         let end = self.cs.pos();
 
-        (start, end)
+        if start == end {
+            None
+        } else {
+            Some((start, end))
+        }
     }
 
     /// check if is a valid decimal e.g.: 123, 1_2_3, 1_2344, +1, -1
