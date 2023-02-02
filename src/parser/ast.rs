@@ -16,6 +16,7 @@ pub enum Statement {
     FromImport(FromImportStmt),
     With(WithStmt),
     Try(TryStmt),
+    Invalid(Span),
 
     #[default]
     None,
@@ -38,6 +39,7 @@ pub enum Expression {
     IfElse(IfElseExpr),
     Lambda(LambdaExpr),
     Ellipsis(Span),
+    Invalid(Span),
 
     #[default]
     None,

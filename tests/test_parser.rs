@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests_parser {
     use python_parser::{
+        error::{PythonError, PythonErrorType},
         lexer::token::Span,
         parser::{
             ast::{
@@ -14,10 +15,13 @@ mod tests_parser {
     };
 
     #[test]
-    fn test_parse_string_assignment() {
+    fn parse_string_assignment() {
         let parser = Parser::new("test = \"Hello World!\"");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
                     VarAsgmt::new("test".to_string(), Span { start: 0, end: 21 }),
@@ -28,10 +32,13 @@ mod tests_parser {
     }
 
     #[test]
-    fn test_parse_multiple_numbers_assignment() {
+    fn parse_multiple_numbers_assignment() {
         let parser = Parser::new("test = 42; x = 12");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![
                     Statement::VarAsgmt(
@@ -48,10 +55,13 @@ mod tests_parser {
     }
 
     #[test]
-    fn test_parse_boolean_assignment() {
+    fn parse_boolean_assignment() {
         let parser = Parser::new("x = True\ny = False");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![
                     Statement::VarAsgmt(
@@ -68,20 +78,32 @@ mod tests_parser {
     }
 
     #[test]
-    #[should_panic(expected = "Invalid syntax!")]
-    fn test_parse_incorrect_assignment() {
+    fn parse_incorrect_assignment() {
         let parser = Parser::new("test =");
-        parser.parse();
+        let (_, errors) = parser.parse();
+
+        assert!(errors.is_some());
+        assert_eq!(
+            errors.unwrap(),
+            vec![PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: unexpected token Eof".to_string(),
+                span: Span { start: 6, end: 7 },
+            },]
+        )
     }
 
     #[test]
-    fn test_parse_function() {
+    fn parse_function() {
         let parser = Parser::new(
             "def x():
     pass",
         );
+        let (parsed_file, parser_errors) = parser.parse();
+
+        assert!(parser_errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::FunctionDef(Function {
                     name: "x".to_string(),
@@ -98,16 +120,18 @@ mod tests_parser {
     }
 
     #[test]
-    fn test_parse_function2() {
+    fn parse_function2() {
         let parser = Parser::new(
             "def x():
     pass
     pass
     pass",
         );
+        let (parsed_file, errors) = parser.parse();
 
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::FunctionDef(Function {
                     name: "x".to_string(),
@@ -128,14 +152,17 @@ mod tests_parser {
     }
 
     #[test]
-    fn test_parse_function3() {
+    fn parse_function3() {
         let parser = Parser::new(
             "def test(x, y = 42):
     pass",
         );
 
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::FunctionDef(Function {
                     name: "test".to_string(),
@@ -165,14 +192,16 @@ mod tests_parser {
     }
 
     #[test]
-    fn test_parse_function4() {
+    fn parse_function4() {
         let parser = Parser::new(
             "def test(*kargs, **kwargs):
     pass",
         );
+        let (parsed_file, errors) = parser.parse();
 
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::FunctionDef(Function {
                     name: "test".to_string(),
@@ -202,15 +231,17 @@ mod tests_parser {
     }
 
     #[test]
-    fn test_parse_if() {
+    fn parse_if() {
         let parser = Parser::new(
             "if True:
     pass
-",
+    ",
         );
+        let (parsed_file, errors) = parser.parse();
 
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::If(IfStmt {
                     condition: Expression::Bool(true, Span { start: 3, end: 7 }),
@@ -227,16 +258,18 @@ mod tests_parser {
     }
 
     #[test]
-    fn test_parse_if_else() {
+    fn parse_if_else() {
         let parser = Parser::new(
             "if True:
     pass
 else:
     pass",
         );
+        let (parsed_file, errors) = parser.parse();
 
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::If(IfStmt {
                     condition: Expression::Bool(true, Span { start: 3, end: 7 }),
@@ -259,7 +292,7 @@ else:
     }
 
     #[test]
-    fn test_parse_if_elif() {
+    fn parse_if_elif() {
         let parser = Parser::new(
             "if True:
     pass
@@ -268,8 +301,11 @@ elif True:
 elif True:
     pass",
         );
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::If(IfStmt {
                     condition: Expression::Bool(true, Span { start: 3, end: 7 }),
@@ -303,7 +339,7 @@ elif True:
     }
 
     #[test]
-    fn test_parse_if_elif_else() {
+    fn parse_if_elif_else() {
         let parser = Parser::new(
             "if True:
     pass
@@ -314,9 +350,11 @@ elif True:
 else:
     pass",
         );
+        let (parsed_file, errors) = parser.parse();
 
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::If(IfStmt {
                     condition: Expression::Bool(true, Span { start: 3, end: 7 }),
@@ -356,19 +394,25 @@ else:
     }
 
     #[test]
-    fn test_parse_while() {
+    fn parse_while() {
         let parser = Parser::new(
             "while True:
     pass
 ",
         );
+        let (parsed_file, errors) = parser.parse();
 
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::While(While {
                     condition: Expression::Bool(true, Span { start: 6, end: 10 }),
                     else_stmt: None,
+                    block: Block {
+                        stmts: vec![Statement::Pass(Span { start: 16, end: 20 })],
+                        span: Span { start: 16, end: 20 }
+                    },
                     span: Span { start: 0, end: 20 }
                 })]
             }
@@ -376,16 +420,18 @@ else:
     }
 
     #[test]
-    fn test_parse_while_else() {
+    fn parse_while_else() {
         let parser = Parser::new(
             "while True:
     pass
 else:
     pass",
         );
+        let (parsed_file, errors) = parser.parse();
 
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::While(While {
                     condition: Expression::Bool(true, Span { start: 6, end: 10 },),
@@ -396,6 +442,10 @@ else:
                         },
                         span: Span { start: 21, end: 35 },
                     },),
+                    block: Block {
+                        stmts: vec![Statement::Pass(Span { start: 16, end: 20 })],
+                        span: Span { start: 16, end: 20 }
+                    },
                     span: Span { start: 0, end: 35 },
                 })]
             }
@@ -403,10 +453,13 @@ else:
     }
 
     #[test]
-    fn test_parse_expression() {
+    fn parse_expression() {
         let parser = Parser::new("x = 1 + 2 + 3");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
                     VarAsgmt::new("x".to_string(), Span { start: 0, end: 13 }),
@@ -427,11 +480,13 @@ else:
     }
 
     #[test]
-    fn test_parse_expression2() {
+    fn parse_expression2() {
         let parser = Parser::new("x = 1 + 2 * 3 / 2");
+        let (parsed_file, errors) = parser.parse();
 
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
                     VarAsgmt::new("x".to_string(), Span { start: 0, end: 17 }),
@@ -457,10 +512,13 @@ else:
     }
 
     #[test]
-    fn test_parse_expression3() {
+    fn parse_expression3() {
         let parser = Parser::new("x = 3 + -5");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
                     VarAsgmt::new("x".to_string(), Span { start: 0, end: 10 }),
@@ -480,10 +538,13 @@ else:
     }
 
     #[test]
-    fn test_parse_expression4() {
+    fn parse_expression4() {
         let parser = Parser::new("x = not 3 + -5");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
                     VarAsgmt::new("x".to_string(), Span { start: 0, end: 14 }),
@@ -507,10 +568,13 @@ else:
     }
 
     #[test]
-    fn test_parse_expression5() {
+    fn parse_expression5() {
         let parser = Parser::new("x = x + +5");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
                     VarAsgmt::new("x".to_string(), Span { start: 0, end: 10 }),
@@ -530,10 +594,13 @@ else:
     }
 
     #[test]
-    fn test_parse_expression6() {
+    fn parse_expression6() {
         let parser = Parser::new("a = x < y or 69 > 9 and not 101 >> 666");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
                     VarAsgmt::new("a".to_string(), Span { start: 0, end: 38 }),
@@ -573,10 +640,13 @@ else:
     }
 
     #[test]
-    fn test_parse_expression7() {
+    fn parse_expression7() {
         let parser = Parser::new("x = a.b.c");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
                     VarAsgmt::new("x".to_string(), Span { start: 0, end: 9 }),
@@ -597,10 +667,13 @@ else:
     }
 
     #[test]
-    fn test_parse_expression8() {
+    fn parse_expression8() {
         let parser = Parser::new("x = hello()");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
                     VarAsgmt::new("x".to_string(), Span { start: 0, end: 9 }),
@@ -614,10 +687,13 @@ else:
     }
 
     #[test]
-    fn test_parse_expression9() {
+    fn parse_expression9() {
         let parser = Parser::new("x = l[1 + 2]");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
                     VarAsgmt::new("x".to_string(), Span { start: 0, end: 5 }),
@@ -637,10 +713,13 @@ else:
     }
 
     #[test]
-    fn test_parse_expression10() {
+    fn parse_expression10() {
         let parser = Parser::new("x = a not in b");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
                     VarAsgmt::new("x".to_string(), Span { start: 0, end: 14 }),
@@ -656,10 +735,13 @@ else:
     }
 
     #[test]
-    fn test_parse_expression11() {
+    fn parse_expression11() {
         let parser = Parser::new("x = ((1 + 2) * 54) / 3");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
                     VarAsgmt::new("x".to_string(), Span { start: 0, end: 22 }),
@@ -685,10 +767,13 @@ else:
     }
 
     #[test]
-    fn test_parse_tuple_expression() {
+    fn parse_tuple_expression() {
         let parser = Parser::new("x = (1 + 2, True, y(), \"Hello\", l[i],)");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
                     VarAsgmt::new("x".to_string(), Span { start: 0, end: 38 }),
@@ -720,10 +805,13 @@ else:
     }
 
     #[test]
-    fn test_parse_list_expression() {
+    fn parse_list_expression() {
         let parser = Parser::new("x = [1 + 2, True, y(), \"Hello\", l[i],]");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
                     VarAsgmt::new("x".to_string(), Span { start: 0, end: 38 }),
@@ -755,10 +843,13 @@ else:
     }
 
     #[test]
-    fn test_parse_list_expression2() {
+    fn parse_list_expression2() {
         let parser = Parser::new("x = [*l, *[1,2,3], True]");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
                     VarAsgmt::new("x".to_string(), Span { start: 0, end: 24 }),
@@ -791,17 +882,29 @@ else:
     }
 
     #[test]
-    #[should_panic(expected = "Invalid Syntax: can't unpack dictionary inside list!")]
-    fn test_parse_list_expression3() {
-        let parser = Parser::new("[**d]");
-        parser.parse();
+    fn parse_invalid_list_expression() {
+        let parser = Parser::new("[**d, x]");
+        let (_, errors) = parser.parse();
+
+        assert!(errors.is_some());
+        assert_eq!(
+            errors,
+            Some(vec![PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: can't unpack dictionary inside list!".to_string(),
+                span: Span { start: 1, end: 3 },
+            },])
+        )
     }
 
     #[test]
-    fn test_parse_unpack_iterable_assignment() {
+    fn parse_unpack_iterable_assignment() {
         let parser = Parser::new("x = *iterable");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
                     VarAsgmt::new("x".to_string(), Span { start: 0, end: 13 }),
@@ -816,10 +919,13 @@ else:
     }
 
     #[test]
-    fn test_parse_set_expression() {
+    fn parse_set_expression() {
         let parser = Parser::new("x = {1, True, \"hello\", *l,}");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
                     VarAsgmt::new("x".to_string(), Span { start: 0, end: 27 }),
@@ -842,10 +948,13 @@ else:
     }
 
     #[test]
-    fn test_parse_dict_expression() {
+    fn parse_dict_expression() {
         let parser = Parser::new("x = {1: \"Hello\", 1 + 3: True, (6, 6): False,}");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
                     VarAsgmt::new("x".to_string(), Span { start: 0, end: 45 }),
@@ -883,10 +992,13 @@ else:
     }
 
     #[test]
-    fn test_parse_dict_expression2() {
+    fn parse_dict_expression2() {
         let parser = Parser::new("x = {**d, 2: 5, **x,}");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
                     VarAsgmt::new("x".to_string(), Span { start: 0, end: 21 }),
@@ -915,17 +1027,30 @@ else:
     }
 
     #[test]
-    #[should_panic(expected = "Invalid Syntax: can't unpack iterable inside dictionary!")]
-    fn test_parse_dict_expression3() {
+    fn parse_invalid_dict_expression() {
+        // FIXME: generating wrong AST for unpack iterable
         let parser = Parser::new("x = {**d, *x}");
-        parser.parse();
+        let (_, errors) = parser.parse();
+
+        assert!(errors.is_some());
+        assert_eq!(
+            errors.unwrap(),
+            vec![PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: can't unpack iterable inside dictionary!".to_string(),
+                span: Span { start: 10, end: 11 }
+            }]
+        );
     }
 
     #[test]
-    fn test_parse_if_else_expression() {
+    fn parse_if_else_expression() {
         let parser = Parser::new("x = 15 if 5 < x else 45");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
                     VarAsgmt::new("x".to_string(), Span { start: 0, end: 6 }),
@@ -946,10 +1071,13 @@ else:
     }
 
     #[test]
-    fn test_parse_if_else_expression2() {
+    fn parse_if_else_expression2() {
         let parser = Parser::new("x = func() if (5 < x or x >= y) and is_id else func2() * 5");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::VarAsgmt(
                     VarAsgmt::new("x".to_string(), Span { start: 0, end: 8 }),
@@ -996,10 +1124,13 @@ else:
     }
 
     #[test]
-    fn test_parse_single_expression() {
+    fn parse_single_expression() {
         let parser = Parser::new("1 + 2; 3 + 4, 7, 8");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![
                     Statement::Expression(
@@ -1034,10 +1165,13 @@ else:
     }
 
     #[test]
-    fn test_parse_single_expression2() {
+    fn parse_single_expression2() {
         let parser = Parser::new("x");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(
                     Expression::Id("x".to_string(), Span { start: 0, end: 1 }),
@@ -1048,13 +1182,16 @@ else:
     }
 
     #[test]
-    fn test_parse_walrus_operator() {
+    fn parse_walrus_operator() {
         let parser = Parser::new(
             "if (x := 15) > 5:
     x",
         );
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::If(IfStmt {
                     condition: Expression::BinaryOp(
@@ -1084,17 +1221,31 @@ else:
     }
 
     #[test]
-    #[should_panic(expected = "Syntax Error: Invalid assignment statement!")]
-    fn test_parse_walrus_operator2() {
+    fn parse_invalid_walrus_operator() {
+        // FIXME: generate one AST node for the invalid expression, instead of generating an actual
+        // expression AST node
         let parser = Parser::new("x := 5 + 5");
-        parser.parse();
+        let (_, errors) = parser.parse();
+
+        assert!(errors.is_some());
+        assert_eq!(
+            errors.unwrap(),
+            vec![PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: invalid assignment statement!".to_string(),
+                span: Span { start: 2, end: 4 }
+            }]
+        );
     }
 
     #[test]
-    fn test_parse_await_operator() {
+    fn parse_await_operator() {
         let parser = Parser::new("await func() * x ** 5 / 3");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(
                     Expression::BinaryOp(
@@ -1127,10 +1278,13 @@ else:
     }
 
     #[test]
-    fn test_parse_lambda_expr() {
+    fn parse_lambda_expr() {
         let parser = Parser::new("lambda x: x + 1");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(
                     Expression::Lambda(LambdaExpr {
@@ -1155,10 +1309,13 @@ else:
     }
 
     #[test]
-    fn test_parse_lambda_expr2() {
+    fn parse_lambda_expr2() {
         let parser = Parser::new("(lambda x: x + 1)()");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(
                     Expression::Call(
@@ -1186,14 +1343,17 @@ else:
     }
 
     #[test]
-    fn test_parse_class() {
+    fn parse_class() {
         let parser = Parser::new(
             "class Test:
     def __init__(self):
         pass",
         );
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Class(ClassStmt {
                     name: "Test".to_string(),
@@ -1223,14 +1383,17 @@ else:
     }
 
     #[test]
-    fn test_parse_class2() {
+    fn parse_class2() {
         let parser = Parser::new(
             "class Dog(Animal):
     def __init__(self):
         pass",
         );
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Class(ClassStmt {
                     name: "Dog".to_string(),
@@ -1265,10 +1428,13 @@ else:
     }
 
     #[test]
-    fn test_parse_import() {
+    fn parse_import() {
         let parser = Parser::new("import os");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Import(ImportStmt {
                     modules: vec![ImportModule {
@@ -1282,10 +1448,13 @@ else:
     }
 
     #[test]
-    fn test_parse_import2() {
+    fn parse_import2() {
         let parser = Parser::new("import os.walk as O, sys as S");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Import(ImportStmt {
                     modules: vec![
@@ -1305,10 +1474,13 @@ else:
     }
 
     #[test]
-    fn test_parse_from_import() {
+    fn parse_from_import() {
         let parser = Parser::new("from os import *");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::FromImport(FromImportStmt {
                     module: vec![ImportModule {
@@ -1326,10 +1498,13 @@ else:
     }
 
     #[test]
-    fn test_parse_from_import2() {
+    fn parse_from_import2() {
         let parser = Parser::new("from ... import *");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::FromImport(FromImportStmt {
                     module: vec![ImportModule {
@@ -1347,10 +1522,13 @@ else:
     }
 
     #[test]
-    fn test_parse_from_import3() {
+    fn parse_from_import3() {
         let parser = Parser::new("from .subpackage.module1 import func");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::FromImport(FromImportStmt {
                     module: vec![
@@ -1374,10 +1552,13 @@ else:
     }
 
     #[test]
-    fn test_parse_from_import4() {
+    fn parse_from_import4() {
         let parser = Parser::new("from .subpackage.module1 import (func, func2, func3)");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::FromImport(FromImportStmt {
                     module: vec![
@@ -1411,13 +1592,16 @@ else:
     }
 
     #[test]
-    fn test_parse_with() {
+    fn parse_with() {
         let parser = Parser::new(
             "with open() as file:
     pass",
         );
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::With(WithStmt {
                     items: vec![WithItem {
@@ -1439,15 +1623,18 @@ else:
     }
 
     #[test]
-    fn test_parse_try_except() {
+    fn parse_try_except() {
         let parser = Parser::new(
             "try:
     pass
 except:
     pass",
         );
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Try(TryStmt {
                     block: Block {
@@ -1473,15 +1660,18 @@ except:
     }
 
     #[test]
-    fn test_parse_try_except_as() {
+    fn parse_try_except_as() {
         let parser = Parser::new(
             "try:
     pass
 except Except as e:
     pass",
         );
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Try(TryStmt {
                     block: Block {
@@ -1507,16 +1697,18 @@ except Except as e:
     }
 
     #[test]
-    fn test_parse_try_finally() {
+    fn parse_try_finally() {
         let parser = Parser::new(
             "try:
     pass
 finally:
     pass",
         );
+        let (parsed_file, errors) = parser.parse();
 
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Try(TryStmt {
                     block: Block {
@@ -1539,7 +1731,7 @@ finally:
     }
 
     #[test]
-    fn test_parse_try_except_finally() {
+    fn parse_try_except_finally() {
         let parser = Parser::new(
             "try:
     pass
@@ -1548,9 +1740,11 @@ except:
 finally:
     pass",
         );
+        let (parsed_file, errors) = parser.parse();
 
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Try(TryStmt {
                     block: Block {
@@ -1582,7 +1776,7 @@ finally:
     }
 
     #[test]
-    fn test_parse_try_except_else_finally() {
+    fn parse_try_except_else_finally() {
         let parser = Parser::new(
             "try:
     pass
@@ -1593,9 +1787,11 @@ else:
 finally:
     pass",
         );
+        let (parsed_file, errors) = parser.parse();
 
+        assert!(errors.is_none());
         assert_eq!(
-            parser.parse(),
+            parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Try(TryStmt {
                     block: Block {

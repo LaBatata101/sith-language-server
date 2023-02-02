@@ -10,4 +10,5 @@ pub struct PythonError {
 #[derive(Debug, PartialEq)]
 pub enum PythonErrorType {
     Syntax,
+    Indentation,
 }
