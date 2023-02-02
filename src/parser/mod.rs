@@ -482,6 +482,7 @@ impl Parser {
                 start: 0,
                 end: while_block.span.end,
             },
+            block: while_block,
         };
 
         token = self.tokens.get(*index).unwrap();

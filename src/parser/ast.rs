@@ -184,6 +184,7 @@ pub struct ElseStmt {
 pub struct While {
     pub condition: Expression,
     pub else_stmt: Option<ElseStmt>,
+    pub block: Block,
     pub span: Span,
 }
 
