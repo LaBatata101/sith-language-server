@@ -123,7 +123,7 @@ impl Parser {
                 self.parse_unary_operator(index, token)
             }
             TokenType::OpenParenthesis => self.parse_parenthesized_expr(index, token),
-            TokenType::OpenBrackets => self.parse_list_expr(index),
+            TokenType::OpenBrackets => self.parse_list_expr(index, token.span.start),
             TokenType::OpenBrace => self.parse_bracesized_expr(index, token),
             _ => {
                 *index += 1;
@@ -1113,47 +1113,29 @@ impl Parser {
         )
     }
 
-    fn parse_list_expr(&self, index: &mut usize) -> (Expression, Span, Option<Vec<PythonError>>) {
+    fn parse_list_expr(
+        &self,
+        index: &mut usize,
+        list_expr_start: usize,
+    ) -> (Expression, Span, Option<Vec<PythonError>>) {
         let mut errors = Vec::new();
         // Consume [
         *index += 1;
 
-        let mut token = self.tokens.get(*index).unwrap();
-        if token.kind == TokenType::Operator(OperatorType::Exponent) {
-            errors.push(PythonError {
-                error: PythonErrorType::Syntax,
-                msg: "SyntaxError: can't unpack dictionary inside list!".to_string(),
-                span: token.span,
-            });
-        }
-
-        let (lhs, lhs_span, lhs_errors) = self.pratt_parsing(index, 0);
-
-        if let Some(lhs_errors) = lhs_errors {
-            errors.extend(lhs_errors);
-        }
-
-        let mut expressions = vec![lhs];
-        let mut last_expr_span = Span { start: 0, end: 0 };
+        let mut expressions = vec![];
         let mut list_span = Span {
-            start: lhs_span.start - 1,
+            start: list_expr_start,
             end: 0,
         };
 
-        while self
-            .tokens
-            .get(*index)
-            .map_or(false, |token| token.kind == TokenType::Comma)
-        {
-            // consume the comma
-            *index += 1;
+        loop {
+            let token = self.tokens.get(*index).unwrap();
 
             // allow trailing comma
             if self.tokens.get(*index).unwrap().kind == TokenType::CloseBrackets {
                 break;
             }
 
-            token = self.tokens.get(*index).unwrap();
             if token.kind == TokenType::Operator(OperatorType::Exponent) {
                 errors.push(PythonError {
                     error: PythonErrorType::Syntax,
@@ -1162,14 +1144,20 @@ impl Parser {
                 });
             }
 
-            let (expr, expr_span, expr_errors) = self.pratt_parsing(index, 0);
+            let (expr, _, expr_errors) = self.pratt_parsing(index, 0);
 
             if let Some(expr_errors) = expr_errors {
                 errors.extend(expr_errors);
             }
 
-            last_expr_span = expr_span;
             expressions.push(expr);
+
+            if self.tokens.get(*index).unwrap().kind != TokenType::Comma {
+                break;
+            }
+
+            // Consume ,
+            *index += 1;
         }
 
         let token = self.tokens.get(*index).unwrap();
@@ -1782,7 +1770,7 @@ impl Parser {
                 (Expression::Id(name.to_string(), token.span), token.span, None)
             }
             TokenType::OpenParenthesis => self.parse_parenthesized_expr(index, token),
-            TokenType::OpenBrackets => self.parse_list_expr(index),
+            TokenType::OpenBrackets => self.parse_list_expr(index, token.span.start),
             TokenType::OpenBrace => self.parse_bracesized_expr(index, token),
             _ => (
                 Expression::Invalid(token.span),

@@ -898,6 +898,23 @@ else:
     }
 
     #[test]
+    fn parse_empty_list_expression() {
+        let parser = Parser::new("[]");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Expression(
+                    Expression::List(vec![], Span { start: 0, end: 2 }),
+                    Span { start: 0, end: 2 }
+                )]
+            }
+        );
+    }
+
+    #[test]
     fn parse_unpack_iterable_assignment() {
         let parser = Parser::new("x = *iterable");
         let (parsed_file, errors) = parser.parse();
