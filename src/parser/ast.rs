@@ -16,6 +16,7 @@ pub enum Statement {
     FromImport(FromImportStmt),
     With(WithStmt),
     Try(TryStmt),
+    Return(ReturnStmt),
     Invalid(Span),
 
     #[default]
@@ -304,5 +305,11 @@ pub struct ExceptBlock {
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct FinallyBlock {
     pub block: Block,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct ReturnStmt {
+    pub value: Option<Expression>,
     pub span: Span,
 }

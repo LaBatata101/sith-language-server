@@ -19,8 +19,8 @@ use ast::{
 use helpers::{infix_binding_power, postfix_binding_power, prefix_binding_power};
 
 use self::ast::{
-    ClassStmt, FromImportStmt, FuncParameter, ImportModule, ImportStmt, LambdaExpr, StarParameterType, TryStmt,
-    WithItem, WithStmt,
+    ClassStmt, FromImportStmt, FuncParameter, ImportModule, ImportStmt, LambdaExpr, ReturnStmt, StarParameterType,
+    TryStmt, WithItem, WithStmt,
 };
 
 pub struct Parser {
@@ -560,6 +560,13 @@ impl Parser {
                 let try_span = try_stmt.span;
 
                 (Statement::Try(try_stmt), try_span, try_stmt_errors)
+            }
+            TokenType::Keyword(KeywordType::Return) => {
+                let (mut return_stmt, return_stmt_errors) = self.parse_return(index);
+                return_stmt.span.start = token.span.start;
+                let return_span = return_stmt.span;
+
+                (Statement::Return(return_stmt), return_span, return_stmt_errors)
             }
             TokenType::Keyword(KeywordType::Pass) => (Statement::Pass(token.span), token.span, None),
             TokenType::Keyword(KeywordType::Continue) => (Statement::Continue(token.span), token.span, None),
@@ -2086,27 +2093,33 @@ impl Parser {
         (try_stmt, if errors.is_empty() { None } else { Some(errors) })
     }
 
-    // Checks if the next token is `expected_token`, if is true advance in the token stream,
-    // otherwise return an error with the message `error_msg`.
-    fn expect_next_token_or_error(
-        &self,
-        index: &mut usize,
-        expected_token: TokenType,
-        error_msg: &str,
-    ) -> Result<(), PythonError> {
-        // Get next token
-        *index += 1;
-        let token = self.tokens.get(*index).unwrap();
+    fn parse_return(&self, index: &mut usize) -> (ReturnStmt, Option<Vec<PythonError>>) {
+        let mut errors = Vec::new();
+        let mut return_stmt = ReturnStmt::default();
 
-        if token.kind == expected_token {
-            Err(PythonError {
-                error: PythonErrorType::Syntax,
-                msg: format!("{} {:?}", error_msg, token.kind), // FIXME: change this later
-                span: token.span,
-            })
-        } else {
-            *index += 1;
-            Ok(())
+        let token = self.tokens.get(*index).unwrap();
+        return_stmt.span.end = token.span.end;
+
+        let token = self.tokens.get(*index);
+        if matches!(
+            token.map(|next_token| &next_token.kind),
+            Some(
+                TokenType::Number(_, _)
+                    | TokenType::Id(_)
+                    | TokenType::String(_)
+                    | TokenType::OpenParenthesis
+                    | TokenType::Operator(OperatorType::Plus | OperatorType::Minus)
+                    | TokenType::Keyword(KeywordType::Not | KeywordType::None)
+            )
+        ) {
+            let (expr, expr_span, expr_errors) = self.pratt_parsing(index, 0);
+            if let Some(expr_errors) = expr_errors {
+                errors.extend(expr_errors);
+            }
+            return_stmt.value = Some(expr);
+            return_stmt.span.end = expr_span.end;
         }
+
+        (return_stmt, if errors.is_empty() { None } else { Some(errors) })
     }
 }

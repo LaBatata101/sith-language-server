@@ -7,8 +7,8 @@ mod tests_parser {
             ast::{
                 BinaryOperator, Block, ClassStmt, DictItemType, ElIfStmt, ElseStmt, ExceptBlock, ExceptBlockKind,
                 Expression, FinallyBlock, FromImportStmt, FuncParameter, Function, IfElseExpr, IfStmt, ImportModule,
-                ImportStmt, LambdaExpr, ParsedFile, StarParameterType, Statement, TryStmt, UnaryOperator, VarAsgmt,
-                While, WithItem, WithStmt,
+                ImportStmt, LambdaExpr, ParsedFile, ReturnStmt, StarParameterType, Statement, TryStmt, UnaryOperator,
+                VarAsgmt, While, WithItem, WithStmt,
             },
             Parser,
         },
@@ -1840,6 +1840,71 @@ finally:
                         span: Span { start: 31, end: 45 }
                     }),
                     span: Span { start: 0, end: 63 }
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_return_stmt() {
+        let parser = Parser::new(
+            "
+def x():
+    return
+",
+        );
+        let (parsed_file, errors) = parser.parse();
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::FunctionDef(Function {
+                    name: "x".to_string(),
+                    name_span: Span { start: 5, end: 6 },
+                    parameters: vec![],
+                    block: Block {
+                        stmts: vec![Statement::Return(ReturnStmt {
+                            value: None,
+                            span: Span { start: 14, end: 21 }
+                        })],
+                        span: Span { start: 14, end: 21 }
+                    },
+                    span: Span { start: 1, end: 21 }
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_return_stmt2() {
+        let parser = Parser::new(
+            "
+def x():
+    return 2 + 2
+",
+        );
+        let (parsed_file, errors) = parser.parse();
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::FunctionDef(Function {
+                    name: "x".to_string(),
+                    name_span: Span { start: 5, end: 6 },
+                    parameters: vec![],
+                    block: Block {
+                        stmts: vec![Statement::Return(ReturnStmt {
+                            value: Some(Expression::BinaryOp(
+                                Box::new(Expression::Number("2".to_string(), Span { start: 21, end: 22 })),
+                                BinaryOperator::Add,
+                                Box::new(Expression::Number("2".to_string(), Span { start: 25, end: 26 })),
+                                Span { start: 21, end: 26 }
+                            )),
+                            span: Span { start: 14, end: 26 }
+                        })],
+                        span: Span { start: 14, end: 26 }
+                    },
+                    span: Span { start: 1, end: 26 }
                 })]
             }
         )
