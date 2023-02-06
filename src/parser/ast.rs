@@ -40,9 +40,10 @@ pub enum Expression {
     Lambda(LambdaExpr),
     Ellipsis(Span),
     Invalid(Span),
+    None(Span),
 
     #[default]
-    None,
+    Empty,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
