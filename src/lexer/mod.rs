@@ -28,7 +28,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    pub fn tokenize(&mut self) -> Vec<PythonError> {
+    pub fn tokenize(&mut self) -> Option<Vec<PythonError>> {
         // This is used to check if we are inside a [], () or {} and then skip the NewLine Token.
         let mut implicit_line_joining = 0;
         let mut errors: Vec<PythonError> = vec![];
@@ -174,7 +174,11 @@ impl<'a> Lexer<'a> {
         self.tokens
             .push(Token::new(TokenType::Eof, self.cs.pos(), self.cs.pos() + 1));
 
-        errors
+        if errors.is_empty() {
+            None
+        } else {
+            Some(errors)
+        }
     }
 
     pub fn tokens(&self) -> &[Token] {
