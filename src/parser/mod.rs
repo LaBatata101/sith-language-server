@@ -574,9 +574,14 @@ impl Parser {
 
     fn parse_if(&self, index: &mut usize) -> (IfStmt, Option<Vec<PythonError>>) {
         let mut errors = Vec::new();
-        let (condition_expr, _, _) = self.parse_expression(index); // FIXME
+        let (condition_expr, _, condition_expr_errors) = self.parse_expression(index);
+
+        if let Some(condition_expr_errors) = condition_expr_errors {
+            errors.extend(condition_expr_errors);
+        }
+
         let mut token = self.tokens.get(*index).unwrap();
-        if !matches!(token.kind, TokenType::Colon) {
+        if token.kind != TokenType::Colon {
             errors.push(PythonError {
                 error: PythonErrorType::Syntax,
                 msg: format!("SyntaxError: expecting ':' got {:?}", token.kind),
