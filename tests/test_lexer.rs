@@ -528,9 +528,9 @@ mod test_lexer {
         let mut lexer = Lexer::new("\"\"\"\"\"\"\"\"\"\"\"\"\"\"");
         let errors = lexer.tokenize();
 
-        assert!(!errors.is_empty());
+        assert!(errors.is_some());
         assert_eq!(
-            errors,
+            errors.unwrap(),
             vec![PythonError {
                 error: PythonErrorType::Syntax,
                 msg: "SyntaxError: unterminated string literal".to_string(),
@@ -606,7 +606,6 @@ else:
     }
 
     #[test]
-    #[should_panic(expected = "IndentError!")]
     fn test_lex_indentation2() {
         let mut lexer = Lexer::new(
             " def perm(l):          # error: first line indented
@@ -618,7 +617,16 @@ for i in range(len(l)):             # error: not indented
             return r                # error: inconsistent dedent (this is the only error the lexer can find)
 ",
         );
-        lexer.tokenize();
+        let errors = lexer.tokenize();
+        assert!(errors.is_some());
+        assert_eq!(
+            errors.unwrap(),
+            vec![PythonError {
+                error: PythonErrorType::Indentation,
+                msg: "IndentError: indent amount does not match previous indent".to_string(),
+                span: Span { start: 0, end: 0 }
+            }]
+        );
     }
 
     #[test]
@@ -668,7 +676,6 @@ for i in range(len(l)):             # error: not indented
         assert_eq!(
             lexer.tokens(),
             vec![
-                Token::new(TokenType::NewLine, 0, 1),
                 Token::new(TokenType::OpenBrackets, 1, 2),
                 Token::new(TokenType::OpenParenthesis, 3, 4),
                 Token::new(TokenType::CloseParenthesis, 6, 7),
@@ -745,9 +752,9 @@ World!\"",
         );
 
         let errors = lexer.tokenize();
-        assert!(!errors.is_empty());
+        assert!(errors.is_some());
         assert_eq!(
-            errors,
+            errors.unwrap(),
             vec![
                 PythonError {
                     error: PythonErrorType::Syntax,
@@ -768,9 +775,9 @@ World!\"",
         let mut lexer = Lexer::new("if True and \\aa True:\n    pass");
 
         let errors = lexer.tokenize();
-        assert!(!errors.is_empty());
+        assert!(errors.is_some());
         assert_eq!(
-            errors,
+            errors.unwrap(),
             vec![PythonError {
                 error: PythonErrorType::Syntax,
                 msg: "SyntaxError: unexpected characters after line continuation character".to_string(),
@@ -872,7 +879,7 @@ World!\"",
     #[test]
     fn lex_float_number4() {
         let mut lexer = Lexer::new("1.001E-10");
-        assert!(lexer.tokenize().is_empty());
+        assert!(lexer.tokenize().is_none());
 
         assert_eq!(
             lexer.tokens(),
@@ -901,9 +908,9 @@ World!\"",
         let mut lexer = Lexer::new("1.123.21");
         let errors = lexer.tokenize();
 
-        assert!(!errors.is_empty());
+        assert!(errors.is_some());
         assert_eq!(
-            errors,
+            errors.unwrap(),
             vec![PythonError {
                 error: PythonErrorType::Syntax,
                 msg: "SyntaxError: invalid float literal".to_string(),
@@ -917,9 +924,9 @@ World!\"",
         let mut lexer = Lexer::new("112_3.23e4E-56");
         let errors = lexer.tokenize();
 
-        assert!(!errors.is_empty());
+        assert!(errors.is_some());
         assert_eq!(
-            errors,
+            errors.unwrap(),
             vec![PythonError {
                 error: PythonErrorType::Syntax,
                 msg: "SyntaxError: invalid float literal".to_string(),
@@ -933,9 +940,9 @@ World!\"",
         let mut lexer = Lexer::new("3.2_10jJj");
         let errors = lexer.tokenize();
 
-        assert!(!errors.is_empty());
+        assert!(errors.is_some());
         assert_eq!(
-            errors,
+            errors.unwrap(),
             vec![PythonError {
                 error: PythonErrorType::Syntax,
                 msg: "SyntaxError: invalid imaginary literal".to_string(),
@@ -965,9 +972,9 @@ World!\"",
     fn lex_invalid_decimal_number() {
         let mut lexer = Lexer::new("12_5__0");
         let errors = lexer.tokenize();
-        assert!(!errors.is_empty());
+        assert!(errors.is_some());
         assert_eq!(
-            errors,
+            errors.unwrap(),
             vec![PythonError {
                 error: PythonErrorType::Syntax,
                 msg: "SyntaxError: invalid decimal literal".to_string(),
@@ -980,9 +987,9 @@ World!\"",
     fn lex_invalid_decimal_number2() {
         let mut lexer = Lexer::new("10_");
         let errors = lexer.tokenize();
-        assert!(!errors.is_empty());
+        assert!(errors.is_some());
         assert_eq!(
-            errors,
+            errors.unwrap(),
             vec![PythonError {
                 error: PythonErrorType::Syntax,
                 msg: "SyntaxError: invalid decimal literal".to_string(),
@@ -995,9 +1002,9 @@ World!\"",
     fn lex_invalid_decimal_number3() {
         let mut lexer = Lexer::new("10abc");
         let errors = lexer.tokenize();
-        assert!(!errors.is_empty());
+        assert!(errors.is_some());
         assert_eq!(
-            errors,
+            errors.unwrap(),
             vec![PythonError {
                 error: PythonErrorType::Syntax,
                 msg: "SyntaxError: invalid decimal literal".to_string(),

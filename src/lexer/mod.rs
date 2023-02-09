@@ -32,9 +32,33 @@ impl<'a> Lexer<'a> {
         // This is used to check if we are inside a [], () or {} and then skip the NewLine Token.
         let mut implicit_line_joining = 0;
         let mut errors: Vec<PythonError> = vec![];
+        let mut is_beginning_of_line = true;
 
         while !self.cs.is_eof() {
-            self.cs.skip_whitespace();
+            if is_beginning_of_line {
+                is_beginning_of_line = false;
+
+                let whitespace_total = self.cs.skip_whitespace();
+
+                if self.cs.is_eof() {
+                    break;
+                }
+
+                // skip lines containing only white spaces or \n
+                // FIXME: handle \r and \r\n
+                if (whitespace_total > 0 || whitespace_total == 0)
+                    && self.cs.current_char().map_or(false, |char| char == '\n')
+                {
+                    is_beginning_of_line = true;
+                    // Consume \n
+                    self.cs.advance_by(1);
+                    continue;
+                }
+
+                if let Err(error) = self.handle_indentation(whitespace_total) {
+                    errors.push(error);
+                }
+            }
 
             match self.cs.current_char().unwrap() {
                 valid_id_initial_chars!() => self.lex_identifier_or_keyword(),
@@ -105,7 +129,11 @@ impl<'a> Lexer<'a> {
                         self.lex_operator();
                     }
                 }
+                ' ' => {
+                    self.cs.skip_whitespace();
+                }
                 '\n' | '\r' => {
+                    is_beginning_of_line = true;
                     let mut advance_offset = 1;
 
                     let start = self.cs.pos();
@@ -130,9 +158,6 @@ impl<'a> Lexer<'a> {
                     }
 
                     self.tokens.push(Token::new(TokenType::NewLine, start, end));
-                    let whitespace_total = self.cs.skip_whitespace();
-
-                    self.handle_indentation(whitespace_total);
                 }
                 '\\' => {
                     if self.cs.next_char().map_or(false, |char| char == '\n') {
@@ -148,10 +173,13 @@ impl<'a> Lexer<'a> {
                             error: PythonErrorType::Syntax,
                             span: Span { start, end },
                         });
-                        continue;
                     }
                 }
-
+                '#' => {
+                    self.cs.advance_while(1, |char| char != '\n');
+                    // consume \n
+                    self.cs.advance_by(1);
+                }
                 _ => {
                     let start = self.cs.pos();
                     self.cs.advance_by(1);
@@ -186,8 +214,7 @@ impl<'a> Lexer<'a> {
     }
 
     // FIXME: Handle mix of tabs and spaces in indentation
-    // TODO: Return error instead of panicking
-    fn handle_indentation(&mut self, whitespace_total: usize) {
+    fn handle_indentation(&mut self, whitespace_total: usize) -> Result<(), PythonError> {
         let top_of_stack = self.indent_stack.last().copied().unwrap();
 
         match whitespace_total.cmp(&top_of_stack) {
@@ -206,7 +233,11 @@ impl<'a> Lexer<'a> {
                     .last()
                     .map_or(false, |&top_of_stack| whitespace_total != top_of_stack)
                 {
-                    panic!("IndentError!")
+                    return Err(PythonError {
+                        error: PythonErrorType::Indentation,
+                        msg: "IndentError: indent amount does not match previous indent".to_string(),
+                        span: Span { start: 0, end: 0 }, // FIXME: set the span position
+                    });
                 }
             }
             std::cmp::Ordering::Greater => {
@@ -215,6 +246,8 @@ impl<'a> Lexer<'a> {
             }
             std::cmp::Ordering::Equal => (), // Do nothing!
         }
+
+        Ok(())
     }
 
     fn lex_single_char(&mut self, token: TokenType) {
