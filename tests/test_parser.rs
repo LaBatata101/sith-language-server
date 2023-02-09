@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests_parser {
+
     use python_parser::{
         error::{PythonError, PythonErrorType},
         lexer::token::Span,
@@ -805,6 +806,44 @@ else:
     }
 
     #[test]
+    fn parse_tuple_expression_with_no_parens() {
+        let parser = Parser::new("1 + 2, True, y(), \"Hello\", l[i],");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Expression(
+                    Expression::Tuple(
+                        vec![
+                            Expression::BinaryOp(
+                                Box::new(Expression::Number("1".to_string(), Span { start: 0, end: 1 })),
+                                BinaryOperator::Add,
+                                Box::new(Expression::Number("2".to_string(), Span { start: 4, end: 5 })),
+                                Span { start: 0, end: 5 }
+                            ),
+                            Expression::Bool(true, Span { start: 7, end: 11 }),
+                            Expression::Call(
+                                Box::new(Expression::Id("y".to_string(), Span { start: 13, end: 14 })),
+                                Span { start: 13, end: 14 }
+                            ),
+                            Expression::String("Hello".to_string(), Span { start: 18, end: 25 }),
+                            Expression::Slice(
+                                Box::new(Expression::Id("l".to_string(), Span { start: 27, end: 28 })),
+                                Box::new(Expression::Id("i".to_string(), Span { start: 29, end: 30 })),
+                                Span { start: 27, end: 31 }
+                            )
+                        ],
+                        Span { start: 0, end: 33 }
+                    ),
+                    Span { start: 0, end: 33 }
+                )]
+            }
+        )
+    }
+
+    #[test]
     fn parse_list_expression() {
         let parser = Parser::new("x = [1 + 2, True, y(), \"Hello\", l[i],]");
         let (parsed_file, errors) = parser.parse();
@@ -1160,22 +1199,21 @@ else:
                         Span { start: 0, end: 5 }
                     ),
                     Statement::Expression(
-                        Expression::BinaryOp(
-                            Box::new(Expression::Number("3".to_string(), Span { start: 7, end: 8 })),
-                            BinaryOperator::Add,
-                            Box::new(Expression::Number("4".to_string(), Span { start: 11, end: 12 })),
-                            Span { start: 7, end: 12 }
+                        Expression::Tuple(
+                            vec![
+                                Expression::BinaryOp(
+                                    Box::new(Expression::Number("3".to_string(), Span { start: 7, end: 8 })),
+                                    BinaryOperator::Add,
+                                    Box::new(Expression::Number("4".to_string(), Span { start: 11, end: 12 })),
+                                    Span { start: 7, end: 12 }
+                                ),
+                                Expression::Number("7".to_string(), Span { start: 14, end: 15 }),
+                                Expression::Number("8".to_string(), Span { start: 17, end: 18 }),
+                            ],
+                            Span { start: 7, end: 19 }
                         ),
-                        Span { start: 7, end: 12 }
+                        Span { start: 7, end: 19 }
                     ),
-                    Statement::Expression(
-                        Expression::Number("7".to_string(), Span { start: 14, end: 15 }),
-                        Span { start: 14, end: 15 }
-                    ),
-                    Statement::Expression(
-                        Expression::Number("8".to_string(), Span { start: 17, end: 18 }),
-                        Span { start: 17, end: 18 }
-                    )
                 ]
             }
         )

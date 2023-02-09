@@ -65,18 +65,46 @@ impl Parser {
     }
 
     fn parse_expression(&self, index: &mut usize) -> (Expression, Span, Option<Vec<PythonError>>) {
-        let expr = self.pratt_parsing(index, 0);
+        let (expr, expr_span, expr_errors) = self.pratt_parsing(index, 0);
+
+        // TODO: Try to refactor this later
+        if self
+            .tokens
+            .get(*index)
+            .map_or(false, |token| token.kind == TokenType::Comma)
+        {
+            // consume ,
+            *index += 1;
+
+            let (tuple_expr, tuple_span, mut tuple_errors) =
+                self.parse_tuple_expr_with_no_parens(index, expr_span.start);
+
+            let mut items = vec![expr];
+
+            if let Expression::Tuple(tuple_items, _) = tuple_expr {
+                items.extend(tuple_items);
+            }
+
+            tuple_errors = match (expr_errors, tuple_errors) {
+                (None, None) => None,
+                (None, Some(tuple_errors)) => Some(tuple_errors),
+                (Some(expr_errors), None) => Some(expr_errors),
+                (Some(expr_errors), Some(mut tuple_errors)) => {
+                    tuple_errors.extend(expr_errors);
+                    Some(tuple_errors)
+                }
+            };
+
+            return (Expression::Tuple(items, tuple_span), tuple_span, tuple_errors);
+        }
 
         if self.tokens.get(*index).map_or(false, |token| {
-            matches!(
-                &token.kind,
-                TokenType::NewLine | TokenType::SemiColon | TokenType::Eof | TokenType::Comma
-            )
+            matches!(&token.kind, TokenType::NewLine | TokenType::SemiColon | TokenType::Eof)
         }) {
             *index += 1;
         }
 
-        expr
+        (expr, expr_span, expr_errors)
     }
 
     /// Parse `expressions` using Pratt Parsing algorithm
@@ -282,7 +310,7 @@ impl Parser {
                             | TokenType::String(_)
                             | TokenType::OpenParenthesis
                             | TokenType::Operator(OperatorType::Plus | OperatorType::Minus)
-                            | TokenType::Keyword(KeywordType::Not)
+                            | TokenType::Keyword(KeywordType::Not | KeywordType::None)
                     )
                 ) {
                     errors.push(PythonError {
@@ -438,13 +466,8 @@ impl Parser {
     }
 
     fn parse_statements(&self, index: &mut usize) -> (Statement, Span, Option<Vec<PythonError>>) {
-        let mut token = self.tokens.get(*index).unwrap();
+        let token = self.tokens.get(*index).unwrap();
         *index += 1;
-
-        while token.kind == TokenType::NewLine {
-            token = self.tokens.get(*index).unwrap();
-            *index += 1;
-        }
 
         match &token.kind {
             TokenType::Id(name) => {
@@ -573,8 +596,8 @@ impl Parser {
             TokenType::Keyword(KeywordType::Break) => (Statement::Break(token.span), token.span, None),
             _ => {
                 *index -= 1;
-                let (expr, expr_span, expr_error) = self.parse_expression(index);
-                (Statement::Expression(expr, expr_span), expr_span, expr_error)
+                let (expr, expr_span, expr_errors) = self.parse_expression(index);
+                (Statement::Expression(expr, expr_span), expr_span, expr_errors)
             }
         }
     }
@@ -853,18 +876,23 @@ impl Parser {
             });
         }
 
-        let (lhs, lhs_span, lhs_errors) = self.pratt_parsing(index, 0);
-
-        if let Some(lhs_errors) = lhs_errors {
-            errors.extend(lhs_errors);
-        }
-
-        if self
+        let (expr, expr_span, expr_errors) = if self
             .tokens
-            .get(*index)
-            .map_or(false, |token| token.kind == TokenType::Comma)
+            .iter()
+            .skip(*index)
+            .find(|&token| token.kind == TokenType::Comma)
+            .is_some()
         {
-            return self.parse_tuple_expression(index, lhs, paren_span_start);
+            self.parse_tuple_expr_with_no_parens(index, paren_span_start)
+        } else {
+            self.pratt_parsing(index, 0)
+        };
+        // FIXME: should be using this, but haven't found a way to set the right start of the tuple
+        // yet.
+        // let (expr, expr_span, expr_errors) = self.parse_expression(index);
+
+        if let Some(expr_errors) = expr_errors {
+            errors.extend(expr_errors);
         }
 
         let token = self.tokens.get(*index).unwrap();
@@ -879,53 +907,56 @@ impl Parser {
             *index += 1;
         }
 
-        (lhs, lhs_span, if errors.is_empty() { None } else { Some(errors) })
+        (expr, expr_span, if errors.is_empty() { None } else { Some(errors) })
     }
 
-    fn parse_tuple_expression(
+    fn parse_tuple_expr_with_no_parens(
         &self,
         index: &mut usize,
-        first_expr: Expression,
         tuple_span_start: usize,
     ) -> (Expression, Span, Option<Vec<PythonError>>) {
         let mut errors = Vec::new();
-        let mut expressions = vec![first_expr];
+        let mut expressions = vec![];
         let mut tuple_span = Span {
             start: tuple_span_start,
             end: 0,
         };
-        let mut last_expr_span = Span { start: 0, end: 0 };
 
-        while self
-            .tokens
-            .get(*index)
-            .map_or(false, |token| token.kind == TokenType::Comma)
-        {
-            *index += 1;
+        loop {
+            let mut token = self.tokens.get(*index).unwrap();
 
-            if self.tokens.get(*index).unwrap().kind == TokenType::CloseParenthesis {
+            let expr_span = if self.is_token_start_of_expr(&token) {
+                let (expr, expr_span, expr_errors) = self.pratt_parsing(index, 0);
+                if let Some(expr_errors) = expr_errors {
+                    errors.extend(expr_errors);
+                }
+                expressions.push(expr);
+
+                expr_span
+            } else {
                 break;
-            }
+            };
 
-            let (expr, expr_span, expr_errors) = self.pratt_parsing(index, 0);
-            if let Some(expr_errors) = expr_errors {
-                errors.extend(expr_errors);
+            // allow tuples with trailing comma, e.g. "(1, 2, 3,)", "1, 2, 3,"
+            token = self.tokens.get(*index).unwrap();
+            if token.kind == TokenType::Comma {
+                // Consume ,
+                *index += 1;
+            } else if !self.is_token_start_of_expr(&token) {
+                break;
+            } else {
+                errors.push(PythonError {
+                    error: PythonErrorType::Syntax,
+                    msg: format!("SyntaxError: expected comma, got {:?}", token.kind),
+                    span: Span {
+                        start: expr_span.end,
+                        end: expr_span.end + 1,
+                    },
+                });
             }
-            expressions.push(expr);
-        }
-
-        let token = self.tokens.get(*index).unwrap();
-        if token.kind != TokenType::CloseParenthesis {
-            errors.push(PythonError {
-                error: PythonErrorType::Syntax,
-                msg: format!("SyntaxError: expecting ')' got {:?}", token.kind),
-                span: token.span,
-            });
         }
 
         tuple_span.end = self.tokens.get(*index).map(|token| token.span.end).unwrap();
-
-        *index += 1;
 
         (
             Expression::Tuple(expressions, tuple_span),
@@ -2121,5 +2152,32 @@ impl Parser {
         }
 
         (return_stmt, if errors.is_empty() { None } else { Some(errors) })
+    }
+
+    fn is_token_start_of_expr(&self, token: &Token) -> bool {
+        matches!(
+            token.kind,
+            TokenType::Number(_, _)
+                | TokenType::Id(_)
+                | TokenType::String(_)
+                | TokenType::OpenParenthesis
+                | TokenType::OpenBrackets
+                | TokenType::OpenBrace
+                | TokenType::Operator(
+                    OperatorType::Plus
+                        | OperatorType::Minus
+                        | OperatorType::Asterisk
+                        | OperatorType::BitwiseNot
+                        | OperatorType::Exponent
+                )
+                | TokenType::Keyword(
+                    KeywordType::Not
+                        | KeywordType::None
+                        | KeywordType::True
+                        | KeywordType::False
+                        | KeywordType::Await
+                        | KeywordType::Lambda
+                )
+        )
     }
 }
