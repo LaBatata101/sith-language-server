@@ -1947,4 +1947,106 @@ def x():
             }
         )
     }
+
+    #[test]
+    fn parse_yield_expr() {
+        let parser = Parser::new(
+            "
+def test():
+    yield 1
+    yield 1, 2 + 3, abc
+",
+        );
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::FunctionDef(Function {
+                    name: "test".to_string(),
+                    name_span: Span { start: 5, end: 9 },
+                    parameters: vec![],
+                    block: Block {
+                        stmts: vec![
+                            Statement::Expression(
+                                Expression::Yield(
+                                    Some(Box::new(Expression::Number(
+                                        "1".to_string(),
+                                        Span { start: 23, end: 24 }
+                                    ))),
+                                    Span { start: 17, end: 24 }
+                                ),
+                                Span { start: 17, end: 24 }
+                            ),
+                            Statement::Expression(
+                                Expression::Yield(
+                                    Some(Box::new(Expression::Tuple(
+                                        vec![
+                                            Expression::Number("1".to_string(), Span { start: 35, end: 36 }),
+                                            Expression::BinaryOp(
+                                                Box::new(Expression::Number(
+                                                    "2".to_string(),
+                                                    Span { start: 38, end: 39 }
+                                                )),
+                                                BinaryOperator::Add,
+                                                Box::new(Expression::Number(
+                                                    "3".to_string(),
+                                                    Span { start: 42, end: 43 }
+                                                )),
+                                                Span { start: 38, end: 43 }
+                                            ),
+                                            Expression::Id("abc".to_string(), Span { start: 45, end: 48 })
+                                        ],
+                                        Span { start: 35, end: 49 }
+                                    ))),
+                                    Span { start: 29, end: 49 }
+                                ),
+                                Span { start: 29, end: 49 }
+                            )
+                        ],
+                        span: Span { start: 17, end: 49 }
+                    },
+                    span: Span { start: 1, end: 49 }
+                }),]
+            }
+        );
+    }
+
+    #[test]
+    fn parse_yield_from() {
+        let parser = Parser::new(
+            "
+def test():
+    yield from func()
+",
+        );
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::FunctionDef(Function {
+                    name: "test".to_string(),
+                    name_span: Span { start: 5, end: 9 },
+                    parameters: vec![],
+                    block: Block {
+                        stmts: vec![Statement::Expression(
+                            Expression::YieldFrom(
+                                Box::new(Expression::Call(
+                                    Box::new(Expression::Id("func".to_string(), Span { start: 28, end: 32 })),
+                                    Span { start: 28, end: 32 }
+                                )),
+                                Span { start: 17, end: 32 }
+                            ),
+                            Span { start: 17, end: 32 }
+                        )],
+                        span: Span { start: 17, end: 32 }
+                    },
+                    span: Span { start: 1, end: 32 }
+                })]
+            }
+        );
+    }
 }

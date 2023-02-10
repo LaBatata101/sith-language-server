@@ -51,7 +51,7 @@ impl Parser {
                 break;
             }
             let (stmt, _, errors) = self.parse_statements(&mut index);
-            parsed_file.stmts.push(dbg!(stmt));
+            parsed_file.stmts.push(stmt);
             if let Some(stmt_errors) = errors {
                 parse_errors.extend(stmt_errors);
             }
@@ -99,7 +99,7 @@ impl Parser {
         }
 
         if self.tokens.get(*index).map_or(false, |token| {
-            matches!(&token.kind, TokenType::NewLine | TokenType::SemiColon | TokenType::Eof)
+            matches!(&token.kind, TokenType::NewLine | TokenType::SemiColon)
         }) {
             *index += 1;
         }
@@ -143,6 +143,9 @@ impl Parser {
             TokenType::Keyword(KeywordType::None) => {
                 *index += 1;
                 (Expression::None(token.span), token.span, None)
+            }
+            TokenType::Keyword(KeywordType::Yield) => {
+                return self.parse_yield(index, token);
             }
             TokenType::Operator(
                 OperatorType::Plus
@@ -2179,5 +2182,39 @@ impl Parser {
                         | KeywordType::Lambda
                 )
         )
+    }
+
+    fn parse_yield(&self, index: &mut usize, token: &Token) -> (Expression, Span, Option<Vec<PythonError>>) {
+        let mut yield_span = token.span;
+
+        *index += 1;
+        let token = self.tokens.get(*index).unwrap();
+
+        if token.kind == TokenType::Keyword(KeywordType::From) {
+            // consume "from"
+            *index += 1;
+
+            let (rhs, rhs_span, rhs_errors) = self.parse_expression(index);
+            yield_span = Span {
+                start: yield_span.start,
+                end: rhs_span.end,
+            };
+            return (Expression::YieldFrom(Box::new(rhs), yield_span), yield_span, rhs_errors);
+        }
+
+        if self.is_token_start_of_expr(token) {
+            let (rhs, rhs_span, rhs_errors) = self.parse_expression(index);
+            yield_span = Span {
+                start: yield_span.start,
+                end: rhs_span.end,
+            };
+            return (
+                Expression::Yield(Some(Box::new(rhs)), yield_span),
+                yield_span,
+                rhs_errors,
+            );
+        }
+
+        return (Expression::Yield(None, yield_span), yield_span, None);
     }
 }

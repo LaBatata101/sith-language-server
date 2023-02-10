@@ -41,6 +41,8 @@ pub enum Expression {
     Lambda(LambdaExpr),
     Ellipsis(Span),
     Invalid(Span),
+    Yield(Option<Box<Expression>>, Span),
+    YieldFrom(Box<Expression>, Span),
     None(Span),
 
     #[default]
