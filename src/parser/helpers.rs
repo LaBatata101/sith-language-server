@@ -1,9 +1,42 @@
+use bitflags::bitflags;
+
 use crate::lexer::token::{
     types::{KeywordType, OperatorType, TokenType},
     Token,
 };
 
 use super::ast::{BinaryOperator, Operation, UnaryOperator};
+
+bitflags! {
+    #[derive(Default)]
+    pub struct AllowedExpr: u32 {
+        const BINARY_OP = 1 << 0;
+        const BOOL = 1 << 1;
+        const CALL = 1 << 2;
+        const DICT = 1 << 3;
+        const ELLIPSIS = 1 << 4;
+        const ID = 1 << 5;
+        const IF_ELSE = 1 << 6;
+        const LAMBDA = 1 << 7;
+        const LIST = 1 << 8;
+        const NONE = 1 << 9;
+        const NUMBER = 1 << 10;
+        const PARENTHESIZED = 1<< 11;
+        const SET = 1 << 12;
+        const SLICE = 1 << 13;
+        const STRING = 1 << 14;
+        const TUPLE = 1 << 15;
+        const UNARY_OP = 1 << 16;
+        const YIELD = 1 << 17;
+        const YIELD_FROM = 1 << 18;
+        const ATTR_REF = 1 << 19;
+        const ALL = Self::BINARY_OP.bits
+                    | Self::BOOL.bits | Self::CALL.bits | Self::DICT.bits | Self::ELLIPSIS.bits | Self::ID.bits
+                    | Self::IF_ELSE.bits | Self::LAMBDA.bits | Self::LIST.bits | Self::NONE.bits | Self::NUMBER.bits
+                    | Self::SET.bits | Self::SLICE.bits | Self::STRING.bits | Self::TUPLE.bits | Self::UNARY_OP.bits
+                    | Self::YIELD.bits | Self::YIELD_FROM.bits | Self::PARENTHESIZED.bits | Self::ATTR_REF.bits;
+    }
+}
 
 pub fn postfix_binding_power(op: Operation) -> Option<(u8, ())> {
     match op {
@@ -61,6 +94,7 @@ pub fn infix_binding_power(op: Operation) -> Option<(u8, u8)> {
         _ => None,
     }
 }
+
 pub fn is_token_start_of_expr(token: &Token) -> bool {
     matches!(
         token.kind,

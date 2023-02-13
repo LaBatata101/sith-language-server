@@ -7,9 +7,9 @@ mod tests_parser {
         parser::{
             ast::{
                 BinaryOperator, Block, ClassStmt, DictItemType, ElIfStmt, ElseStmt, ExceptBlock, ExceptBlockKind,
-                Expression, FinallyBlock, FromImportStmt, FuncParameter, Function, IfElseExpr, IfStmt, ImportModule,
-                ImportStmt, LambdaExpr, ParsedFile, ReturnStmt, StarParameterType, Statement, TryStmt, UnaryOperator,
-                VarAsgmt, While, WithItem, WithStmt,
+                Expression, FinallyBlock, ForStmt, FromImportStmt, FuncParameter, Function, IfElseExpr, IfStmt,
+                ImportModule, ImportStmt, LambdaExpr, ParsedFile, ReturnStmt, StarParameterType, Statement, TryStmt,
+                UnaryOperator, VarAsgmt, While, WithItem, WithStmt,
             },
             Parser,
         },
@@ -2048,5 +2048,153 @@ def test():
                 })]
             }
         );
+    }
+
+    #[test]
+    fn parse_for_stmt() {
+        let parser = Parser::new(
+            "
+for i in [1, 2, 3]:
+    yield i
+    yield i + 1
+",
+        );
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::For(ForStmt {
+                    target: Expression::Id("i".to_string(), Span { start: 5, end: 6 }),
+                    iter: Expression::List(
+                        vec![
+                            Expression::Number("1".to_string(), Span { start: 11, end: 12 }),
+                            Expression::Number("2".to_string(), Span { start: 14, end: 15 }),
+                            Expression::Number("3".to_string(), Span { start: 17, end: 18 })
+                        ],
+                        Span { start: 10, end: 19 }
+                    ),
+                    block: Block {
+                        stmts: vec![
+                            Statement::Expression(
+                                Expression::Yield(
+                                    Some(Box::new(Expression::Id("i".to_string(), Span { start: 31, end: 32 }))),
+                                    Span { start: 25, end: 32 }
+                                ),
+                                Span { start: 25, end: 32 }
+                            ),
+                            Statement::Expression(
+                                Expression::Yield(
+                                    Some(Box::new(Expression::BinaryOp(
+                                        Box::new(Expression::Id("i".to_string(), Span { start: 43, end: 44 })),
+                                        BinaryOperator::Add,
+                                        Box::new(Expression::Number("1".to_string(), Span { start: 47, end: 48 })),
+                                        Span { start: 43, end: 48 }
+                                    ))),
+                                    Span { start: 37, end: 48 }
+                                ),
+                                Span { start: 37, end: 48 }
+                            )
+                        ],
+                        span: Span { start: 25, end: 48 }
+                    },
+                    else_stmt: None,
+                    span: Span { start: 1, end: 48 }
+                })]
+            }
+        );
+    }
+
+    #[test]
+    fn parse_for_stmt2() {
+        let parser = Parser::new(
+            "
+for a, b in ((1, 2, 3)):
+    ...
+",
+        );
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::For(ForStmt {
+                    target: Expression::Tuple(
+                        vec![
+                            Expression::Id("a".to_string(), Span { start: 5, end: 6 }),
+                            Expression::Id("b".to_string(), Span { start: 8, end: 9 })
+                        ],
+                        Span { start: 5, end: 12 }
+                    ),
+                    iter: Expression::Tuple(
+                        vec![Expression::Tuple(
+                            vec![
+                                Expression::Number("1".to_string(), Span { start: 15, end: 16 }),
+                                Expression::Number("2".to_string(), Span { start: 18, end: 19 }),
+                                Expression::Number("3".to_string(), Span { start: 21, end: 22 })
+                            ],
+                            Span { start: 14, end: 23 }
+                        )],
+                        Span { start: 13, end: 24 }
+                    ),
+                    block: Block {
+                        stmts: vec![Statement::Expression(
+                            Expression::Ellipsis(Span { start: 30, end: 33 }),
+                            Span { start: 30, end: 33 }
+                        )],
+                        span: Span { start: 30, end: 33 }
+                    },
+                    else_stmt: None,
+                    span: Span { start: 1, end: 33 }
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_for_stmt3() {
+        let parser = Parser::new(
+            "
+for *a in ((1, 2, 3)):
+    ...
+",
+        );
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::For(ForStmt {
+                    target: Expression::UnaryOp(
+                        Box::new(Expression::Id("a".to_string(), Span { start: 6, end: 7 })),
+                        UnaryOperator::UnpackIterable,
+                        Span { start: 5, end: 7 }
+                    ),
+                    iter: Expression::Tuple(
+                        vec![Expression::Tuple(
+                            vec![
+                                Expression::Number("1".to_string(), Span { start: 13, end: 14 }),
+                                Expression::Number("2".to_string(), Span { start: 16, end: 17 }),
+                                Expression::Number("3".to_string(), Span { start: 19, end: 20 })
+                            ],
+                            Span { start: 12, end: 21 }
+                        )],
+                        Span { start: 11, end: 22 }
+                    ),
+                    block: Block {
+                        stmts: vec![Statement::Expression(
+                            Expression::Ellipsis(Span { start: 28, end: 31 }),
+                            Span { start: 28, end: 31 }
+                        )],
+                        span: Span { start: 28, end: 31 }
+                    },
+                    else_stmt: None,
+                    span: Span { start: 1, end: 31 }
+                })]
+            }
+        )
     }
 }

@@ -17,6 +17,7 @@ pub enum Statement {
     With(WithStmt),
     Try(TryStmt),
     Return(ReturnStmt),
+    For(ForStmt),
     Invalid(Span),
 
     #[default]
@@ -313,5 +314,14 @@ pub struct FinallyBlock {
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct ReturnStmt {
     pub value: Option<Expression>,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct ForStmt {
+    pub target: Expression,
+    pub iter: Expression,
+    pub block: Block,
+    pub else_stmt: Option<ElseStmt>,
     pub span: Span,
 }
