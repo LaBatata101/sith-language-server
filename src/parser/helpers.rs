@@ -1,3 +1,8 @@
+use crate::lexer::token::{
+    types::{KeywordType, OperatorType, TokenType},
+    Token,
+};
+
 use super::ast::{BinaryOperator, Operation, UnaryOperator};
 
 pub fn postfix_binding_power(op: Operation) -> Option<(u8, ())> {
@@ -55,4 +60,47 @@ pub fn infix_binding_power(op: Operation) -> Option<(u8, u8)> {
         Operation::Binary(BinaryOperator::AttributeRef) => Some((22, 22)),
         _ => None,
     }
+}
+pub fn is_token_start_of_expr(token: &Token) -> bool {
+    matches!(
+        token.kind,
+        TokenType::Number(_, _)
+            | TokenType::Id(_)
+            | TokenType::String(_)
+            | TokenType::OpenParenthesis
+            | TokenType::OpenBrackets
+            | TokenType::OpenBrace
+            | TokenType::Operator(
+                OperatorType::Plus
+                    | OperatorType::Minus
+                    | OperatorType::Asterisk
+                    | OperatorType::BitwiseNot
+                    | OperatorType::Exponent
+            )
+            | TokenType::Keyword(
+                KeywordType::Not
+                    | KeywordType::None
+                    | KeywordType::True
+                    | KeywordType::False
+                    | KeywordType::Await
+                    | KeywordType::Lambda
+            )
+    )
+}
+
+pub fn is_token_end_of_expr(token: &Token) -> bool {
+    matches!(
+        token.kind,
+        TokenType::NewLine
+            | TokenType::SemiColon
+            | TokenType::Colon
+            | TokenType::Eof
+            | TokenType::CloseBrace
+            | TokenType::CloseBrackets
+            | TokenType::CloseParenthesis
+            | TokenType::Comma
+            | TokenType::Dedent
+            | TokenType::Keyword(KeywordType::Else)
+            | TokenType::Keyword(KeywordType::As)
+    )
 }

@@ -179,23 +179,11 @@ impl Parser {
             errors.extend(lhs_errors);
         }
 
-        while self.tokens.get(*index).map_or(false, |token| {
-            !matches!(
-                &token.kind,
-                // Tokens that can end an expression
-                TokenType::NewLine
-                    | TokenType::SemiColon
-                    | TokenType::Colon
-                    | TokenType::Eof
-                    | TokenType::CloseBrace
-                    | TokenType::CloseBrackets
-                    | TokenType::CloseParenthesis
-                    | TokenType::Comma
-                    | TokenType::Dedent
-                    | TokenType::Keyword(KeywordType::Else)
-                    | TokenType::Keyword(KeywordType::As)
-            )
-        }) {
+        while self
+            .tokens
+            .get(*index)
+            .map_or(false, |token| !helpers::is_token_end_of_expr(token))
+        {
             token = self.tokens.get(*index).unwrap();
 
             let op = match self.get_expr_operation(token, index) {
@@ -2155,33 +2143,6 @@ impl Parser {
         }
 
         (return_stmt, if errors.is_empty() { None } else { Some(errors) })
-    }
-
-    fn is_token_start_of_expr(&self, token: &Token) -> bool {
-        matches!(
-            token.kind,
-            TokenType::Number(_, _)
-                | TokenType::Id(_)
-                | TokenType::String(_)
-                | TokenType::OpenParenthesis
-                | TokenType::OpenBrackets
-                | TokenType::OpenBrace
-                | TokenType::Operator(
-                    OperatorType::Plus
-                        | OperatorType::Minus
-                        | OperatorType::Asterisk
-                        | OperatorType::BitwiseNot
-                        | OperatorType::Exponent
-                )
-                | TokenType::Keyword(
-                    KeywordType::Not
-                        | KeywordType::None
-                        | KeywordType::True
-                        | KeywordType::False
-                        | KeywordType::Await
-                        | KeywordType::Lambda
-                )
-        )
     }
 
     fn parse_yield(&self, index: &mut usize, token: &Token) -> (Expression, Span, Option<Vec<PythonError>>) {
