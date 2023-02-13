@@ -179,6 +179,7 @@ impl<'a> Lexer<'a> {
                     self.cs.advance_while(1, |char| char != '\n');
                     // consume \n
                     self.cs.advance_by(1);
+                    is_beginning_of_line = true;
                 }
                 _ => {
                     let start = self.cs.pos();
