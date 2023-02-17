@@ -14,14 +14,14 @@ use crate::{
 };
 use ast::{
     BinaryOperator, Block, ElIfStmt, ElseStmt, Expression, Function, IfStmt, Operation, ParsedFile, Statement,
-    UnaryOperator, VarAsgmt, While,
+    UnaryOperator, While,
 };
 use helpers::{infix_binding_power, postfix_binding_power, prefix_binding_power};
 
 use self::{
     ast::{
-        ClassStmt, ForStmt, FromImportStmt, FuncParameter, ImportModule, ImportStmt, LambdaExpr, ReturnStmt,
-        StarParameterType, TryStmt, WithItem, WithStmt,
+        AnnAssign, Assign, AugAssign, ClassStmt, ForStmt, FromImportStmt, FuncParameter, ImportModule, ImportStmt,
+        LambdaExpr, ReturnStmt, StarParameterType, TryStmt, WithItem, WithStmt,
     },
     helpers::AllowedExpr,
 };
@@ -53,7 +53,7 @@ impl Parser {
             {
                 break;
             }
-            let (stmt, _, errors) = self.parse_statements(&mut index);
+            let (stmt, errors) = self.parse_statements(&mut index);
             parsed_file.stmts.push(stmt);
             if let Some(stmt_errors) = errors {
                 parse_errors.extend(stmt_errors);
@@ -67,12 +67,8 @@ impl Parser {
         }
     }
 
-    fn parse_expression(
-        &self,
-        index: &mut usize,
-        allowed_expr: AllowedExpr,
-    ) -> (Expression, Span, Option<Vec<PythonError>>) {
-        let (expr, expr_span, expr_errors) = self.pratt_parsing(index, 0, allowed_expr);
+    fn parse_expression(&self, index: &mut usize, allowed_expr: AllowedExpr) -> (Expression, Option<Vec<PythonError>>) {
+        let (mut expr, mut expr_errors) = self.pratt_parsing(index, 0, allowed_expr);
 
         // TODO: Try to refactor this later
         if self
@@ -84,26 +80,40 @@ impl Parser {
             // consume ,
             *index += 1;
 
-            let (tuple_expr, tuple_span, mut tuple_errors) =
-                self.parse_tuple_expr_with_no_parens(index, expr_span.start, allowed_expr);
+            let (tuple_expr, tuple_errors) =
+                self.parse_tuple_expr_with_no_parens(index, expr.span().start, allowed_expr);
 
+            let mut tuple_span = expr.span();
             let mut items = vec![expr];
 
-            if let Expression::Tuple(tuple_items, _) = tuple_expr {
+            if let Expression::Tuple(tuple_items, tuple_expr_span) = tuple_expr {
+                tuple_span = tuple_expr_span;
                 items.extend(tuple_items);
             }
 
-            tuple_errors = match (expr_errors, tuple_errors) {
-                (None, None) => None,
-                (None, Some(tuple_errors)) => Some(tuple_errors),
-                (Some(expr_errors), None) => Some(expr_errors),
-                (Some(expr_errors), Some(mut tuple_errors)) => {
-                    tuple_errors.extend(expr_errors);
-                    Some(tuple_errors)
-                }
-            };
+            expr = Expression::Tuple(items, tuple_span);
 
-            return (Expression::Tuple(items, tuple_span), tuple_span, tuple_errors);
+            if expr_errors.is_none() {
+                expr_errors = tuple_errors;
+            } else if tuple_errors.is_some() {
+                expr_errors.as_mut().map(|errors| errors.extend(tuple_errors.unwrap()));
+            }
+        }
+
+        let token = self.tokens.get(*index);
+
+        if token.map_or(false, |token| {
+            allowed_expr.contains(AllowedExpr::ASSIGN)
+                && (token.is_assign() || token.is_augassign() || token.kind == TokenType::Colon)
+        }) {
+            let (assign_expr, assign_errors) = self.parse_assign(index, token.unwrap(), expr);
+
+            expr = assign_expr;
+            if expr_errors.is_none() {
+                expr_errors = assign_errors;
+            } else if assign_errors.is_some() {
+                expr_errors.as_mut().map(|errors| errors.extend(assign_errors.unwrap()));
+            }
         }
 
         if self.tokens.get(*index).map_or(false, |token| {
@@ -112,7 +122,7 @@ impl Parser {
             *index += 1;
         }
 
-        (expr, expr_span, expr_errors)
+        (expr, expr_errors)
     }
 
     /// Parse `expressions` using Pratt Parsing algorithm
@@ -121,37 +131,37 @@ impl Parser {
         index: &mut usize,
         min_precedence_weight: u8,
         allowed_expr: AllowedExpr,
-    ) -> (Expression, Span, Option<Vec<PythonError>>) {
+    ) -> (Expression, Option<Vec<PythonError>>) {
         let mut errors: Vec<PythonError> = Vec::new();
         let mut token = self.tokens.get(*index).unwrap();
-        let (mut lhs, mut lhs_span, lhs_errors) = match &token.kind {
+        let (mut lhs, lhs_errors) = match &token.kind {
             TokenType::Id(name) if allowed_expr.contains(AllowedExpr::ID) => {
                 *index += 1;
-                (Expression::Id(name.to_string(), token.span), token.span, None)
+                (Expression::Id(name.to_string(), token.span), None)
             }
             TokenType::String(str) if allowed_expr.contains(AllowedExpr::STRING) => {
                 *index += 1;
-                (Expression::String(str.to_string(), token.span), token.span, None)
+                (Expression::String(str.to_string(), token.span), None)
             }
             TokenType::Number(_, num) if allowed_expr.contains(AllowedExpr::NUMBER) => {
                 *index += 1;
-                (Expression::Number(num.to_string(), token.span), token.span, None)
+                (Expression::Number(num.to_string(), token.span), None)
             }
             TokenType::Keyword(KeywordType::True) if allowed_expr.contains(AllowedExpr::BOOL) => {
                 *index += 1;
-                (Expression::Bool(true, token.span), token.span, None)
+                (Expression::Bool(true, token.span), None)
             }
             TokenType::Keyword(KeywordType::False) if allowed_expr.contains(AllowedExpr::BOOL) => {
                 *index += 1;
-                (Expression::Bool(false, token.span), token.span, None)
+                (Expression::Bool(false, token.span), None)
             }
             TokenType::Ellipsis if allowed_expr.contains(AllowedExpr::ELLIPSIS) => {
                 *index += 1;
-                (Expression::Ellipsis(token.span), token.span, None)
+                (Expression::Ellipsis(token.span), None)
             }
             TokenType::Keyword(KeywordType::None) if allowed_expr.contains(AllowedExpr::NONE) => {
                 *index += 1;
-                (Expression::None(token.span), token.span, None)
+                (Expression::None(token.span), None)
             }
             TokenType::Keyword(KeywordType::Yield) if allowed_expr.contains(AllowedExpr::YIELD) => {
                 return self.parse_yield(index, token);
@@ -180,7 +190,6 @@ impl Parser {
 
                 (
                     Expression::Invalid(token.span),
-                    token.span,
                     Some(vec![PythonError {
                         error: PythonErrorType::Syntax,
                         msg: format!("SyntaxError: unexpected token {:?}", token.kind),
@@ -195,14 +204,12 @@ impl Parser {
         }
 
         if !(allowed_expr.contains(AllowedExpr::BINARY_OP) && allowed_expr.contains(AllowedExpr::UNARY_OP)) {
-            return (lhs, lhs_span, if errors.is_empty() { None } else { Some(errors) });
+            return (lhs, if errors.is_empty() { None } else { Some(errors) });
         }
 
-        while self
-            .tokens
-            .get(*index)
-            .map_or(false, |token| !helpers::is_token_end_of_expr(token))
-        {
+        while self.tokens.get(*index).map_or(false, |token| {
+            !helpers::is_token_end_of_expr(token) && !(token.is_assign() || token.is_augassign())
+        }) {
             token = self.tokens.get(*index).unwrap();
 
             let op = match self.get_expr_operation(token, index) {
@@ -225,6 +232,7 @@ impl Parser {
                     lhs = match op {
                         Operation::Unary(UnaryOperator::OpenParenthesis) => {
                             // FIXME: Only parsing function calls with no arguments
+                            let lhs_span = lhs.span();
                             let expr = Expression::Call(Box::new(lhs), lhs_span);
                             if self
                                 .tokens
@@ -247,11 +255,14 @@ impl Parser {
                         }
                         Operation::Unary(UnaryOperator::OpenBrackets) => {
                             // FIXME: Only parsing slice with no start, stop or step attributes
-                            let (rhs, rhs_span, rhs_error) = self.pratt_parsing(index, 0, allowed_expr);
+                            let (rhs, rhs_error) = self.pratt_parsing(index, 0, allowed_expr);
 
                             if let Some(rhs_error) = rhs_error {
                                 errors.extend(rhs_error);
                             }
+
+                            let lhs_span = lhs.span();
+                            let rhs_span = rhs.span();
 
                             if self
                                 .tokens
@@ -303,7 +314,7 @@ impl Parser {
                     *index += 1;
 
                     if op == Operation::Binary(BinaryOperator::IfElse) {
-                        let (expr, expr_errors) = self.parse_if_else_expr(index, lhs, lhs_span);
+                        let (expr, expr_errors) = self.parse_if_else_expr(index, lhs);
                         lhs = expr;
 
                         if let Some(expr_errors) = expr_errors {
@@ -320,18 +331,18 @@ impl Parser {
                             error: PythonErrorType::Syntax,
                             msg: format!("SyntaxError: missing rhs in {:?} operation", op),
                             span: Span {
-                                start: lhs_span.end,
+                                start: lhs.span().end,
                                 end: next_token.span.end,
                             },
                         })
                     } else {
-                        let (rhs, rhs_span, rhs_error) = self.pratt_parsing(index, rhs_bp, allowed_expr);
+                        let (rhs, rhs_error) = self.pratt_parsing(index, rhs_bp, allowed_expr);
                         if let Some(rhs_error) = rhs_error {
                             errors.extend(rhs_error);
                         }
-                        lhs_span = Span {
-                            start: lhs_span.start,
-                            end: rhs_span.end,
+                        let lhs_span = Span {
+                            start: lhs.span().start,
+                            end: rhs.span().end,
                         };
                         lhs = Expression::BinaryOp(Box::new(lhs), op.get_binary_op(), Box::new(rhs), lhs_span);
                     }
@@ -341,7 +352,7 @@ impl Parser {
             }
         }
 
-        (lhs, lhs_span, if errors.is_empty() { None } else { Some(errors) })
+        (lhs, if errors.is_empty() { None } else { Some(errors) })
     }
 
     fn parse_function(
@@ -457,8 +468,8 @@ impl Parser {
                 break;
             }
 
-            let (statement, stmt_span, stmt_errors) = self.parse_statements(index);
-            block.span.end = stmt_span.end;
+            let (statement, stmt_errors) = self.parse_statements(index);
+            block.span.end = statement.span().end;
             block.stmts.push(statement);
 
             if let Some(stmt_errors) = stmt_errors {
@@ -469,41 +480,11 @@ impl Parser {
         (block, if errors.is_empty() { None } else { Some(errors) })
     }
 
-    fn parse_statements(&self, index: &mut usize) -> (Statement, Span, Option<Vec<PythonError>>) {
+    fn parse_statements(&self, index: &mut usize) -> (Statement, Option<Vec<PythonError>>) {
         let token = self.tokens.get(*index).unwrap();
         *index += 1;
 
         match &token.kind {
-            TokenType::Id(name) => {
-                let next_token = self.tokens.get(*index).unwrap();
-                if next_token.kind == TokenType::Operator(OperatorType::Assign) {
-                    *index += 1;
-                    let (expr, expr_span, expr_error) = self.parse_expression(index, AllowedExpr::ALL);
-
-                    let assign_span = Span {
-                        start: token.span.start,
-                        end: expr_span.end,
-                    };
-                    let assign = VarAsgmt::new(name.clone(), assign_span);
-
-                    (Statement::VarAsgmt(assign, expr), assign_span, expr_error)
-                } else if next_token.kind == TokenType::Operator(OperatorType::ColonEqual) {
-                    *index += 1;
-                    (
-                        Statement::Expression(Expression::Invalid(next_token.span), next_token.span),
-                        next_token.span,
-                        Some(vec![PythonError {
-                            error: PythonErrorType::Syntax,
-                            msg: format!("SyntaxError: invalid assignment statement!"),
-                            span: next_token.span,
-                        }]),
-                    )
-                } else {
-                    *index -= 1;
-                    let (expr, expr_span, expr_error) = self.parse_expression(index, AllowedExpr::ALL);
-                    (Statement::Expression(expr, expr_span), expr_span, expr_error)
-                }
-            }
             TokenType::Keyword(KeywordType::Def) => {
                 // TODO: move this check into `parse_function`
                 let next_token = self.tokens.get(*index).unwrap();
@@ -516,17 +497,15 @@ impl Parser {
                     let (mut func, func_errors) =
                         self.parse_function(index, token.span.start, name.to_string(), *func_name_span);
                     func.span.start = token.span.start;
-                    let func_span = func.span;
 
                     if func_errors.is_some() {
-                        (Statement::FunctionDef(func), func_span, func_errors)
+                        (Statement::FunctionDef(func), func_errors)
                     } else {
-                        (Statement::FunctionDef(func), func_span, None)
+                        (Statement::FunctionDef(func), None)
                     }
                 } else {
                     (
                         Statement::Invalid(next_token.span),
-                        next_token.span,
                         Some(vec![PythonError {
                             error: PythonErrorType::Syntax,
                             msg: format!("SyntaxError: invalid function name"),
@@ -538,84 +517,82 @@ impl Parser {
             TokenType::Keyword(KeywordType::If) => {
                 let (mut if_stmt, if_stmt_errors) = self.parse_if(index);
                 if_stmt.span.start = token.span.start;
-                let if_span = if_stmt.span;
 
-                (Statement::If(if_stmt), if_span, if_stmt_errors)
+                (Statement::If(if_stmt), if_stmt_errors)
             }
             TokenType::Keyword(KeywordType::While) => {
                 let (mut while_stmt, while_stmt_errors) = self.parse_while(index);
                 while_stmt.span.start = token.span.start;
-                let while_span = while_stmt.span;
 
-                (Statement::While(while_stmt), while_span, while_stmt_errors)
+                (Statement::While(while_stmt), while_stmt_errors)
             }
             TokenType::Keyword(KeywordType::Class) => {
                 let (mut class_stmt, class_stmt_errors) = self.parse_class(index);
                 class_stmt.span.start = token.span.start;
-                let class_span = class_stmt.span;
 
-                (Statement::Class(class_stmt), class_span, class_stmt_errors)
+                (Statement::Class(class_stmt), class_stmt_errors)
             }
             TokenType::Keyword(KeywordType::Import) => {
                 let (mut import_stmt, import_stmt_errors) = self.parse_import(index);
                 import_stmt.span.start = token.span.start;
-                let import_span = import_stmt.span;
 
-                (Statement::Import(import_stmt), import_span, import_stmt_errors)
+                (Statement::Import(import_stmt), import_stmt_errors)
             }
             TokenType::Keyword(KeywordType::From) => {
                 let (mut from_import_stmt, from_import_errors) = self.parse_from_import(index);
                 from_import_stmt.span.start = token.span.start;
-                let from_import_span = from_import_stmt.span;
 
-                (
-                    Statement::FromImport(from_import_stmt),
-                    from_import_span,
-                    from_import_errors,
-                )
+                (Statement::FromImport(from_import_stmt), from_import_errors)
             }
             TokenType::Keyword(KeywordType::With) => {
                 let (mut with_stmt, with_stmt_errors) = self.parse_with(index);
                 with_stmt.span.start = token.span.start;
-                let with_span = with_stmt.span;
 
-                (Statement::With(with_stmt), with_span, with_stmt_errors)
+                (Statement::With(with_stmt), with_stmt_errors)
             }
             TokenType::Keyword(KeywordType::Try) => {
                 let (mut try_stmt, try_stmt_errors) = self.parse_try(index);
                 try_stmt.span.start = token.span.start;
-                let try_span = try_stmt.span;
 
-                (Statement::Try(try_stmt), try_span, try_stmt_errors)
+                (Statement::Try(try_stmt), try_stmt_errors)
             }
             TokenType::Keyword(KeywordType::Return) => {
                 let (mut return_stmt, return_stmt_errors) = self.parse_return(index);
                 return_stmt.span.start = token.span.start;
-                let return_span = return_stmt.span;
 
-                (Statement::Return(return_stmt), return_span, return_stmt_errors)
+                (Statement::Return(return_stmt), return_stmt_errors)
             }
             TokenType::Keyword(KeywordType::For) => {
                 let (mut for_stmt, for_stmt_errors) = self.parse_for_stmt(index);
                 for_stmt.span.start = token.span.start;
-                let for_span = for_stmt.span;
 
-                (Statement::For(for_stmt), for_span, for_stmt_errors)
+                (Statement::For(for_stmt), for_stmt_errors)
             }
-            TokenType::Keyword(KeywordType::Pass) => (Statement::Pass(token.span), token.span, None),
-            TokenType::Keyword(KeywordType::Continue) => (Statement::Continue(token.span), token.span, None),
-            TokenType::Keyword(KeywordType::Break) => (Statement::Break(token.span), token.span, None),
+            TokenType::Keyword(KeywordType::Pass) => (Statement::Pass(token.span), None),
+            TokenType::Keyword(KeywordType::Continue) => (Statement::Continue(token.span), None),
+            TokenType::Keyword(KeywordType::Break) => (Statement::Break(token.span), None),
+            TokenType::Operator(OperatorType::ColonEqual) => {
+                self.skip_line(index);
+                (
+                    Statement::Invalid(token.span),
+                    Some(vec![PythonError {
+                        error: PythonErrorType::Syntax,
+                        msg: "SyntaxError: invalid assignment statement!".to_string(),
+                        span: token.span,
+                    }]),
+                )
+            }
             _ => {
                 *index -= 1;
-                let (expr, expr_span, expr_errors) = self.parse_expression(index, AllowedExpr::ALL);
-                (Statement::Expression(expr, expr_span), expr_span, expr_errors)
+                let (expr, expr_errors) = self.parse_expression(index, AllowedExpr::ALL | AllowedExpr::ASSIGN);
+                (Statement::Expression(expr), expr_errors)
             }
         }
     }
 
     fn parse_if(&self, index: &mut usize) -> (IfStmt, Option<Vec<PythonError>>) {
         let mut errors = Vec::new();
-        let (condition_expr, _, condition_expr_errors) = self.parse_expression(index, AllowedExpr::ALL);
+        let (condition_expr, condition_expr_errors) = self.parse_expression(index, AllowedExpr::ALL);
 
         if let Some(condition_expr_errors) = condition_expr_errors {
             errors.extend(condition_expr_errors);
@@ -655,7 +632,7 @@ impl Parser {
 
             while token.kind == TokenType::Keyword(KeywordType::Elif) {
                 *index += 1;
-                let (condition_expr, _, condition_expr_errors) = self.parse_expression(index, AllowedExpr::ALL);
+                let (condition_expr, condition_expr_errors) = self.parse_expression(index, AllowedExpr::ALL);
                 if let Some(condition_expr_errors) = condition_expr_errors {
                     errors.extend(condition_expr_errors);
                 }
@@ -728,7 +705,7 @@ impl Parser {
 
     fn parse_while(&self, index: &mut usize) -> (While, Option<Vec<PythonError>>) {
         let mut errors = Vec::new();
-        let (condition_expr, _, condition_expr_errors) = self.parse_expression(index, AllowedExpr::ALL);
+        let (condition_expr, condition_expr_errors) = self.parse_expression(index, AllowedExpr::ALL);
 
         if let Some(condition_expr_errors) = condition_expr_errors {
             errors.extend(condition_expr_errors);
@@ -793,7 +770,7 @@ impl Parser {
         (while_stmt, if errors.is_empty() { None } else { Some(errors) })
     }
 
-    fn parse_unary_operator(&self, index: &mut usize, token: &Token) -> (Expression, Span, Option<Vec<PythonError>>) {
+    fn parse_unary_operator(&self, index: &mut usize, token: &Token) -> (Expression, Option<Vec<PythonError>>) {
         let mut errors = Vec::new();
 
         let op = match token.kind {
@@ -812,7 +789,7 @@ impl Parser {
                     msg: format!("SyntaxError: unexpected operator {:?}", token.kind),
                     span: token.span,
                 });
-                return (Expression::Invalid(token.span), token.span, Some(errors));
+                return (Expression::Invalid(token.span), Some(errors));
             }
         };
         *index += 1;
@@ -826,10 +803,10 @@ impl Parser {
             }
             // Consume :
             *index += 1;
-            let (expr, expr_span, expr_errors) = self.pratt_parsing(index, r_bp, AllowedExpr::ALL);
+            let (expr, expr_errors) = self.pratt_parsing(index, r_bp, AllowedExpr::ALL);
             let lambda_span = Span {
                 start: token.span.start,
-                end: expr_span.end,
+                end: expr.span().end,
             };
 
             if let Some(expr_errors) = expr_errors {
@@ -842,13 +819,15 @@ impl Parser {
                     expression: Box::new(expr),
                     span: lambda_span,
                 }),
-                lambda_span,
                 if errors.is_empty() { None } else { Some(errors) },
             );
         }
 
-        let (rhs, mut rhs_span, rhs_errors) = self.pratt_parsing(index, r_bp, AllowedExpr::ALL);
-        rhs_span.start = token.span.start;
+        let (rhs, rhs_errors) = self.pratt_parsing(index, r_bp, AllowedExpr::ALL);
+        let rhs_span = Span {
+            start: token.span.start,
+            end: rhs.span().end,
+        };
 
         if let Some(rhs_errors) = rhs_errors {
             errors.extend(rhs_errors);
@@ -856,16 +835,11 @@ impl Parser {
 
         (
             Expression::UnaryOp(Box::new(rhs), op.get_unary_op(), rhs_span),
-            rhs_span,
             if errors.is_empty() { None } else { Some(errors) },
         )
     }
 
-    fn parse_parenthesized_expr(
-        &self,
-        index: &mut usize,
-        token: &Token,
-    ) -> (Expression, Span, Option<Vec<PythonError>>) {
+    fn parse_parenthesized_expr(&self, index: &mut usize, token: &Token) -> (Expression, Option<Vec<PythonError>>) {
         let mut errors = Vec::new();
 
         // Consume (
@@ -887,7 +861,7 @@ impl Parser {
             });
         }
 
-        let (expr, expr_span, expr_errors) = if self
+        let (expr, expr_errors) = if self
             .tokens
             .iter()
             .skip(*index)
@@ -918,7 +892,7 @@ impl Parser {
             *index += 1;
         }
 
-        (expr, expr_span, if errors.is_empty() { None } else { Some(errors) })
+        (expr, if errors.is_empty() { None } else { Some(errors) })
     }
 
     fn parse_tuple_expr_with_no_parens(
@@ -926,7 +900,7 @@ impl Parser {
         index: &mut usize,
         tuple_span_start: usize,
         allowed_expr: AllowedExpr,
-    ) -> (Expression, Span, Option<Vec<PythonError>>) {
+    ) -> (Expression, Option<Vec<PythonError>>) {
         let mut errors = Vec::new();
         let mut expressions = vec![];
         let mut tuple_span = Span {
@@ -938,10 +912,11 @@ impl Parser {
             let mut token = self.tokens.get(*index).unwrap();
 
             let expr_span = if helpers::is_token_start_of_expr(&token) {
-                let (expr, expr_span, expr_errors) = self.pratt_parsing(index, 0, allowed_expr);
+                let (expr, expr_errors) = self.pratt_parsing(index, 0, allowed_expr);
                 if let Some(expr_errors) = expr_errors {
                     errors.extend(expr_errors);
                 }
+                let expr_span = expr.span();
                 expressions.push(expr);
 
                 expr_span
@@ -972,12 +947,11 @@ impl Parser {
 
         (
             Expression::Tuple(expressions, tuple_span),
-            tuple_span,
             if errors.is_empty() { None } else { Some(errors) },
         )
     }
 
-    fn parse_bracesized_expr(&self, index: &mut usize, token: &Token) -> (Expression, Span, Option<Vec<PythonError>>) {
+    fn parse_bracesized_expr(&self, index: &mut usize, token: &Token) -> (Expression, Option<Vec<PythonError>>) {
         let mut errors = Vec::new();
         // Consume {
         *index += 1;
@@ -986,7 +960,7 @@ impl Parser {
         // If we see the "**" operator that means we are unpacking a dictionary, therefore, we
         // should parse as a dictionary instead of a set.
         if self.tokens.get(*index).unwrap().kind == TokenType::Operator(OperatorType::Exponent) {
-            let (lhs, lhs_span, lhs_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
+            let (lhs, lhs_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
 
             if let Some(lhs_errors) = lhs_errors {
                 errors.extend(lhs_errors);
@@ -1001,10 +975,10 @@ impl Parser {
                 });
             }
 
-            return self.parse_dict_expression(index, DictItemType::DictUnpack(lhs), brace_span_start);
+            return self.parse_dict_expression(index, DictItemType::Unpack(lhs), brace_span_start);
         }
 
-        let (lhs, lhs_span, lhs_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
+        let (lhs, lhs_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
 
         if let Some(lhs_errors) = lhs_errors {
             errors.extend(lhs_errors);
@@ -1017,7 +991,7 @@ impl Parser {
         {
             // Consume :
             *index += 1;
-            let (rhs, _, rhs_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
+            let (rhs, rhs_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
 
             if let Some(rhs_errors) = rhs_errors {
                 errors.extend(rhs_errors);
@@ -1036,7 +1010,6 @@ impl Parser {
         }
 
         let mut expressions = vec![lhs];
-        let mut last_expr_span = lhs_span;
         let mut set_span = Span {
             start: brace_span_start,
             end: 0,
@@ -1053,8 +1026,7 @@ impl Parser {
                 break;
             }
 
-            let (expr, expr_span, expr_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
-            last_expr_span = expr_span;
+            let (expr, expr_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
 
             if let Some(expr_errors) = expr_errors {
                 errors.extend(expr_errors);
@@ -1078,7 +1050,6 @@ impl Parser {
 
         (
             Expression::Set(expressions, set_span),
-            set_span,
             if errors.is_empty() { None } else { Some(errors) },
         )
     }
@@ -1088,10 +1059,9 @@ impl Parser {
         index: &mut usize,
         lhs: DictItemType,
         brace_span_start: usize,
-    ) -> (Expression, Span, Option<Vec<PythonError>>) {
+    ) -> (Expression, Option<Vec<PythonError>>) {
         let mut errors = Vec::new();
         let mut dict_items = vec![lhs];
-        let mut last_expr_span = Span { start: 0, end: 0 };
         let mut dict_span = Span {
             start: brace_span_start,
             end: 0,
@@ -1112,20 +1082,20 @@ impl Parser {
                 break;
             }
 
-            let (lhs, lhs_span, lhs_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
+            let (lhs, lhs_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
 
             if let Some(lhs_errors) = lhs_errors {
                 errors.extend(lhs_errors);
             }
 
             if self.tokens.get(*index).unwrap().kind == TokenType::CloseBrace {
-                dict_items.push(DictItemType::DictUnpack(lhs));
+                dict_items.push(DictItemType::Unpack(lhs));
                 break;
             }
 
             if self.tokens.get(*index).unwrap().kind == TokenType::Comma {
                 *index += 1;
-                dict_items.push(DictItemType::DictUnpack(lhs));
+                dict_items.push(DictItemType::Unpack(lhs));
                 continue;
             }
 
@@ -1141,8 +1111,7 @@ impl Parser {
             // Consume :
             *index += 1;
 
-            let (rhs, rhs_span, rhs_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
-            last_expr_span = rhs_span;
+            let (rhs, rhs_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
 
             if let Some(rhs_errors) = rhs_errors {
                 errors.extend(rhs_errors);
@@ -1167,16 +1136,11 @@ impl Parser {
 
         (
             Expression::Dict(dict_items, dict_span),
-            dict_span,
             if errors.is_empty() { None } else { Some(errors) },
         )
     }
 
-    fn parse_list_expr(
-        &self,
-        index: &mut usize,
-        list_expr_start: usize,
-    ) -> (Expression, Span, Option<Vec<PythonError>>) {
+    fn parse_list_expr(&self, index: &mut usize, list_expr_start: usize) -> (Expression, Option<Vec<PythonError>>) {
         let mut errors = Vec::new();
         // Consume [
         *index += 1;
@@ -1203,7 +1167,7 @@ impl Parser {
                 });
             }
 
-            let (expr, _, expr_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
+            let (expr, expr_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
 
             if let Some(expr_errors) = expr_errors {
                 errors.extend(expr_errors);
@@ -1235,20 +1199,14 @@ impl Parser {
 
         (
             Expression::List(expressions, list_span),
-            list_span,
             if errors.is_empty() { None } else { Some(errors) },
         )
     }
 
     /// This function assumes that `lhs` is already parsed and the "if" Token consumed.
-    fn parse_if_else_expr(
-        &self,
-        index: &mut usize,
-        lhs: Expression,
-        lhs_span: Span,
-    ) -> (Expression, Option<Vec<PythonError>>) {
+    fn parse_if_else_expr(&self, index: &mut usize, lhs: Expression) -> (Expression, Option<Vec<PythonError>>) {
         let mut errors = Vec::new();
-        let (condition, _, condition_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
+        let (condition, condition_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
 
         if let Some(condition_errors) = condition_errors {
             errors.extend(condition_errors);
@@ -1265,7 +1223,7 @@ impl Parser {
 
         // Consume "else" keyword
         *index += 1;
-        let (rhs, rhs_span, rhs_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
+        let (rhs, rhs_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
 
         if let Some(rhs_errors) = rhs_errors {
             errors.extend(rhs_errors);
@@ -1273,13 +1231,13 @@ impl Parser {
 
         (
             Expression::IfElse(IfElseExpr {
+                span: Span {
+                    start: lhs.span().start,
+                    end: rhs.span().end,
+                },
                 lhs: Box::new(lhs),
                 rhs: Box::new(rhs),
                 condition: Box::new(condition),
-                span: Span {
-                    start: lhs_span.start,
-                    end: rhs_span.end,
-                },
             }),
             if errors.is_empty() { None } else { Some(errors) },
         )
@@ -1303,9 +1261,9 @@ impl Parser {
                     if self.tokens.get(*index).unwrap().kind == TokenType::Operator(OperatorType::Assign) {
                         *index += 1;
                         // TODO: use parse_expression instead
-                        let (expr, expr_span, expr_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
+                        let (expr, expr_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
+                        func_parameter.span.end = expr.span().end;
                         func_parameter.default_value = Some(expr);
-                        func_parameter.span.end = expr_span.end;
 
                         if let Some(expr_errors) = expr_errors {
                             errors.extend(expr_errors);
@@ -1748,24 +1706,24 @@ impl Parser {
         }
 
         loop {
-            let (item, item_span, item_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
+            let (item, item_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
 
             if let Some(item_errors) = item_errors {
                 errors.extend(item_errors);
             }
 
             let mut with_item = WithItem {
+                span: item.span(),
                 item,
                 target: None,
-                span: item_span,
             };
 
             if self.tokens.get(*index).unwrap().kind == TokenType::Keyword(KeywordType::As) {
                 // Consume "as"
                 *index += 1;
-                let (target, target_span, target_errors) = self.parse_primary(index);
+                let (target, target_errors) = self.parse_primary(index);
+                with_item.span.end = target.span().end;
                 with_item.target = Some(target);
-                with_item.span.end = target_span.end;
 
                 if let Some(target_errors) = target_errors {
                     errors.extend(target_errors);
@@ -1820,20 +1778,19 @@ impl Parser {
         (with_stmt, if errors.is_empty() { None } else { Some(errors) })
     }
 
-    fn parse_primary(&self, index: &mut usize) -> (Expression, Span, Option<Vec<PythonError>>) {
+    fn parse_primary(&self, index: &mut usize) -> (Expression, Option<Vec<PythonError>>) {
         let mut errors = Vec::new();
         let mut token = self.tokens.get(*index).unwrap();
-        let (mut lhs, mut lhs_span, lhs_errors) = match &token.kind {
+        let (mut lhs, lhs_errors) = match &token.kind {
             TokenType::Id(name) => {
                 *index += 1;
-                (Expression::Id(name.to_string(), token.span), token.span, None)
+                (Expression::Id(name.to_string(), token.span), None)
             }
             TokenType::OpenParenthesis => self.parse_parenthesized_expr(index, token),
             TokenType::OpenBrackets => self.parse_list_expr(index, token.span.start),
             TokenType::OpenBrace => self.parse_bracesized_expr(index, token),
             _ => (
                 Expression::Invalid(token.span),
-                token.span,
                 Some(vec![PythonError {
                     error: PythonErrorType::Syntax,
                     msg: format!("SyntaxError: unexpected token {:?}", token.kind),
@@ -1880,6 +1837,7 @@ impl Parser {
                 lhs = match op {
                     Operation::Unary(UnaryOperator::OpenParenthesis) => {
                         // FIXME: Only parsing function calls with no arguments
+                        let lhs_span = lhs.span();
                         let expr = Expression::Call(Box::new(lhs), lhs_span);
                         if token.kind != TokenType::CloseParenthesis {
                             errors.push(PythonError {
@@ -1894,7 +1852,7 @@ impl Parser {
                     }
                     Operation::Unary(UnaryOperator::OpenBrackets) => {
                         // FIXME: Only parsing slice with no start, stop or step attributes
-                        let (rhs, rhs_span, rhs_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
+                        let (rhs, rhs_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
 
                         if let Some(rhs_errors) = rhs_errors {
                             errors.extend(rhs_errors);
@@ -1909,6 +1867,9 @@ impl Parser {
                         } else {
                             *index += 1;
                         }
+
+                        let lhs_span = lhs.span();
+                        let rhs_span = rhs.span();
 
                         Expression::Slice(
                             Box::new(lhs),
@@ -1939,22 +1900,22 @@ impl Parser {
 
                 *index += 1;
 
-                let (rhs, rhs_span, rhs_errors) = self.pratt_parsing(index, rhs_bp, AllowedExpr::ALL);
+                let (rhs, rhs_errors) = self.pratt_parsing(index, rhs_bp, AllowedExpr::ALL);
 
                 if let Some(rhs_errors) = rhs_errors {
                     errors.extend(rhs_errors);
                 }
 
-                lhs_span = Span {
-                    start: lhs_span.start,
-                    end: rhs_span.end,
+                let lhs_span = Span {
+                    start: lhs.span().start,
+                    end: rhs.span().end,
                 };
                 lhs = Expression::BinaryOp(Box::new(lhs), op.get_binary_op(), Box::new(rhs), lhs_span);
                 continue;
             }
         }
 
-        (lhs, lhs_span, if errors.is_empty() { None } else { Some(errors) })
+        (lhs, if errors.is_empty() { None } else { Some(errors) })
     }
 
     fn parse_try(&self, index: &mut usize) -> (TryStmt, Option<Vec<PythonError>>) {
@@ -2008,7 +1969,7 @@ impl Parser {
             }
 
             if self.tokens.get(*index).unwrap().kind != TokenType::Colon {
-                let (expr, _, expr_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
+                let (expr, expr_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
                 except_block.expr = Some(expr);
 
                 if let Some(expr_errors) = expr_errors {
@@ -2155,18 +2116,18 @@ impl Parser {
                     | TokenType::Keyword(KeywordType::Not | KeywordType::None)
             )
         ) {
-            let (expr, expr_span, expr_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
+            let (expr, expr_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
             if let Some(expr_errors) = expr_errors {
                 errors.extend(expr_errors);
             }
+            return_stmt.span.end = expr.span().end;
             return_stmt.value = Some(expr);
-            return_stmt.span.end = expr_span.end;
         }
 
         (return_stmt, if errors.is_empty() { None } else { Some(errors) })
     }
 
-    fn parse_yield(&self, index: &mut usize, token: &Token) -> (Expression, Span, Option<Vec<PythonError>>) {
+    fn parse_yield(&self, index: &mut usize, token: &Token) -> (Expression, Option<Vec<PythonError>>) {
         let mut yield_span = token.span;
 
         *index += 1;
@@ -2176,35 +2137,31 @@ impl Parser {
             // consume "from"
             *index += 1;
 
-            let (rhs, rhs_span, rhs_errors) = self.parse_expression(index, AllowedExpr::ALL);
+            let (rhs, rhs_errors) = self.parse_expression(index, AllowedExpr::ALL);
             yield_span = Span {
                 start: yield_span.start,
-                end: rhs_span.end,
+                end: rhs.span().end,
             };
-            return (Expression::YieldFrom(Box::new(rhs), yield_span), yield_span, rhs_errors);
+            return (Expression::YieldFrom(Box::new(rhs), yield_span), rhs_errors);
         }
 
         if helpers::is_token_start_of_expr(token) {
-            let (rhs, rhs_span, rhs_errors) = self.parse_expression(index, AllowedExpr::ALL);
+            let (rhs, rhs_errors) = self.parse_expression(index, AllowedExpr::ALL);
             yield_span = Span {
                 start: yield_span.start,
-                end: rhs_span.end,
+                end: rhs.span().end,
             };
-            return (
-                Expression::Yield(Some(Box::new(rhs)), yield_span),
-                yield_span,
-                rhs_errors,
-            );
+            return (Expression::Yield(Some(Box::new(rhs)), yield_span), rhs_errors);
         }
 
-        return (Expression::Yield(None, yield_span), yield_span, None);
+        return (Expression::Yield(None, yield_span), None);
     }
 
     fn parse_for_stmt(&self, index: &mut usize) -> (ForStmt, Option<Vec<PythonError>>) {
         let mut errors = Vec::new();
         let mut for_stmt = ForStmt::default();
 
-        let (target, _, target_errors) = self.parse_expression(
+        let (target, target_errors) = self.parse_expression(
             index,
             AllowedExpr::ID | AllowedExpr::UNARY_OP | AllowedExpr::TUPLE | AllowedExpr::LIST,
         );
@@ -2226,7 +2183,7 @@ impl Parser {
             *index += 1;
         }
 
-        let (iter, _, iter_errors) = self.parse_expression(index, AllowedExpr::ALL);
+        let (iter, iter_errors) = self.parse_expression(index, AllowedExpr::ALL);
         for_stmt.iter = iter;
 
         if let Some(iter_errors) = iter_errors {
@@ -2284,5 +2241,135 @@ impl Parser {
         }
 
         (for_stmt, if errors.is_empty() { None } else { Some(errors) })
+    }
+
+    fn parse_assign(
+        &self,
+        index: &mut usize,
+        token: &Token,
+        lhs: Expression,
+    ) -> (Expression, Option<Vec<PythonError>>) {
+        let mut errors = Vec::new();
+
+        if matches!(lhs, Expression::Tuple(_, _)) && token.kind == TokenType::Colon {
+            self.skip_line(index);
+
+            let span = Span {
+                start: lhs.span().start,
+                end: token.span.end,
+            };
+
+            return (
+                Expression::Invalid(span),
+                Some(vec![PythonError {
+                    error: PythonErrorType::Syntax,
+                    msg: "SyntaxError: only single target (not tuple) can be annotated".to_string(),
+                    span,
+                }]),
+            );
+        }
+
+        if token.kind == TokenType::Colon {
+            // consume :
+            *index += 1;
+            let (typehint_expr, typehint_errors) = self.parse_expression(index, AllowedExpr::ALL);
+            let mut span = Span {
+                start: lhs.span().start,
+                end: typehint_expr.span().end,
+            };
+
+            if let Some(typehint_errors) = typehint_errors {
+                errors.extend(typehint_errors);
+            }
+
+            let token = self.tokens.get(*index).unwrap();
+            if token.is_augassign() {
+                self.skip_line(index);
+
+                errors.push(PythonError {
+                    error: PythonErrorType::Syntax,
+                    msg: "SyntaxError: invalid syntax, typehint not allowed in this kind of expression".to_string(),
+                    span,
+                });
+
+                return (
+                    Expression::Invalid(span),
+                    if errors.is_empty() { None } else { Some(errors) },
+                );
+            }
+
+            let rhs = if !helpers::is_token_end_of_expr(token) {
+                // consume assign token
+                *index += 1;
+                let (rhs, rhs_errors) = self.parse_expression(index, AllowedExpr::ALL);
+                span.end = rhs.span().end;
+                if let Some(rhs_errors) = rhs_errors {
+                    errors.extend(rhs_errors);
+                }
+                Some(Box::new(rhs))
+            } else {
+                None
+            };
+
+            return (
+                Expression::AnnAssign(AnnAssign {
+                    span,
+                    lhs: Box::new(lhs),
+                    rhs,
+                    typehint: Box::new(typehint_expr),
+                }),
+                if errors.is_empty() { None } else { Some(errors) },
+            );
+        }
+
+        // consume assign token
+        *index += 1;
+        let (rhs, rhs_errors) = self.parse_expression(index, AllowedExpr::ALL);
+
+        if let Some(rhs_errors) = rhs_errors {
+            errors.extend(rhs_errors);
+        }
+
+        if token.is_assign() {
+            (
+                Expression::Assign(Assign {
+                    span: Span {
+                        start: lhs.span().start,
+                        end: rhs.span().end,
+                    },
+                    lhs: Box::new(lhs),
+                    rhs: Box::new(rhs),
+                }),
+                if errors.is_empty() { None } else { Some(errors) },
+            )
+        } else {
+            let span = Span {
+                start: lhs.span().start,
+                end: rhs.span().end,
+            };
+
+            (
+                Expression::AugAssing(AugAssign {
+                    lhs: Box::new(lhs),
+                    rhs: Box::new(rhs),
+                    kind: token.to_augassign_type().unwrap(),
+                    span,
+                }),
+                if errors.is_empty() { None } else { Some(errors) },
+            )
+        }
+    }
+
+    fn skip_line(&self, index: &mut usize) {
+        while self
+            .tokens
+            .get(*index)
+            .map_or(false, |token| token.kind != TokenType::NewLine)
+        {
+            *index += 1;
+        }
+
+        // consume NEWLINE
+        *index += 1;
     }
 }

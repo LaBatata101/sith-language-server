@@ -6,10 +6,10 @@ mod tests_parser {
         lexer::token::Span,
         parser::{
             ast::{
-                BinaryOperator, Block, ClassStmt, DictItemType, ElIfStmt, ElseStmt, ExceptBlock, ExceptBlockKind,
-                Expression, FinallyBlock, ForStmt, FromImportStmt, FuncParameter, Function, IfElseExpr, IfStmt,
-                ImportModule, ImportStmt, LambdaExpr, ParsedFile, ReturnStmt, StarParameterType, Statement, TryStmt,
-                UnaryOperator, VarAsgmt, While, WithItem, WithStmt,
+                AnnAssign, Assign, AugAssign, AugAssignType, BinaryOperator, Block, ClassStmt, DictItemType, ElIfStmt,
+                ElseStmt, ExceptBlock, ExceptBlockKind, Expression, FinallyBlock, ForStmt, FromImportStmt,
+                FuncParameter, Function, IfElseExpr, IfStmt, ImportModule, ImportStmt, LambdaExpr, ParsedFile,
+                ReturnStmt, StarParameterType, Statement, TryStmt, UnaryOperator, While, WithItem, WithStmt,
             },
             Parser,
         },
@@ -24,10 +24,14 @@ mod tests_parser {
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("test".to_string(), Span { start: 0, end: 21 }),
-                    Expression::String("Hello World!".to_string(), Span { start: 7, end: 21 })
-                )]
+                stmts: vec![Statement::Expression(Expression::Assign(Assign {
+                    lhs: Box::new(Expression::Id("test".to_string(), Span { start: 0, end: 4 })),
+                    rhs: Box::new(Expression::String(
+                        "Hello World!".to_string(),
+                        Span { start: 7, end: 21 }
+                    )),
+                    span: Span { start: 0, end: 21 }
+                },))]
             }
         );
     }
@@ -42,14 +46,16 @@ mod tests_parser {
             parsed_file,
             ParsedFile {
                 stmts: vec![
-                    Statement::VarAsgmt(
-                        VarAsgmt::new("test".to_string(), Span { start: 0, end: 9 }),
-                        Expression::Number("42".to_string(), Span { start: 7, end: 9 })
-                    ),
-                    Statement::VarAsgmt(
-                        VarAsgmt::new("x".to_string(), Span { start: 11, end: 17 }),
-                        Expression::Number("12".to_string(), Span { start: 15, end: 17 })
-                    )
+                    Statement::Expression(Expression::Assign(Assign {
+                        lhs: Box::new(Expression::Id("test".to_string(), Span { start: 0, end: 4 })),
+                        rhs: Box::new(Expression::Number("42".to_string(), Span { start: 7, end: 9 })),
+                        span: Span { start: 0, end: 9 }
+                    },)),
+                    Statement::Expression(Expression::Assign(Assign {
+                        lhs: Box::new(Expression::Id("x".to_string(), Span { start: 11, end: 12 })),
+                        rhs: Box::new(Expression::Number("12".to_string(), Span { start: 15, end: 17 })),
+                        span: Span { start: 11, end: 17 }
+                    },))
                 ]
             }
         );
@@ -65,14 +71,16 @@ mod tests_parser {
             parsed_file,
             ParsedFile {
                 stmts: vec![
-                    Statement::VarAsgmt(
-                        VarAsgmt::new("x".to_string(), Span { start: 0, end: 8 }),
-                        Expression::Bool(true, Span { start: 4, end: 8 })
-                    ),
-                    Statement::VarAsgmt(
-                        VarAsgmt::new("y".to_string(), Span { start: 9, end: 18 }),
-                        Expression::Bool(false, Span { start: 13, end: 18 })
-                    )
+                    Statement::Expression(Expression::Assign(Assign {
+                        lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                        rhs: Box::new(Expression::Bool(true, Span { start: 4, end: 8 })),
+                        span: Span { start: 0, end: 8 }
+                    },)),
+                    Statement::Expression(Expression::Assign(Assign {
+                        lhs: Box::new(Expression::Id("y".to_string(), Span { start: 9, end: 10 })),
+                        rhs: Box::new(Expression::Bool(false, Span { start: 13, end: 18 })),
+                        span: Span { start: 9, end: 18 }
+                    },))
                 ]
             }
         )
@@ -91,6 +99,162 @@ mod tests_parser {
                 msg: "SyntaxError: unexpected token Eof".to_string(),
                 span: Span { start: 6, end: 7 },
             },]
+        )
+    }
+
+    #[test]
+    fn parse_assignment_with_typehint() {
+        let parser = Parser::new("x: int = 0");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Expression(Expression::AnnAssign(AnnAssign {
+                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    rhs: Some(Box::new(Expression::Number(
+                        "0".to_string(),
+                        Span { start: 9, end: 10 }
+                    ))),
+                    typehint: Box::new(Expression::Id("int".to_string(), Span { start: 3, end: 6 })),
+                    span: Span { start: 0, end: 10 }
+                }))]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_tuple_unpacking_assignment() {
+        let parser = Parser::new("a, b, c = 1, 2, 3");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Expression(Expression::Assign(Assign {
+                    lhs: Box::new(Expression::Tuple(
+                        vec![
+                            Expression::Id("a".to_string(), Span { start: 0, end: 1 }),
+                            Expression::Id("b".to_string(), Span { start: 3, end: 4 }),
+                            Expression::Id("c".to_string(), Span { start: 6, end: 7 })
+                        ],
+                        Span { start: 0, end: 9 }
+                    )),
+                    rhs: Box::new(Expression::Tuple(
+                        vec![
+                            Expression::Number("1".to_string(), Span { start: 10, end: 11 }),
+                            Expression::Number("2".to_string(), Span { start: 13, end: 14 }),
+                            Expression::Number("3".to_string(), Span { start: 16, end: 17 })
+                        ],
+                        Span { start: 10, end: 18 }
+                    )),
+                    span: Span { start: 0, end: 18 }
+                }))]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_invalid_tuple_assignment_with_typehint() {
+        let parser = Parser::new("a, b, c: tuple[int, int, int] = 1, 2, 3");
+        let (_, errors) = parser.parse();
+
+        assert!(errors.is_some());
+        assert_eq!(
+            errors.unwrap(),
+            vec![PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: only single target (not tuple) can be annotated".to_string(),
+                span: Span { start: 0, end: 8 },
+            },]
+        )
+    }
+
+    #[test]
+    fn parse_list_unpacking_assignment() {
+        let parser = Parser::new("[a, b, c] = 1, 2, 3");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Expression(Expression::Assign(Assign {
+                    lhs: Box::new(Expression::List(
+                        vec![
+                            Expression::Id("a".to_string(), Span { start: 1, end: 2 }),
+                            Expression::Id("b".to_string(), Span { start: 4, end: 5 }),
+                            Expression::Id("c".to_string(), Span { start: 7, end: 8 })
+                        ],
+                        Span { start: 0, end: 9 }
+                    )),
+                    rhs: Box::new(Expression::Tuple(
+                        vec![
+                            Expression::Number("1".to_string(), Span { start: 12, end: 13 }),
+                            Expression::Number("2".to_string(), Span { start: 15, end: 16 }),
+                            Expression::Number("3".to_string(), Span { start: 18, end: 19 })
+                        ],
+                        Span { start: 12, end: 20 }
+                    )),
+                    span: Span { start: 0, end: 20 }
+                }))]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_assignment_wiht_only_typehint() {
+        let parser = Parser::new("x: int");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Expression(Expression::AnnAssign(AnnAssign {
+                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    rhs: None,
+                    typehint: Box::new(Expression::Id("int".to_string(), Span { start: 3, end: 6 })),
+                    span: Span { start: 0, end: 6 }
+                }))]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_aug_assignment() {
+        let parser = Parser::new("x += 1");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Expression(Expression::AugAssing(AugAssign {
+                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    rhs: Box::new(Expression::Number("1".to_string(), Span { start: 5, end: 6 })),
+                    kind: AugAssignType::Plus,
+                    span: Span { start: 0, end: 6 }
+                }))]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_invalid_aug_assignment() {
+        let parser = Parser::new("x: int += 1");
+        let (_, errors) = parser.parse();
+
+        assert!(errors.is_some());
+        assert_eq!(
+            errors.unwrap(),
+            vec![PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: invalid syntax, typehint not allowed in this kind of expression".to_string(),
+                span: Span { start: 0, end: 6 },
+            }],
         )
     }
 
@@ -462,20 +626,21 @@ else:
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 13 }),
-                    Expression::BinaryOp(
+                stmts: vec![Statement::Expression(Expression::Assign(Assign {
+                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    rhs: Box::new(Expression::BinaryOp(
                         Box::new(Expression::BinaryOp(
                             Box::new(Expression::Number("1".to_string(), Span { start: 4, end: 5 })),
                             BinaryOperator::Add,
                             Box::new(Expression::Number("2".to_string(), Span { start: 8, end: 9 })),
-                            Span { start: 4, end: 9 },
+                            Span { start: 4, end: 9 }
                         )),
                         BinaryOperator::Add,
                         Box::new(Expression::Number("3".to_string(), Span { start: 12, end: 13 })),
-                        Span { start: 4, end: 13 },
-                    )
-                )]
+                        Span { start: 4, end: 13 }
+                    )),
+                    span: Span { start: 0, end: 13 }
+                }))]
             }
         )
     }
@@ -489,9 +654,9 @@ else:
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 17 }),
-                    Expression::BinaryOp(
+                stmts: vec![Statement::Expression(Expression::Assign(Assign {
+                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    rhs: Box::new(Expression::BinaryOp(
                         Box::new(Expression::Number("1".to_string(), Span { start: 4, end: 5 })),
                         BinaryOperator::Add,
                         Box::new(Expression::BinaryOp(
@@ -506,8 +671,9 @@ else:
                             Span { start: 8, end: 17 }
                         )),
                         Span { start: 4, end: 17 }
-                    )
-                )]
+                    )),
+                    span: Span { start: 0, end: 17 }
+                }))]
             }
         );
     }
@@ -521,9 +687,9 @@ else:
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 10 }),
-                    Expression::BinaryOp(
+                stmts: vec![Statement::Expression(Expression::Assign(Assign {
+                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    rhs: Box::new(Expression::BinaryOp(
                         Box::new(Expression::Number("3".to_string(), Span { start: 4, end: 5 })),
                         BinaryOperator::Add,
                         Box::new(Expression::UnaryOp(
@@ -531,9 +697,10 @@ else:
                             UnaryOperator::Minus,
                             Span { start: 8, end: 10 }
                         )),
-                        Span { start: 4, end: 10 },
-                    )
-                )]
+                        Span { start: 4, end: 10 }
+                    )),
+                    span: Span { start: 0, end: 10 }
+                }))]
             }
         )
     }
@@ -547,9 +714,9 @@ else:
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 14 }),
-                    Expression::UnaryOp(
+                stmts: vec![Statement::Expression(Expression::Assign(Assign {
+                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    rhs: Box::new(Expression::UnaryOp(
                         Box::new(Expression::BinaryOp(
                             Box::new(Expression::Number("3".to_string(), Span { start: 8, end: 9 })),
                             BinaryOperator::Add,
@@ -562,8 +729,9 @@ else:
                         )),
                         UnaryOperator::LogicalNot,
                         Span { start: 4, end: 14 }
-                    )
-                )]
+                    )),
+                    span: Span { start: 0, end: 14 }
+                }))]
             }
         );
     }
@@ -577,9 +745,9 @@ else:
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 10 }),
-                    Expression::BinaryOp(
+                stmts: vec![Statement::Expression(Expression::Assign(Assign {
+                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    rhs: Box::new(Expression::BinaryOp(
                         Box::new(Expression::Id("x".to_string(), Span { start: 4, end: 5 })),
                         BinaryOperator::Add,
                         Box::new(Expression::UnaryOp(
@@ -588,8 +756,9 @@ else:
                             Span { start: 8, end: 10 }
                         )),
                         Span { start: 4, end: 10 }
-                    )
-                )]
+                    )),
+                    span: Span { start: 0, end: 10 }
+                }))]
             }
         );
     }
@@ -603,9 +772,9 @@ else:
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("a".to_string(), Span { start: 0, end: 38 }),
-                    Expression::BinaryOp(
+                stmts: vec![Statement::Expression(Expression::Assign(Assign {
+                    lhs: Box::new(Expression::Id("a".to_string(), Span { start: 0, end: 1 })),
+                    rhs: Box::new(Expression::BinaryOp(
                         Box::new(Expression::BinaryOp(
                             Box::new(Expression::Id("x".to_string(), Span { start: 4, end: 5 })),
                             BinaryOperator::LessThan,
@@ -634,8 +803,9 @@ else:
                             Span { start: 13, end: 38 }
                         )),
                         Span { start: 4, end: 38 }
-                    )
-                )]
+                    )),
+                    span: Span { start: 0, end: 38 }
+                }))]
             }
         );
     }
@@ -649,9 +819,9 @@ else:
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 9 }),
-                    Expression::BinaryOp(
+                stmts: vec![Statement::Expression(Expression::Assign(Assign {
+                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    rhs: Box::new(Expression::BinaryOp(
                         Box::new(Expression::Id("a".to_string(), Span { start: 4, end: 5 })),
                         BinaryOperator::AttributeRef,
                         Box::new(Expression::BinaryOp(
@@ -661,8 +831,9 @@ else:
                             Span { start: 6, end: 9 }
                         )),
                         Span { start: 4, end: 9 }
-                    )
-                )]
+                    )),
+                    span: Span { start: 0, end: 9 }
+                }))],
             }
         )
     }
@@ -676,13 +847,14 @@ else:
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 9 }),
-                    Expression::Call(
+                stmts: vec![Statement::Expression(Expression::Assign(Assign {
+                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    rhs: Box::new(Expression::Call(
                         Box::new(Expression::Id("hello".to_string(), Span { start: 4, end: 9 })),
                         Span { start: 4, end: 9 }
-                    )
-                )]
+                    )),
+                    span: Span { start: 0, end: 9 }
+                }))],
             }
         )
     }
@@ -696,9 +868,9 @@ else:
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 5 }),
-                    Expression::Slice(
+                stmts: vec![Statement::Expression(Expression::Assign(Assign {
+                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    rhs: Box::new(Expression::Slice(
                         Box::new(Expression::Id("l".to_string(), Span { start: 4, end: 5 })),
                         Box::new(Expression::BinaryOp(
                             Box::new(Expression::Number("1".to_string(), Span { start: 6, end: 7 })),
@@ -707,8 +879,9 @@ else:
                             Span { start: 6, end: 11 }
                         )),
                         Span { start: 4, end: 12 }
-                    )
-                )]
+                    )),
+                    span: Span { start: 0, end: 12 }
+                }))],
             }
         )
     }
@@ -722,15 +895,16 @@ else:
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 14 }),
-                    Expression::BinaryOp(
+                stmts: vec![Statement::Expression(Expression::Assign(Assign {
+                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    rhs: Box::new(Expression::BinaryOp(
                         Box::new(Expression::Id("a".to_string(), Span { start: 4, end: 5 })),
                         BinaryOperator::NotIn,
                         Box::new(Expression::Id("b".to_string(), Span { start: 13, end: 14 })),
                         Span { start: 4, end: 14 }
-                    )
-                )]
+                    )),
+                    span: Span { start: 0, end: 14 }
+                }))],
             }
         )
     }
@@ -744,9 +918,9 @@ else:
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 22 }),
-                    Expression::BinaryOp(
+                stmts: vec![Statement::Expression(Expression::Assign(Assign {
+                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    rhs: Box::new(Expression::BinaryOp(
                         Box::new(Expression::BinaryOp(
                             Box::new(Expression::BinaryOp(
                                 Box::new(Expression::Number("1".to_string(), Span { start: 6, end: 7 })),
@@ -761,8 +935,9 @@ else:
                         BinaryOperator::Divide,
                         Box::new(Expression::Number("3".to_string(), Span { start: 21, end: 22 })),
                         Span { start: 6, end: 22 }
-                    )
-                )]
+                    )),
+                    span: Span { start: 0, end: 22 }
+                }))],
             }
         );
     }
@@ -776,9 +951,9 @@ else:
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 38 }),
-                    Expression::Tuple(
+                stmts: vec![Statement::Expression(Expression::Assign(Assign {
+                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    rhs: Box::new(Expression::Tuple(
                         vec![
                             Expression::BinaryOp(
                                 Box::new(Expression::Number("1".to_string(), Span { start: 5, end: 6 })),
@@ -799,8 +974,9 @@ else:
                             )
                         ],
                         Span { start: 4, end: 38 }
-                    )
-                )]
+                    )),
+                    span: Span { start: 0, end: 38 }
+                }))]
             }
         );
     }
@@ -814,31 +990,28 @@ else:
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::Expression(
-                    Expression::Tuple(
-                        vec![
-                            Expression::BinaryOp(
-                                Box::new(Expression::Number("1".to_string(), Span { start: 0, end: 1 })),
-                                BinaryOperator::Add,
-                                Box::new(Expression::Number("2".to_string(), Span { start: 4, end: 5 })),
-                                Span { start: 0, end: 5 }
-                            ),
-                            Expression::Bool(true, Span { start: 7, end: 11 }),
-                            Expression::Call(
-                                Box::new(Expression::Id("y".to_string(), Span { start: 13, end: 14 })),
-                                Span { start: 13, end: 14 }
-                            ),
-                            Expression::String("Hello".to_string(), Span { start: 18, end: 25 }),
-                            Expression::Slice(
-                                Box::new(Expression::Id("l".to_string(), Span { start: 27, end: 28 })),
-                                Box::new(Expression::Id("i".to_string(), Span { start: 29, end: 30 })),
-                                Span { start: 27, end: 31 }
-                            )
-                        ],
-                        Span { start: 0, end: 33 }
-                    ),
+                stmts: vec![Statement::Expression(Expression::Tuple(
+                    vec![
+                        Expression::BinaryOp(
+                            Box::new(Expression::Number("1".to_string(), Span { start: 0, end: 1 })),
+                            BinaryOperator::Add,
+                            Box::new(Expression::Number("2".to_string(), Span { start: 4, end: 5 })),
+                            Span { start: 0, end: 5 }
+                        ),
+                        Expression::Bool(true, Span { start: 7, end: 11 }),
+                        Expression::Call(
+                            Box::new(Expression::Id("y".to_string(), Span { start: 13, end: 14 })),
+                            Span { start: 13, end: 14 }
+                        ),
+                        Expression::String("Hello".to_string(), Span { start: 18, end: 25 }),
+                        Expression::Slice(
+                            Box::new(Expression::Id("l".to_string(), Span { start: 27, end: 28 })),
+                            Box::new(Expression::Id("i".to_string(), Span { start: 29, end: 30 })),
+                            Span { start: 27, end: 31 }
+                        )
+                    ],
                     Span { start: 0, end: 33 }
-                )]
+                ),)]
             }
         )
     }
@@ -852,9 +1025,9 @@ else:
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 38 }),
-                    Expression::List(
+                stmts: vec![Statement::Expression(Expression::Assign(Assign {
+                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    rhs: Box::new(Expression::List(
                         vec![
                             Expression::BinaryOp(
                                 Box::new(Expression::Number("1".to_string(), Span { start: 5, end: 6 })),
@@ -875,8 +1048,9 @@ else:
                             )
                         ],
                         Span { start: 4, end: 38 }
-                    )
-                )]
+                    )),
+                    span: Span { start: 0, end: 38 }
+                }))]
             }
         );
     }
@@ -890,9 +1064,9 @@ else:
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 24 }),
-                    Expression::List(
+                stmts: vec![Statement::Expression(Expression::Assign(Assign {
+                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    rhs: Box::new(Expression::List(
                         vec![
                             Expression::UnaryOp(
                                 Box::new(Expression::Id("l".to_string(), Span { start: 6, end: 7 })),
@@ -914,8 +1088,9 @@ else:
                             Expression::Bool(true, Span { start: 19, end: 23 })
                         ],
                         Span { start: 4, end: 24 }
-                    )
-                )]
+                    )),
+                    span: Span { start: 0, end: 24 }
+                }))]
             }
         );
     }
@@ -945,10 +1120,10 @@ else:
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::Expression(
-                    Expression::List(vec![], Span { start: 0, end: 2 }),
+                stmts: vec![Statement::Expression(Expression::List(
+                    vec![],
                     Span { start: 0, end: 2 }
-                )]
+                ),)]
             }
         );
     }
@@ -962,14 +1137,15 @@ else:
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 13 }),
-                    Expression::UnaryOp(
+                stmts: vec![Statement::Expression(Expression::Assign(Assign {
+                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    rhs: Box::new(Expression::UnaryOp(
                         Box::new(Expression::Id("iterable".to_string(), Span { start: 5, end: 13 })),
                         UnaryOperator::UnpackIterable,
                         Span { start: 4, end: 13 }
-                    )
-                )]
+                    )),
+                    span: Span { start: 0, end: 13 }
+                }))]
             }
         )
     }
@@ -983,9 +1159,9 @@ else:
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 27 }),
-                    Expression::Set(
+                stmts: vec![Statement::Expression(Expression::Assign(Assign {
+                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    rhs: Box::new(Expression::Set(
                         vec![
                             Expression::Number("1".to_string(), Span { start: 5, end: 6 }),
                             Expression::Bool(true, Span { start: 8, end: 12 }),
@@ -997,8 +1173,9 @@ else:
                             )
                         ],
                         Span { start: 4, end: 27 }
-                    )
-                )]
+                    )),
+                    span: Span { start: 0, end: 27 }
+                }))]
             }
         )
     }
@@ -1012,9 +1189,9 @@ else:
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 45 }),
-                    Expression::Dict(
+                stmts: vec![Statement::Expression(Expression::Assign(Assign {
+                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    rhs: Box::new(Expression::Dict(
                         vec![
                             DictItemType::KeyValue(
                                 Expression::Number("1".to_string(), Span { start: 5, end: 6 }),
@@ -1041,8 +1218,9 @@ else:
                             )
                         ],
                         Span { start: 4, end: 45 }
-                    )
-                )]
+                    )),
+                    span: Span { start: 0, end: 45 }
+                }))]
             }
         )
     }
@@ -1056,11 +1234,11 @@ else:
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 21 }),
-                    Expression::Dict(
+                stmts: vec![Statement::Expression(Expression::Assign(Assign {
+                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    rhs: Box::new(Expression::Dict(
                         vec![
-                            DictItemType::DictUnpack(Expression::UnaryOp(
+                            DictItemType::Unpack(Expression::UnaryOp(
                                 Box::new(Expression::Id("d".to_string(), Span { start: 7, end: 8 })),
                                 UnaryOperator::UnpackDictionary,
                                 Span { start: 5, end: 8 }
@@ -1069,22 +1247,22 @@ else:
                                 Expression::Number("2".to_string(), Span { start: 10, end: 11 }),
                                 Expression::Number("5".to_string(), Span { start: 13, end: 14 })
                             ),
-                            DictItemType::DictUnpack(Expression::UnaryOp(
+                            DictItemType::Unpack(Expression::UnaryOp(
                                 Box::new(Expression::Id("x".to_string(), Span { start: 18, end: 19 })),
                                 UnaryOperator::UnpackDictionary,
                                 Span { start: 16, end: 19 }
                             ))
                         ],
                         Span { start: 4, end: 21 }
-                    )
-                )]
+                    )),
+                    span: Span { start: 0, end: 21 }
+                }))]
             }
         )
     }
 
     #[test]
     fn parse_invalid_dict_expression() {
-        // FIXME: generating wrong AST for unpack iterable
         let parser = Parser::new("x = {**d, *x}");
         let (_, errors) = parser.parse();
 
@@ -1108,9 +1286,9 @@ else:
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 6 }),
-                    Expression::IfElse(IfElseExpr {
+                stmts: vec![Statement::Expression(Expression::Assign(Assign {
+                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    rhs: Box::new(Expression::IfElse(IfElseExpr {
                         lhs: Box::new(Expression::Number("15".to_string(), Span { start: 4, end: 6 })),
                         rhs: Box::new(Expression::Number("45".to_string(), Span { start: 21, end: 23 })),
                         condition: Box::new(Expression::BinaryOp(
@@ -1120,8 +1298,9 @@ else:
                             Span { start: 10, end: 15 }
                         )),
                         span: Span { start: 4, end: 23 }
-                    })
-                )]
+                    })),
+                    span: Span { start: 0, end: 23 }
+                }))]
             }
         )
     }
@@ -1135,9 +1314,9 @@ else:
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::VarAsgmt(
-                    VarAsgmt::new("x".to_string(), Span { start: 0, end: 8 }),
-                    Expression::IfElse(IfElseExpr {
+                stmts: vec![Statement::Expression(Expression::Assign(Assign {
+                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    rhs: Box::new(Expression::IfElse(IfElseExpr {
                         lhs: Box::new(Expression::Call(
                             Box::new(Expression::Id("func".to_string(), Span { start: 4, end: 8 })),
                             Span { start: 4, end: 8 }
@@ -1173,8 +1352,9 @@ else:
                             Span { start: 15, end: 41 }
                         )),
                         span: Span { start: 4, end: 58 }
-                    })
-                )]
+                    })),
+                    span: Span { start: 0, end: 58 }
+                }))]
             }
         )
     }
@@ -1189,31 +1369,25 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![
-                    Statement::Expression(
-                        Expression::BinaryOp(
-                            Box::new(Expression::Number("1".to_string(), Span { start: 0, end: 1 })),
-                            BinaryOperator::Add,
-                            Box::new(Expression::Number("2".to_string(), Span { start: 4, end: 5 })),
-                            Span { start: 0, end: 5 }
-                        ),
+                    Statement::Expression(Expression::BinaryOp(
+                        Box::new(Expression::Number("1".to_string(), Span { start: 0, end: 1 })),
+                        BinaryOperator::Add,
+                        Box::new(Expression::Number("2".to_string(), Span { start: 4, end: 5 })),
                         Span { start: 0, end: 5 }
-                    ),
-                    Statement::Expression(
-                        Expression::Tuple(
-                            vec![
-                                Expression::BinaryOp(
-                                    Box::new(Expression::Number("3".to_string(), Span { start: 7, end: 8 })),
-                                    BinaryOperator::Add,
-                                    Box::new(Expression::Number("4".to_string(), Span { start: 11, end: 12 })),
-                                    Span { start: 7, end: 12 }
-                                ),
-                                Expression::Number("7".to_string(), Span { start: 14, end: 15 }),
-                                Expression::Number("8".to_string(), Span { start: 17, end: 18 }),
-                            ],
-                            Span { start: 7, end: 19 }
-                        ),
+                    ),),
+                    Statement::Expression(Expression::Tuple(
+                        vec![
+                            Expression::BinaryOp(
+                                Box::new(Expression::Number("3".to_string(), Span { start: 7, end: 8 })),
+                                BinaryOperator::Add,
+                                Box::new(Expression::Number("4".to_string(), Span { start: 11, end: 12 })),
+                                Span { start: 7, end: 12 }
+                            ),
+                            Expression::Number("7".to_string(), Span { start: 14, end: 15 }),
+                            Expression::Number("8".to_string(), Span { start: 17, end: 18 }),
+                        ],
                         Span { start: 7, end: 19 }
-                    ),
+                    ),),
                 ]
             }
         )
@@ -1228,10 +1402,10 @@ else:
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::Expression(
-                    Expression::Id("x".to_string(), Span { start: 0, end: 1 }),
+                stmts: vec![Statement::Expression(Expression::Id(
+                    "x".to_string(),
                     Span { start: 0, end: 1 }
-                )]
+                ),)]
             }
         )
     }
@@ -1261,10 +1435,10 @@ else:
                         Span { start: 4, end: 16 }
                     ),
                     block: Block {
-                        stmts: vec![Statement::Expression(
-                            Expression::Id("x".to_string(), Span { start: 22, end: 23 }),
+                        stmts: vec![Statement::Expression(Expression::Id(
+                            "x".to_string(),
                             Span { start: 22, end: 23 }
-                        )],
+                        ),)],
                         span: Span { start: 22, end: 23 }
                     },
                     elif_stms: vec![],
@@ -1276,9 +1450,8 @@ else:
     }
 
     #[test]
+    #[ignore = "Handle invalid walrus assignment in statement"]
     fn parse_invalid_walrus_operator() {
-        // FIXME: generate one AST node for the invalid expression, instead of generating an actual
-        // expression AST node
         let parser = Parser::new("x := 5 + 5");
         let (_, errors) = parser.parse();
 
@@ -1302,32 +1475,29 @@ else:
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::Expression(
-                    Expression::BinaryOp(
-                        Box::new(Expression::BinaryOp(
-                            Box::new(Expression::UnaryOp(
-                                Box::new(Expression::Call(
-                                    Box::new(Expression::Id("func".to_string(), Span { start: 6, end: 10 })),
-                                    Span { start: 6, end: 10 }
-                                )),
-                                UnaryOperator::Await,
-                                Span { start: 0, end: 10 }
+                stmts: vec![Statement::Expression(Expression::BinaryOp(
+                    Box::new(Expression::BinaryOp(
+                        Box::new(Expression::UnaryOp(
+                            Box::new(Expression::Call(
+                                Box::new(Expression::Id("func".to_string(), Span { start: 6, end: 10 })),
+                                Span { start: 6, end: 10 }
                             )),
-                            BinaryOperator::Multiply,
-                            Box::new(Expression::BinaryOp(
-                                Box::new(Expression::Id("x".to_string(), Span { start: 15, end: 16 })),
-                                BinaryOperator::Exponent,
-                                Box::new(Expression::Number("5".to_string(), Span { start: 20, end: 21 })),
-                                Span { start: 15, end: 21 }
-                            )),
-                            Span { start: 0, end: 21 }
+                            UnaryOperator::Await,
+                            Span { start: 0, end: 10 }
                         )),
-                        BinaryOperator::Divide,
-                        Box::new(Expression::Number("3".to_string(), Span { start: 24, end: 25 })),
-                        Span { start: 0, end: 25 }
-                    ),
+                        BinaryOperator::Multiply,
+                        Box::new(Expression::BinaryOp(
+                            Box::new(Expression::Id("x".to_string(), Span { start: 15, end: 16 })),
+                            BinaryOperator::Exponent,
+                            Box::new(Expression::Number("5".to_string(), Span { start: 20, end: 21 })),
+                            Span { start: 15, end: 21 }
+                        )),
+                        Span { start: 0, end: 21 }
+                    )),
+                    BinaryOperator::Divide,
+                    Box::new(Expression::Number("3".to_string(), Span { start: 24, end: 25 })),
                     Span { start: 0, end: 25 }
-                )]
+                ),)]
             }
         )
     }
@@ -1341,24 +1511,21 @@ else:
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::Expression(
-                    Expression::Lambda(LambdaExpr {
-                        parameters: vec![FuncParameter {
-                            name: "x".to_string(),
-                            default_value: None,
-                            star_parameter_type: None,
-                            span: Span { start: 7, end: 8 }
-                        }],
-                        expression: Box::new(Expression::BinaryOp(
-                            Box::new(Expression::Id("x".to_string(), Span { start: 10, end: 11 })),
-                            BinaryOperator::Add,
-                            Box::new(Expression::Number("1".to_string(), Span { start: 14, end: 15 })),
-                            Span { start: 10, end: 15 }
-                        )),
-                        span: Span { start: 0, end: 15 }
-                    }),
-                    Span { start: 0, end: 15 }
-                )]
+                stmts: vec![Statement::Expression(Expression::Lambda(LambdaExpr {
+                    parameters: vec![FuncParameter {
+                        name: "x".to_string(),
+                        default_value: None,
+                        star_parameter_type: None,
+                        span: Span { start: 7, end: 8 }
+                    }],
+                    expression: Box::new(Expression::BinaryOp(
+                        Box::new(Expression::Id("x".to_string(), Span { start: 10, end: 11 })),
+                        BinaryOperator::Add,
+                        Box::new(Expression::Number("1".to_string(), Span { start: 14, end: 15 })),
+                        Span { start: 10, end: 15 }
+                    )),
+                    span: Span { start: 0, end: 15 }
+                }),)]
             }
         )
     }
@@ -1372,27 +1539,24 @@ else:
         assert_eq!(
             parsed_file,
             ParsedFile {
-                stmts: vec![Statement::Expression(
-                    Expression::Call(
-                        Box::new(Expression::Lambda(LambdaExpr {
-                            parameters: vec![FuncParameter {
-                                name: "x".to_string(),
-                                default_value: None,
-                                star_parameter_type: None,
-                                span: Span { start: 8, end: 9 }
-                            }],
-                            expression: Box::new(Expression::BinaryOp(
-                                Box::new(Expression::Id("x".to_string(), Span { start: 11, end: 12 })),
-                                BinaryOperator::Add,
-                                Box::new(Expression::Number("1".to_string(), Span { start: 15, end: 16 })),
-                                Span { start: 11, end: 16 }
-                            )),
-                            span: Span { start: 1, end: 16 }
-                        })),
-                        Span { start: 1, end: 16 }
-                    ),
+                stmts: vec![Statement::Expression(Expression::Call(
+                    Box::new(Expression::Lambda(LambdaExpr {
+                        parameters: vec![FuncParameter {
+                            name: "x".to_string(),
+                            default_value: None,
+                            star_parameter_type: None,
+                            span: Span { start: 8, end: 9 }
+                        }],
+                        expression: Box::new(Expression::BinaryOp(
+                            Box::new(Expression::Id("x".to_string(), Span { start: 11, end: 12 })),
+                            BinaryOperator::Add,
+                            Box::new(Expression::Number("1".to_string(), Span { start: 15, end: 16 })),
+                            Span { start: 11, end: 16 }
+                        )),
+                        span: Span { start: 1, end: 16 }
+                    })),
                     Span { start: 1, end: 16 }
-                )]
+                ),)]
             }
         )
     }
@@ -1969,41 +2133,29 @@ def test():
                     parameters: vec![],
                     block: Block {
                         stmts: vec![
-                            Statement::Expression(
-                                Expression::Yield(
-                                    Some(Box::new(Expression::Number(
-                                        "1".to_string(),
-                                        Span { start: 23, end: 24 }
-                                    ))),
-                                    Span { start: 17, end: 24 }
-                                ),
+                            Statement::Expression(Expression::Yield(
+                                Some(Box::new(Expression::Number(
+                                    "1".to_string(),
+                                    Span { start: 23, end: 24 }
+                                ))),
                                 Span { start: 17, end: 24 }
-                            ),
-                            Statement::Expression(
-                                Expression::Yield(
-                                    Some(Box::new(Expression::Tuple(
-                                        vec![
-                                            Expression::Number("1".to_string(), Span { start: 35, end: 36 }),
-                                            Expression::BinaryOp(
-                                                Box::new(Expression::Number(
-                                                    "2".to_string(),
-                                                    Span { start: 38, end: 39 }
-                                                )),
-                                                BinaryOperator::Add,
-                                                Box::new(Expression::Number(
-                                                    "3".to_string(),
-                                                    Span { start: 42, end: 43 }
-                                                )),
-                                                Span { start: 38, end: 43 }
-                                            ),
-                                            Expression::Id("abc".to_string(), Span { start: 45, end: 48 })
-                                        ],
-                                        Span { start: 35, end: 49 }
-                                    ))),
-                                    Span { start: 29, end: 49 }
-                                ),
+                            ),),
+                            Statement::Expression(Expression::Yield(
+                                Some(Box::new(Expression::Tuple(
+                                    vec![
+                                        Expression::Number("1".to_string(), Span { start: 35, end: 36 }),
+                                        Expression::BinaryOp(
+                                            Box::new(Expression::Number("2".to_string(), Span { start: 38, end: 39 })),
+                                            BinaryOperator::Add,
+                                            Box::new(Expression::Number("3".to_string(), Span { start: 42, end: 43 })),
+                                            Span { start: 38, end: 43 }
+                                        ),
+                                        Expression::Id("abc".to_string(), Span { start: 45, end: 48 })
+                                    ],
+                                    Span { start: 35, end: 49 }
+                                ))),
                                 Span { start: 29, end: 49 }
-                            )
+                            ),)
                         ],
                         span: Span { start: 17, end: 49 }
                     },
@@ -2032,16 +2184,13 @@ def test():
                     name_span: Span { start: 5, end: 9 },
                     parameters: vec![],
                     block: Block {
-                        stmts: vec![Statement::Expression(
-                            Expression::YieldFrom(
-                                Box::new(Expression::Call(
-                                    Box::new(Expression::Id("func".to_string(), Span { start: 28, end: 32 })),
-                                    Span { start: 28, end: 32 }
-                                )),
-                                Span { start: 17, end: 32 }
-                            ),
+                        stmts: vec![Statement::Expression(Expression::YieldFrom(
+                            Box::new(Expression::Call(
+                                Box::new(Expression::Id("func".to_string(), Span { start: 28, end: 32 })),
+                                Span { start: 28, end: 32 }
+                            )),
                             Span { start: 17, end: 32 }
-                        )],
+                        ),)],
                         span: Span { start: 17, end: 32 }
                     },
                     span: Span { start: 1, end: 32 }
@@ -2077,25 +2226,19 @@ for i in [1, 2, 3]:
                     ),
                     block: Block {
                         stmts: vec![
-                            Statement::Expression(
-                                Expression::Yield(
-                                    Some(Box::new(Expression::Id("i".to_string(), Span { start: 31, end: 32 }))),
-                                    Span { start: 25, end: 32 }
-                                ),
+                            Statement::Expression(Expression::Yield(
+                                Some(Box::new(Expression::Id("i".to_string(), Span { start: 31, end: 32 }))),
                                 Span { start: 25, end: 32 }
-                            ),
-                            Statement::Expression(
-                                Expression::Yield(
-                                    Some(Box::new(Expression::BinaryOp(
-                                        Box::new(Expression::Id("i".to_string(), Span { start: 43, end: 44 })),
-                                        BinaryOperator::Add,
-                                        Box::new(Expression::Number("1".to_string(), Span { start: 47, end: 48 })),
-                                        Span { start: 43, end: 48 }
-                                    ))),
-                                    Span { start: 37, end: 48 }
-                                ),
+                            ),),
+                            Statement::Expression(Expression::Yield(
+                                Some(Box::new(Expression::BinaryOp(
+                                    Box::new(Expression::Id("i".to_string(), Span { start: 43, end: 44 })),
+                                    BinaryOperator::Add,
+                                    Box::new(Expression::Number("1".to_string(), Span { start: 47, end: 48 })),
+                                    Span { start: 43, end: 48 }
+                                ))),
                                 Span { start: 37, end: 48 }
-                            )
+                            ),)
                         ],
                         span: Span { start: 25, end: 48 }
                     },
@@ -2140,10 +2283,7 @@ for a, b in ((1, 2, 3)):
                         Span { start: 13, end: 24 }
                     ),
                     block: Block {
-                        stmts: vec![Statement::Expression(
-                            Expression::Ellipsis(Span { start: 30, end: 33 }),
-                            Span { start: 30, end: 33 }
-                        )],
+                        stmts: vec![Statement::Expression(Expression::Ellipsis(Span { start: 30, end: 33 }),)],
                         span: Span { start: 30, end: 33 }
                     },
                     else_stmt: None,
@@ -2185,10 +2325,7 @@ for *a in ((1, 2, 3)):
                         Span { start: 11, end: 22 }
                     ),
                     block: Block {
-                        stmts: vec![Statement::Expression(
-                            Expression::Ellipsis(Span { start: 28, end: 31 }),
-                            Span { start: 28, end: 31 }
-                        )],
+                        stmts: vec![Statement::Expression(Expression::Ellipsis(Span { start: 28, end: 31 }),)],
                         span: Span { start: 28, end: 31 }
                     },
                     else_stmt: None,

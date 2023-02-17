@@ -2,11 +2,10 @@ use crate::lexer::token::Span;
 
 #[derive(Debug, PartialEq, Eq, Default)]
 pub enum Statement {
-    Expression(Expression, Span),
+    Expression(Expression),
     Block(Block),
     FunctionDef(Function),
     If(IfStmt),
-    VarAsgmt(VarAsgmt, Expression),
     Pass(Span),
     While(While),
     Break(Span),
@@ -24,8 +23,33 @@ pub enum Statement {
     None,
 }
 
+impl Statement {
+    pub fn span(&self) -> Span {
+        match self {
+            Statement::Pass(span) | Statement::Break(span) | Statement::Continue(span) | Statement::Invalid(span) => {
+                *span
+            }
+            Statement::Expression(expr) => expr.span(),
+            Statement::Block(block) => block.span,
+            Statement::FunctionDef(func) => func.span,
+            Statement::If(if_stmt) => if_stmt.span,
+            Statement::While(while_stmt) => while_stmt.span,
+            Statement::Class(class) => class.span,
+            Statement::Import(import) => import.span,
+            Statement::FromImport(from_import) => from_import.span,
+            Statement::With(with) => with.span,
+            Statement::Try(try_stmt) => try_stmt.span,
+            Statement::Return(return_stmt) => return_stmt.span,
+            Statement::For(for_stmt) => for_stmt.span,
+            Statement::None => Span { start: 0, end: 0 },
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Default)]
 pub enum Expression {
+    Assign(Assign),
+    AugAssing(AugAssign),
     String(String, Span),
     Number(String, Span),
     Bool(bool, Span),
@@ -48,6 +72,37 @@ pub enum Expression {
 
     #[default]
     Empty,
+    AnnAssign(AnnAssign),
+}
+
+impl Expression {
+    pub fn span(&self) -> Span {
+        match self {
+            Expression::Assign(assign) => assign.span,
+            Expression::AugAssing(aug_assign) => aug_assign.span,
+            Expression::AnnAssign(ann_assign) => ann_assign.span,
+            Expression::IfElse(if_else) => if_else.span,
+            Expression::Lambda(lambda) => lambda.span,
+            Expression::String(_, span)
+            | Expression::Number(_, span)
+            | Expression::Bool(_, span)
+            | Expression::BinaryOp(_, _, _, span)
+            | Expression::UnaryOp(_, _, span)
+            | Expression::Id(_, span)
+            | Expression::Call(_, span)
+            | Expression::Slice(_, _, span)
+            | Expression::List(_, span)
+            | Expression::Dict(_, span)
+            | Expression::Set(_, span)
+            | Expression::Tuple(_, span)
+            | Expression::Ellipsis(span)
+            | Expression::Invalid(span)
+            | Expression::Yield(_, span)
+            | Expression::YieldFrom(_, span)
+            | Expression::None(span) => *span,
+            Expression::Empty => Span { start: 0, end: 0 },
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -121,7 +176,7 @@ impl Operation {
 #[derive(Debug, PartialEq, Eq)]
 pub enum DictItemType {
     KeyValue(Expression, Expression),
-    DictUnpack(Expression),
+    Unpack(Expression),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -196,15 +251,44 @@ pub struct While {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct VarAsgmt {
-    name: String,
-    span: Span,
+pub struct Assign {
+    pub lhs: Box<Expression>,
+    pub rhs: Box<Expression>,
+    pub span: Span,
 }
 
-impl VarAsgmt {
-    pub fn new(name: String, span: Span) -> Self {
-        Self { name, span }
-    }
+#[derive(Debug, PartialEq, Eq)]
+pub struct AugAssign {
+    pub lhs: Box<Expression>,
+    pub rhs: Box<Expression>,
+    pub kind: AugAssignType,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum AugAssignType {
+    Asterisk,
+    At,
+    BitwiseAnd,
+    BitwiseLeftShift,
+    BitwiseNot,
+    BitwiseOr,
+    BitwiseRightShift,
+    BitwiseXOr,
+    Divide,
+    Exponent,
+    FloorDivision,
+    Minus,
+    Modulus,
+    Plus,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct AnnAssign {
+    pub lhs: Box<Expression>,
+    pub rhs: Option<Box<Expression>>,
+    pub typehint: Box<Expression>,
+    pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq)]
