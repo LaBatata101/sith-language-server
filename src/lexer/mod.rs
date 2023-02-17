@@ -507,7 +507,7 @@ impl<'a> Lexer<'a> {
         let mut number_type = NumberType::Invalid;
         let start = self.cs.pos();
 
-        if self.cs.current_char().unwrap() == '0' {
+        if self.cs.current_char().unwrap() == '0' && self.cs.next_char().is_some() {
             let next_char = self.cs.next_char().unwrap();
             // Try to lex binary number
             if next_char == 'b' || next_char == 'B' {
