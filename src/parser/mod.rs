@@ -21,7 +21,7 @@ use helpers::{infix_binding_power, postfix_binding_power, prefix_binding_power};
 use self::{
     ast::{
         AnnAssign, Assign, AugAssign, ClassStmt, ForStmt, FromImportStmt, FuncParameter, ImportModule, ImportStmt,
-        LambdaExpr, ReturnStmt, StarParameterType, TryStmt, WithItem, WithStmt,
+        LambdaExpr, RaiseStmt, ReturnStmt, StarParameterType, TryStmt, WithItem, WithStmt,
     },
     helpers::AllowedExpr,
 };
@@ -567,6 +567,12 @@ impl Parser {
                 for_stmt.span.start = token.span.start;
 
                 (Statement::For(for_stmt), for_stmt_errors)
+            }
+            TokenType::Keyword(KeywordType::Raise) => {
+                let (mut raise_stmt, raise_stmt_errors) = self.parse_raise_stmt(index);
+                raise_stmt.span.start = token.span.start;
+
+                (Statement::Raise(raise_stmt), raise_stmt_errors)
             }
             TokenType::Keyword(KeywordType::Pass) => (Statement::Pass(token.span), None),
             TokenType::Keyword(KeywordType::Continue) => (Statement::Continue(token.span), None),
@@ -2358,6 +2364,54 @@ impl Parser {
                 if errors.is_empty() { None } else { Some(errors) },
             )
         }
+    }
+
+    fn parse_raise_stmt(&self, index: &mut usize) -> (RaiseStmt, Option<Vec<PythonError>>) {
+        let mut errors = Vec::new();
+        let mut span = Span::default();
+
+        let token = self.tokens.get(*index).unwrap();
+        let exc = if helpers::is_token_start_of_expr(token) {
+            let (expr, expr_errors) = self.parse_expression(index, AllowedExpr::ALL);
+
+            if let Some(expr_errors) = expr_errors {
+                errors.extend(expr_errors);
+            }
+
+            span.end = expr.span().end;
+
+            Some(expr)
+        } else {
+            // consume NEWLINE token
+            *index += 1;
+
+            None
+        };
+
+        let from = if self
+            .tokens
+            .get(*index)
+            .map_or(false, |token| token.kind == TokenType::Keyword(KeywordType::From))
+        {
+            // consume "from"
+            *index += 1;
+            let (expr, expr_errors) = self.parse_expression(index, AllowedExpr::ALL);
+
+            if let Some(expr_errors) = expr_errors {
+                errors.extend(expr_errors);
+            }
+
+            span.end = expr.span().end;
+
+            Some(expr)
+        } else {
+            None
+        };
+
+        (
+            RaiseStmt { span, from, exc },
+            if errors.is_empty() { None } else { Some(errors) },
+        )
     }
 
     fn skip_line(&self, index: &mut usize) {

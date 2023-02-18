@@ -9,7 +9,7 @@ mod tests_parser {
                 AnnAssign, Assign, AugAssign, AugAssignType, BinaryOperator, Block, ClassStmt, DictItemType, ElIfStmt,
                 ElseStmt, ExceptBlock, ExceptBlockKind, Expression, FinallyBlock, ForStmt, FromImportStmt,
                 FuncParameter, Function, IfElseExpr, IfStmt, ImportModule, ImportStmt, LambdaExpr, ParsedFile,
-                ReturnStmt, StarParameterType, Statement, TryStmt, UnaryOperator, While, WithItem, WithStmt,
+                RaiseStmt, ReturnStmt, StarParameterType, Statement, TryStmt, UnaryOperator, While, WithItem, WithStmt,
             },
             Parser,
         },
@@ -2333,5 +2333,41 @@ for *a in ((1, 2, 3)):
                 })]
             }
         )
+    }
+
+    #[test]
+    fn parse_raise_stmt() {
+        let parser = Parser::new(
+            "
+raise
+raise Exception
+raise Exception from e
+",
+        );
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![
+                    Statement::Raise(RaiseStmt {
+                        exc: None,
+                        from: None,
+                        span: Span { start: 1, end: 0 }
+                    }),
+                    Statement::Raise(RaiseStmt {
+                        exc: Some(Expression::Id("Exception".to_string(), Span { start: 13, end: 22 })),
+                        from: None,
+                        span: Span { start: 7, end: 22 }
+                    }),
+                    Statement::Raise(RaiseStmt {
+                        exc: Some(Expression::Id("Exception".to_string(), Span { start: 29, end: 38 })),
+                        from: Some(Expression::Id("e".to_string(), Span { start: 44, end: 45 })),
+                        span: Span { start: 23, end: 45 }
+                    })
+                ]
+            }
+        );
     }
 }

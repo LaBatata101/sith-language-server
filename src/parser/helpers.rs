@@ -138,5 +138,6 @@ pub fn is_token_end_of_expr(token: &Token) -> bool {
             | TokenType::Dedent
             | TokenType::Keyword(KeywordType::Else)
             | TokenType::Keyword(KeywordType::As)
+            | TokenType::Keyword(KeywordType::From)
     )
 }

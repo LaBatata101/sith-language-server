@@ -16,6 +16,7 @@ pub enum Statement {
     With(WithStmt),
     Try(TryStmt),
     Return(ReturnStmt),
+    Raise(RaiseStmt),
     For(ForStmt),
     Invalid(Span),
 
@@ -41,6 +42,7 @@ impl Statement {
             Statement::Try(try_stmt) => try_stmt.span,
             Statement::Return(return_stmt) => return_stmt.span,
             Statement::For(for_stmt) => for_stmt.span,
+            Statement::Raise(raise) => raise.span,
             Statement::None => Span { start: 0, end: 0 },
         }
     }
@@ -407,5 +409,12 @@ pub struct ForStmt {
     pub iter: Expression,
     pub block: Block,
     pub else_stmt: Option<ElseStmt>,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct RaiseStmt {
+    pub exc: Option<Expression>,
+    pub from: Option<Expression>,
     pub span: Span,
 }
