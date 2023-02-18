@@ -18,6 +18,7 @@ pub enum Statement {
     Return(ReturnStmt),
     Raise(RaiseStmt),
     For(ForStmt),
+    Del(DelStmt),
     Invalid(Span),
 
     #[default]
@@ -43,6 +44,7 @@ impl Statement {
             Statement::Return(return_stmt) => return_stmt.span,
             Statement::For(for_stmt) => for_stmt.span,
             Statement::Raise(raise) => raise.span,
+            Statement::Del(del) => del.span,
             Statement::None => Span { start: 0, end: 0 },
         }
     }
@@ -416,5 +418,11 @@ pub struct ForStmt {
 pub struct RaiseStmt {
     pub exc: Option<Expression>,
     pub from: Option<Expression>,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct DelStmt {
+    pub expr: Expression,
     pub span: Span,
 }

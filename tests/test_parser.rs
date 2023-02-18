@@ -6,8 +6,8 @@ mod tests_parser {
         lexer::token::Span,
         parser::{
             ast::{
-                AnnAssign, Assign, AugAssign, AugAssignType, BinaryOperator, Block, ClassStmt, DictItemType, ElIfStmt,
-                ElseStmt, ExceptBlock, ExceptBlockKind, Expression, FinallyBlock, ForStmt, FromImportStmt,
+                AnnAssign, Assign, AugAssign, AugAssignType, BinaryOperator, Block, ClassStmt, DelStmt, DictItemType,
+                ElIfStmt, ElseStmt, ExceptBlock, ExceptBlockKind, Expression, FinallyBlock, ForStmt, FromImportStmt,
                 FuncParameter, Function, IfElseExpr, IfStmt, ImportModule, ImportStmt, LambdaExpr, ParsedFile,
                 RaiseStmt, ReturnStmt, StarParameterType, Statement, TryStmt, UnaryOperator, While, WithItem, WithStmt,
             },
@@ -2369,5 +2369,40 @@ raise Exception from e
                 ]
             }
         );
+    }
+
+    #[test]
+    fn parse_del_stmt() {
+        let parser = Parser::new(
+            "
+del a
+del b, c, d
+",
+        );
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![
+                    Statement::Del(DelStmt {
+                        expr: Expression::Id("a".to_string(), Span { start: 5, end: 6 }),
+                        span: Span { start: 1, end: 6 }
+                    }),
+                    Statement::Del(DelStmt {
+                        expr: Expression::Tuple(
+                            vec![
+                                Expression::Id("b".to_string(), Span { start: 11, end: 12 }),
+                                Expression::Id("c".to_string(), Span { start: 14, end: 15 }),
+                                Expression::Id("d".to_string(), Span { start: 17, end: 18 })
+                            ],
+                            Span { start: 11, end: 19 }
+                        ),
+                        span: Span { start: 7, end: 19 }
+                    })
+                ]
+            }
+        )
     }
 }

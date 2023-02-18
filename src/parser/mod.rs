@@ -20,8 +20,8 @@ use helpers::{infix_binding_power, postfix_binding_power, prefix_binding_power};
 
 use self::{
     ast::{
-        AnnAssign, Assign, AugAssign, ClassStmt, ForStmt, FromImportStmt, FuncParameter, ImportModule, ImportStmt,
-        LambdaExpr, RaiseStmt, ReturnStmt, StarParameterType, TryStmt, WithItem, WithStmt,
+        AnnAssign, Assign, AugAssign, ClassStmt, DelStmt, ForStmt, FromImportStmt, FuncParameter, ImportModule,
+        ImportStmt, LambdaExpr, RaiseStmt, ReturnStmt, StarParameterType, TryStmt, WithItem, WithStmt,
     },
     helpers::AllowedExpr,
 };
@@ -573,6 +573,12 @@ impl Parser {
                 raise_stmt.span.start = token.span.start;
 
                 (Statement::Raise(raise_stmt), raise_stmt_errors)
+            }
+            TokenType::Keyword(KeywordType::Del) => {
+                let (mut del_stmt, del_stmt_errors) = self.parse_del_stmt(index);
+                del_stmt.span.start = token.span.start;
+
+                (Statement::Del(del_stmt), del_stmt_errors)
             }
             TokenType::Keyword(KeywordType::Pass) => (Statement::Pass(token.span), None),
             TokenType::Keyword(KeywordType::Continue) => (Statement::Continue(token.span), None),
@@ -2425,5 +2431,22 @@ impl Parser {
 
         // consume NEWLINE
         *index += 1;
+    }
+
+    fn parse_del_stmt(&self, index: &mut usize) -> (DelStmt, Option<Vec<PythonError>>) {
+        // FIXME: pass the correct scope of allowed expressions in del statement
+        // FIXME: return error when no expression is found
+        let (expr, expr_errors) = self.parse_expression(index, AllowedExpr::ALL);
+
+        (
+            DelStmt {
+                span: Span {
+                    start: 0,
+                    end: expr.span().end,
+                },
+                expr,
+            },
+            expr_errors,
+        )
     }
 }
