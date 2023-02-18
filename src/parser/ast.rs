@@ -60,7 +60,7 @@ pub enum Expression {
     BinaryOp(Box<Expression>, BinaryOperator, Box<Expression>, Span),
     UnaryOp(Box<Expression>, UnaryOperator, Span),
     Id(String, Span),
-    Call(Box<Expression>, Span),
+    Call(FunctionCall),
     Slice(Box<Expression>, Box<Expression>, Span),
     List(Vec<Expression>, Span),
     Dict(Vec<DictItemType>, Span),
@@ -87,13 +87,13 @@ impl Expression {
             Expression::AnnAssign(ann_assign) => ann_assign.span,
             Expression::IfElse(if_else) => if_else.span,
             Expression::Lambda(lambda) => lambda.span,
+            Expression::Call(func_call) => func_call.span,
             Expression::String(_, span)
             | Expression::Number(_, span)
             | Expression::Bool(_, span)
             | Expression::BinaryOp(_, _, _, span)
             | Expression::UnaryOp(_, _, span)
             | Expression::Id(_, span)
-            | Expression::Call(_, span)
             | Expression::Slice(_, _, span)
             | Expression::List(_, span)
             | Expression::Dict(_, span)
@@ -424,5 +424,12 @@ pub struct RaiseStmt {
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct DelStmt {
     pub expr: Expression,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct FunctionCall {
+    pub lhs: Box<Expression>,
+    pub args: Vec<Expression>,
     pub span: Span,
 }

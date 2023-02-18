@@ -31,12 +31,14 @@ bitflags! {
         const YIELD_FROM = 1 << 18;
         const ATTR_REF = 1 << 19;
         const ASSIGN = 1 << 20;
+        const TUPLE_NO_PARENS = 1 << 21;
         /// Doesn't contain the ASSIGN
         const ALL = Self::BINARY_OP.bits
                     | Self::BOOL.bits | Self::CALL.bits | Self::DICT.bits | Self::ELLIPSIS.bits | Self::ID.bits
                     | Self::IF_ELSE.bits | Self::LAMBDA.bits | Self::LIST.bits | Self::NONE.bits | Self::NUMBER.bits
                     | Self::SET.bits | Self::SLICE.bits | Self::STRING.bits | Self::TUPLE.bits | Self::UNARY_OP.bits
-                    | Self::YIELD.bits | Self::YIELD_FROM.bits | Self::PARENTHESIZED.bits | Self::ATTR_REF.bits;
+                    | Self::YIELD.bits | Self::YIELD_FROM.bits | Self::PARENTHESIZED.bits | Self::ATTR_REF.bits
+                    | Self::TUPLE_NO_PARENS.bits;
     }
 }
 

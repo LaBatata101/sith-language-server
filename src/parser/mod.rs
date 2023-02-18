@@ -20,8 +20,8 @@ use helpers::{infix_binding_power, postfix_binding_power, prefix_binding_power};
 
 use self::{
     ast::{
-        AnnAssign, Assign, AugAssign, ClassStmt, DelStmt, ForStmt, FromImportStmt, FuncParameter, ImportModule,
-        ImportStmt, LambdaExpr, RaiseStmt, ReturnStmt, StarParameterType, TryStmt, WithItem, WithStmt,
+        AnnAssign, Assign, AugAssign, ClassStmt, DelStmt, ForStmt, FromImportStmt, FuncParameter, FunctionCall,
+        ImportModule, ImportStmt, LambdaExpr, RaiseStmt, ReturnStmt, StarParameterType, TryStmt, WithItem, WithStmt,
     },
     helpers::AllowedExpr,
 };
@@ -75,7 +75,7 @@ impl Parser {
             .tokens
             .get(*index)
             .map_or(false, |token| token.kind == TokenType::Comma)
-            && allowed_expr.contains(AllowedExpr::TUPLE)
+            && allowed_expr.contains(AllowedExpr::TUPLE | AllowedExpr::TUPLE_NO_PARENS)
         {
             // consume ,
             *index += 1;
@@ -231,27 +231,13 @@ impl Parser {
 
                     lhs = match op {
                         Operation::Unary(UnaryOperator::OpenParenthesis) => {
-                            // FIXME: Only parsing function calls with no arguments
-                            let lhs_span = lhs.span();
-                            let expr = Expression::Call(Box::new(lhs), lhs_span);
-                            if self
-                                .tokens
-                                .get(*index)
-                                .map_or(false, |token| token.kind != TokenType::CloseParenthesis)
-                            {
-                                errors.push(PythonError {
-                                    error: PythonErrorType::Syntax,
-                                    msg: format!("SyntaxError: expecting a ')' at position: {}", lhs_span.end + 1),
-                                    span: Span {
-                                        start: lhs_span.end,
-                                        end: lhs_span.end + 1,
-                                    },
-                                })
-                            } else {
-                                *index += 1;
+                            let (func_call, func_call_errors) = self.parse_function_call(index, lhs);
+
+                            if let Some(func_call_errors) = func_call_errors {
+                                errors.extend(func_call_errors);
                             }
 
-                            expr
+                            func_call
                         }
                         Operation::Unary(UnaryOperator::OpenBrackets) => {
                             // FIXME: Only parsing slice with no start, stop or step attributes
@@ -2035,7 +2021,11 @@ impl Parser {
 
         let (target, target_errors) = self.parse_expression(
             index,
-            AllowedExpr::ID | AllowedExpr::UNARY_OP | AllowedExpr::TUPLE | AllowedExpr::LIST,
+            AllowedExpr::ID
+                | AllowedExpr::UNARY_OP
+                | AllowedExpr::TUPLE
+                | AllowedExpr::LIST
+                | AllowedExpr::TUPLE_NO_PARENS,
         );
         for_stmt.target = target;
 
@@ -2307,6 +2297,77 @@ impl Parser {
                 expr,
             },
             expr_errors,
+        )
+    }
+
+    fn parse_function_call(&self, index: &mut usize, lhs: Expression) -> (Expression, Option<Vec<PythonError>>) {
+        let mut errors = Vec::new();
+        let mut args = Vec::new();
+        let allowed_expr_in_args = AllowedExpr::ALL ^ AllowedExpr::TUPLE_NO_PARENS | AllowedExpr::ASSIGN;
+
+        loop {
+            let mut token = self.tokens.get(*index).unwrap();
+
+            let expr_span = if helpers::is_token_start_of_expr(&token) {
+                let (expr, expr_errors) = self.parse_expression(index, allowed_expr_in_args);
+                if let Some(expr_errors) = expr_errors {
+                    errors.extend(expr_errors);
+                }
+                let expr_span = expr.span();
+                args.push(expr);
+
+                expr_span
+            } else {
+                break;
+            };
+
+            token = self.tokens.get(*index).unwrap();
+            if token.kind == TokenType::Comma {
+                // Consume ,
+                *index += 1;
+            } else if helpers::is_token_end_of_expr(&token) {
+                break;
+            } else {
+                errors.push(PythonError {
+                    error: PythonErrorType::Syntax,
+                    msg: format!("SyntaxError: expected comma, got {:?}", token.kind),
+                    span: Span {
+                        start: expr_span.end,
+                        end: expr_span.end + 1,
+                    },
+                });
+            }
+        }
+
+        if self
+            .tokens
+            .get(*index)
+            .map_or(false, |token| token.kind != TokenType::CloseParenthesis)
+        {
+            errors.push(PythonError {
+                error: PythonErrorType::Syntax,
+                msg: format!("SyntaxError: expecting a ')' at position: {}", lhs.span().end + 1),
+                span: Span {
+                    start: lhs.span().end,
+                    end: lhs.span().end + 1,
+                },
+            })
+        } else {
+            *index += 1;
+        }
+
+        let span_end = self.tokens.get(*index).unwrap().span.end;
+
+        (
+            Expression::Call(FunctionCall {
+                span: Span {
+                    start: lhs.span().start,
+                    end: span_end,
+                },
+                args,
+                lhs: Box::new(lhs),
+            }),
+            if errors.is_empty() { None } else { Some(errors) },
         )
     }
 }
