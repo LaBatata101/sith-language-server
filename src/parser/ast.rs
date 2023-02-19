@@ -61,7 +61,7 @@ pub enum Expression {
     UnaryOp(Box<Expression>, UnaryOperator, Span),
     Id(String, Span),
     Call(FunctionCall),
-    Slice(Box<Expression>, Box<Expression>, Span),
+    Subscript(Subscript),
     List(Vec<Expression>, Span),
     Dict(Vec<DictItemType>, Span),
     Set(Vec<Expression>, Span),
@@ -88,13 +88,13 @@ impl Expression {
             Expression::IfElse(if_else) => if_else.span,
             Expression::Lambda(lambda) => lambda.span,
             Expression::Call(func_call) => func_call.span,
+            Expression::Subscript(subscript) => subscript.span,
             Expression::String(_, span)
             | Expression::Number(_, span)
             | Expression::Bool(_, span)
             | Expression::BinaryOp(_, _, _, span)
             | Expression::UnaryOp(_, _, span)
             | Expression::Id(_, span)
-            | Expression::Slice(_, _, span)
             | Expression::List(_, span)
             | Expression::Dict(_, span)
             | Expression::Set(_, span)
@@ -432,4 +432,21 @@ pub struct FunctionCall {
     pub lhs: Box<Expression>,
     pub args: Vec<Expression>,
     pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Subscript {
+    pub lhs: Box<Expression>,
+    pub slice: Box<SubscriptType>,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum SubscriptType {
+    Slice {
+        lower: Option<Expression>,
+        upper: Option<Expression>,
+        step: Option<Expression>,
+    },
+    Subscript(Expression),
 }

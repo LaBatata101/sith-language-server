@@ -9,8 +9,8 @@ mod tests_parser {
                 AnnAssign, Assign, AugAssign, AugAssignType, BinaryOperator, Block, ClassStmt, DelStmt, DictItemType,
                 ElIfStmt, ElseStmt, ExceptBlock, ExceptBlockKind, Expression, FinallyBlock, ForStmt, FromImportStmt,
                 FuncParameter, Function, FunctionCall, IfElseExpr, IfStmt, ImportModule, ImportStmt, LambdaExpr,
-                ParsedFile, RaiseStmt, ReturnStmt, StarParameterType, Statement, TryStmt, UnaryOperator, While,
-                WithItem, WithStmt,
+                ParsedFile, RaiseStmt, ReturnStmt, StarParameterType, Statement, Subscript, SubscriptType, TryStmt,
+                UnaryOperator, While, WithItem, WithStmt,
             },
             Parser,
         },
@@ -872,18 +872,18 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
                     lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
-                    rhs: Box::new(Expression::Slice(
-                        Box::new(Expression::Id("l".to_string(), Span { start: 4, end: 5 })),
-                        Box::new(Expression::BinaryOp(
+                    rhs: Box::new(Expression::Subscript(Subscript {
+                        lhs: Box::new(Expression::Id("l".to_string(), Span { start: 4, end: 5 })),
+                        slice: Box::new(SubscriptType::Subscript(Expression::BinaryOp(
                             Box::new(Expression::Number("1".to_string(), Span { start: 6, end: 7 })),
                             BinaryOperator::Add,
                             Box::new(Expression::Number("2".to_string(), Span { start: 10, end: 11 })),
                             Span { start: 6, end: 11 }
-                        )),
-                        Span { start: 4, end: 12 }
-                    )),
+                        ))),
+                        span: Span { start: 4, end: 12 }
+                    })),
                     span: Span { start: 0, end: 12 }
-                }))],
+                }))]
             }
         )
     }
@@ -970,11 +970,14 @@ else:
                                 span: Span { start: 18, end: 22 }
                             }),
                             Expression::String("Hello".to_string(), Span { start: 23, end: 30 }),
-                            Expression::Slice(
-                                Box::new(Expression::Id("l".to_string(), Span { start: 32, end: 33 })),
-                                Box::new(Expression::Id("i".to_string(), Span { start: 34, end: 35 })),
-                                Span { start: 32, end: 36 }
-                            )
+                            Expression::Subscript(Subscript {
+                                lhs: Box::new(Expression::Id("l".to_string(), Span { start: 32, end: 33 })),
+                                slice: Box::new(SubscriptType::Subscript(Expression::Id(
+                                    "i".to_string(),
+                                    Span { start: 34, end: 35 }
+                                ))),
+                                span: Span { start: 32, end: 36 }
+                            })
                         ],
                         Span { start: 4, end: 38 }
                     )),
@@ -1008,11 +1011,14 @@ else:
                             span: Span { start: 13, end: 17 }
                         }),
                         Expression::String("Hello".to_string(), Span { start: 18, end: 25 }),
-                        Expression::Slice(
-                            Box::new(Expression::Id("l".to_string(), Span { start: 27, end: 28 })),
-                            Box::new(Expression::Id("i".to_string(), Span { start: 29, end: 30 })),
-                            Span { start: 27, end: 31 }
-                        )
+                        Expression::Subscript(Subscript {
+                            lhs: Box::new(Expression::Id("l".to_string(), Span { start: 27, end: 28 })),
+                            slice: Box::new(SubscriptType::Subscript(Expression::Id(
+                                "i".to_string(),
+                                Span { start: 29, end: 30 }
+                            ))),
+                            span: Span { start: 27, end: 31 }
+                        })
                     ],
                     Span { start: 0, end: 33 }
                 ),)]
@@ -1046,11 +1052,14 @@ else:
                                 span: Span { start: 18, end: 22 }
                             }),
                             Expression::String("Hello".to_string(), Span { start: 23, end: 30 }),
-                            Expression::Slice(
-                                Box::new(Expression::Id("l".to_string(), Span { start: 32, end: 33 })),
-                                Box::new(Expression::Id("i".to_string(), Span { start: 34, end: 35 })),
-                                Span { start: 32, end: 36 }
-                            )
+                            Expression::Subscript(Subscript {
+                                lhs: Box::new(Expression::Id("l".to_string(), Span { start: 32, end: 33 })),
+                                slice: Box::new(SubscriptType::Subscript(Expression::Id(
+                                    "i".to_string(),
+                                    Span { start: 34, end: 35 }
+                                ))),
+                                span: Span { start: 32, end: 36 }
+                            })
                         ],
                         Span { start: 4, end: 38 }
                     )),
@@ -2444,6 +2453,105 @@ del b, c, d
                     ],
                     span: Span { start: 0, end: 29 }
                 }))]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_subscript_with_string() {
+        let parser = Parser::new("l[\"x\"]");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Expression(Expression::Subscript(Subscript {
+                    lhs: Box::new(Expression::Id("l".to_string(), Span { start: 0, end: 1 })),
+                    slice: Box::new(SubscriptType::Subscript(Expression::String(
+                        "x".to_string(),
+                        Span { start: 2, end: 5 }
+                    ))),
+                    span: Span { start: 0, end: 6 }
+                }))]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_subscript_with_slice() {
+        let parser = Parser::new(
+            "
+l[1:]
+l[:1]
+l[1:2]
+l[1:2:3]
+l[::]
+l[:]
+",
+        );
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![
+                    Statement::Expression(Expression::Subscript(Subscript {
+                        lhs: Box::new(Expression::Id("l".to_string(), Span { start: 1, end: 2 })),
+                        slice: Box::new(SubscriptType::Slice {
+                            lower: Some(Expression::Number("1".to_string(), Span { start: 3, end: 4 })),
+                            upper: None,
+                            step: None
+                        }),
+                        span: Span { start: 1, end: 6 }
+                    })),
+                    Statement::Expression(Expression::Subscript(Subscript {
+                        lhs: Box::new(Expression::Id("l".to_string(), Span { start: 7, end: 8 })),
+                        slice: Box::new(SubscriptType::Slice {
+                            lower: None,
+                            upper: Some(Expression::Number("1".to_string(), Span { start: 10, end: 11 })),
+                            step: None
+                        }),
+                        span: Span { start: 7, end: 12 }
+                    })),
+                    Statement::Expression(Expression::Subscript(Subscript {
+                        lhs: Box::new(Expression::Id("l".to_string(), Span { start: 13, end: 14 })),
+                        slice: Box::new(SubscriptType::Slice {
+                            lower: Some(Expression::Number("1".to_string(), Span { start: 15, end: 16 })),
+                            upper: Some(Expression::Number("2".to_string(), Span { start: 17, end: 18 })),
+                            step: None
+                        }),
+                        span: Span { start: 13, end: 19 }
+                    })),
+                    Statement::Expression(Expression::Subscript(Subscript {
+                        lhs: Box::new(Expression::Id("l".to_string(), Span { start: 20, end: 21 })),
+                        slice: Box::new(SubscriptType::Slice {
+                            lower: Some(Expression::Number("1".to_string(), Span { start: 22, end: 23 })),
+                            upper: Some(Expression::Number("2".to_string(), Span { start: 24, end: 25 })),
+                            step: Some(Expression::Number("3".to_string(), Span { start: 26, end: 27 }))
+                        }),
+                        span: Span { start: 20, end: 28 }
+                    })),
+                    Statement::Expression(Expression::Subscript(Subscript {
+                        lhs: Box::new(Expression::Id("l".to_string(), Span { start: 29, end: 30 })),
+                        slice: Box::new(SubscriptType::Slice {
+                            lower: None,
+                            upper: None,
+                            step: None
+                        }),
+                        span: Span { start: 29, end: 34 }
+                    })),
+                    Statement::Expression(Expression::Subscript(Subscript {
+                        lhs: Box::new(Expression::Id("l".to_string(), Span { start: 35, end: 36 })),
+                        slice: Box::new(SubscriptType::Slice {
+                            lower: None,
+                            upper: None,
+                            step: None
+                        }),
+                        span: Span { start: 35, end: 39 }
+                    }))
+                ]
             }
         )
     }

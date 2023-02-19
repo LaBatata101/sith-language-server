@@ -21,7 +21,8 @@ use helpers::{infix_binding_power, postfix_binding_power, prefix_binding_power};
 use self::{
     ast::{
         AnnAssign, Assign, AugAssign, ClassStmt, DelStmt, ForStmt, FromImportStmt, FuncParameter, FunctionCall,
-        ImportModule, ImportStmt, LambdaExpr, RaiseStmt, ReturnStmt, StarParameterType, TryStmt, WithItem, WithStmt,
+        ImportModule, ImportStmt, LambdaExpr, RaiseStmt, ReturnStmt, StarParameterType, Subscript, SubscriptType,
+        TryStmt, WithItem, WithStmt,
     },
     helpers::AllowedExpr,
 };
@@ -240,41 +241,13 @@ impl Parser {
                             func_call
                         }
                         Operation::Unary(UnaryOperator::OpenBrackets) => {
-                            // FIXME: Only parsing slice with no start, stop or step attributes
-                            let (rhs, rhs_error) = self.pratt_parsing(index, 0, allowed_expr);
+                            let (subscript_expr, subscript_errors) = self.parse_subscript(index, lhs);
 
-                            if let Some(rhs_error) = rhs_error {
-                                errors.extend(rhs_error);
+                            if let Some(subscript_errors) = subscript_errors {
+                                errors.extend(subscript_errors);
                             }
 
-                            let lhs_span = lhs.span();
-                            let rhs_span = rhs.span();
-
-                            if self
-                                .tokens
-                                .get(*index)
-                                .map_or(false, |token| token.kind != TokenType::CloseBrackets)
-                            {
-                                errors.push(PythonError {
-                                    error: PythonErrorType::Syntax,
-                                    msg: format!("SyntaxError: expecting a ']' at position: {}", rhs_span.end + 1),
-                                    span: Span {
-                                        start: rhs_span.end,
-                                        end: rhs_span.end + 1,
-                                    },
-                                })
-                            } else {
-                                *index += 1;
-                            }
-
-                            Expression::Slice(
-                                Box::new(lhs),
-                                Box::new(rhs),
-                                Span {
-                                    start: lhs_span.start,
-                                    end: rhs_span.end + 1,
-                                },
-                            )
+                            subscript_expr
                         }
                         _ => {
                             *index += 1;
@@ -2366,6 +2339,105 @@ impl Parser {
                 },
                 args,
                 lhs: Box::new(lhs),
+            }),
+            if errors.is_empty() { None } else { Some(errors) },
+        )
+    }
+
+    fn parse_subscript(&self, index: &mut usize, lhs: Expression) -> (Expression, Option<Vec<PythonError>>) {
+        // FIXME: handle more syntax errors
+        let mut errors = Vec::new();
+        let mut is_slice = false;
+        let mut end_span = 0;
+
+        let token = self.tokens.get(*index).unwrap();
+        let lower = if helpers::is_token_start_of_expr(token) {
+            let (expr, expr_errors) = self.parse_expression(index, AllowedExpr::ALL);
+
+            if let Some(expr_errors) = expr_errors {
+                errors.extend(expr_errors);
+            }
+
+            Some(expr)
+        } else {
+            None
+        };
+        let mut upper = None;
+        let mut step = None;
+
+        if self
+            .tokens
+            .get(*index)
+            .map_or(false, |token| token.kind == TokenType::Colon)
+        {
+            // consume ":"
+            *index += 1;
+
+            is_slice = true;
+
+            let token = self.tokens.get(*index).unwrap();
+            if helpers::is_token_start_of_expr(token) {
+                let (upper_expr, upper_errors) = self.parse_expression(index, AllowedExpr::ALL);
+                end_span = upper_expr.span().end;
+                upper = Some(upper_expr);
+
+                if let Some(upper_errors) = upper_errors {
+                    errors.extend(upper_errors);
+                }
+            }
+
+            if self
+                .tokens
+                .get(*index)
+                .map_or(false, |token| token.kind == TokenType::Colon)
+            {
+                // consume ":"
+                *index += 1;
+
+                let token = self.tokens.get(*index).unwrap();
+                if helpers::is_token_start_of_expr(token) {
+                    let (step_expr, step_errors) = self.parse_expression(index, AllowedExpr::ALL);
+                    end_span = step_expr.span().end;
+                    step = Some(step_expr);
+
+                    if let Some(step_errors) = step_errors {
+                        errors.extend(step_errors);
+                    }
+                }
+            }
+        }
+
+        if self
+            .tokens
+            .get(*index)
+            .map_or(false, |token| token.kind != TokenType::CloseBrackets)
+        {
+            errors.push(PythonError {
+                error: PythonErrorType::Syntax,
+                msg: format!("SyntaxError: expecting ']' at position: {}", end_span + 1),
+                span: Span {
+                    start: lhs.span().start,
+                    end: end_span + 1,
+                },
+            })
+        } else {
+            *index += 1;
+        }
+
+        end_span = self.tokens.get(*index).unwrap().span.start;
+
+        (
+            Expression::Subscript(Subscript {
+                span: Span {
+                    start: lhs.span().start,
+                    end: end_span,
+                },
+                lhs: Box::new(lhs),
+                slice: Box::new(if is_slice {
+                    SubscriptType::Slice { lower, upper, step }
+                } else {
+                    SubscriptType::Subscript(lower.unwrap())
+                }),
             }),
             if errors.is_empty() { None } else { Some(errors) },
         )
