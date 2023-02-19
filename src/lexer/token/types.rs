@@ -1,6 +1,5 @@
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum TokenType {
-    At,
     CloseBrace,
     CloseBrackets,
     CloseParenthesis,
