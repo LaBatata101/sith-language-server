@@ -298,9 +298,9 @@ pub struct AnnAssign {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Function {
     pub name: String,
-    pub name_span: Span,
     pub parameters: Vec<FuncParameter>,
     pub block: Block,
+    pub decorators: Vec<Expression>,
     pub span: Span,
 }
 

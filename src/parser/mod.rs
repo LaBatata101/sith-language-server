@@ -314,28 +314,36 @@ impl Parser {
         (lhs, if errors.is_empty() { None } else { Some(errors) })
     }
 
-    fn parse_function(
-        &self,
-        index: &mut usize,
-        func_span_start: usize,
-        name: String,
-        name_span: Span,
-    ) -> (Function, Option<Vec<PythonError>>) {
+    fn parse_function(&self, index: &mut usize) -> (Function, Option<Vec<PythonError>>) {
         let mut errors = vec![];
+
+        let token = self.tokens.get(*index).unwrap();
+        let name = if let Token {
+            kind: TokenType::Id(name),
+            ..
+        } = token
+        {
+            name.to_string()
+        } else {
+            errors.push(PythonError {
+                error: PythonErrorType::Syntax,
+                msg: format!("SyntaxError: invalid function name"),
+                span: token.span,
+            });
+
+            String::from("")
+        };
+
         let mut function = Function {
             name,
-            name_span,
-            span: Span {
-                start: func_span_start,
-                end: 0,
-            },
+            span: Span::default(),
             block: Block::default(),
             parameters: vec![],
+            decorators: vec![],
         };
 
         // Consume function identifier keyword
         *index += 1;
-        // self.expect_next_token_or_error(index, TokenType::OpenParenthesis, "SyntaxError: expecting '(' got {:?}");
         let mut token = self.tokens.get(*index).unwrap();
         if token.kind != TokenType::OpenParenthesis {
             errors.push(PythonError {
@@ -387,6 +395,50 @@ impl Parser {
         function.block = block;
 
         (function, if errors.is_empty() { None } else { Some(errors) })
+    }
+
+    fn parse_function_with_decorator(&self, index: &mut usize) -> (Function, Option<Vec<PythonError>>) {
+        let mut decorators = vec![];
+        let mut errors = vec![];
+
+        loop {
+            // FIXME: specify correct expression allowed in decorators
+            let (decorator, decorator_errors) = self.parse_expression(index, AllowedExpr::ALL);
+
+            if let Some(decorator_errors) = decorator_errors {
+                errors.extend(decorator_errors);
+            }
+
+            decorators.push(decorator);
+
+            if self.tokens.get(*index).unwrap().kind != TokenType::Operator(OperatorType::At) {
+                break;
+            }
+
+            // consume @
+            *index += 1;
+        }
+
+        let token = self.tokens.get(*index).unwrap();
+        if token.kind != TokenType::Keyword(KeywordType::Def) {
+            errors.push(PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: expected function declaration after decorator".to_string(),
+                span: token.span,
+            });
+        } else {
+            // consume "def"
+            *index += 1;
+        }
+
+        let (mut func, func_errors) = self.parse_function(index);
+        func.decorators = decorators;
+
+        if let Some(func_errors) = func_errors {
+            errors.extend(func_errors);
+        }
+
+        (func, if errors.is_empty() { None } else { Some(errors) })
     }
 
     // TODO: add suport for simple stmts
@@ -445,33 +497,16 @@ impl Parser {
 
         match &token.kind {
             TokenType::Keyword(KeywordType::Def) => {
-                // TODO: move this check into `parse_function`
-                let next_token = self.tokens.get(*index).unwrap();
-                if let Token {
-                    kind: TokenType::Id(name),
-                    span: func_name_span,
-                } = next_token
-                {
-                    // *index += 1;
-                    let (mut func, func_errors) =
-                        self.parse_function(index, token.span.start, name.to_string(), *func_name_span);
-                    func.span.start = token.span.start;
+                let (mut func, func_errors) = self.parse_function(index);
+                func.span.start = token.span.start;
 
-                    if func_errors.is_some() {
-                        (Statement::FunctionDef(func), func_errors)
-                    } else {
-                        (Statement::FunctionDef(func), None)
-                    }
-                } else {
-                    (
-                        Statement::Invalid(next_token.span),
-                        Some(vec![PythonError {
-                            error: PythonErrorType::Syntax,
-                            msg: format!("SyntaxError: invalid function name"),
-                            span: next_token.span,
-                        }]),
-                    )
-                }
+                (Statement::FunctionDef(func), func_errors)
+            }
+            TokenType::Operator(OperatorType::At) => {
+                let (mut func, func_errors) = self.parse_function_with_decorator(index);
+                func.span.start = token.span.start;
+
+                (Statement::FunctionDef(func), func_errors)
             }
             TokenType::Keyword(KeywordType::If) => {
                 let (mut if_stmt, if_stmt_errors) = self.parse_if(index);

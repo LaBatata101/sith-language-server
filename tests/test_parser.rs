@@ -273,7 +273,7 @@ mod tests_parser {
             ParsedFile {
                 stmts: vec![Statement::FunctionDef(Function {
                     name: "x".to_string(),
-                    name_span: Span { start: 4, end: 5 },
+                    decorators: vec![],
                     block: Block {
                         stmts: vec![Statement::Pass(Span { start: 13, end: 17 })],
                         span: Span { start: 13, end: 17 }
@@ -301,8 +301,8 @@ mod tests_parser {
             ParsedFile {
                 stmts: vec![Statement::FunctionDef(Function {
                     name: "x".to_string(),
-                    name_span: Span { start: 4, end: 5 },
                     parameters: vec![],
+                    decorators: vec![],
                     block: Block {
                         stmts: vec![
                             Statement::Pass(Span { start: 13, end: 17 }),
@@ -332,7 +332,7 @@ mod tests_parser {
             ParsedFile {
                 stmts: vec![Statement::FunctionDef(Function {
                     name: "test".to_string(),
-                    name_span: Span { start: 4, end: 8 },
+                    decorators: vec![],
                     parameters: vec![
                         FuncParameter {
                             name: "x".to_string(),
@@ -371,7 +371,7 @@ mod tests_parser {
             ParsedFile {
                 stmts: vec![Statement::FunctionDef(Function {
                     name: "test".to_string(),
-                    name_span: Span { start: 4, end: 8 },
+                    decorators: vec![],
                     parameters: vec![
                         FuncParameter {
                             name: "kargs".to_string(),
@@ -1597,7 +1597,7 @@ else:
                     block: Block {
                         stmts: vec![Statement::FunctionDef(Function {
                             name: "__init__".to_string(),
-                            name_span: Span { start: 20, end: 28 },
+                            decorators: vec![],
                             parameters: vec![FuncParameter {
                                 name: "self".to_string(),
                                 default_value: None,
@@ -1637,7 +1637,7 @@ else:
                     block: Block {
                         stmts: vec![Statement::FunctionDef(Function {
                             name: "__init__".to_string(),
-                            name_span: Span { start: 27, end: 35 },
+                            decorators: vec![],
                             parameters: vec![FuncParameter {
                                 name: "self".to_string(),
                                 default_value: None,
@@ -2081,8 +2081,8 @@ def x():
             ParsedFile {
                 stmts: vec![Statement::FunctionDef(Function {
                     name: "x".to_string(),
-                    name_span: Span { start: 5, end: 6 },
                     parameters: vec![],
+                    decorators: vec![],
                     block: Block {
                         stmts: vec![Statement::Return(ReturnStmt {
                             value: None,
@@ -2111,8 +2111,8 @@ def x():
             ParsedFile {
                 stmts: vec![Statement::FunctionDef(Function {
                     name: "x".to_string(),
-                    name_span: Span { start: 5, end: 6 },
                     parameters: vec![],
+                    decorators: vec![],
                     block: Block {
                         stmts: vec![Statement::Return(ReturnStmt {
                             value: Some(Expression::BinaryOp(
@@ -2148,8 +2148,8 @@ def test():
             ParsedFile {
                 stmts: vec![Statement::FunctionDef(Function {
                     name: "test".to_string(),
-                    name_span: Span { start: 5, end: 9 },
                     parameters: vec![],
+                    decorators: vec![],
                     block: Block {
                         stmts: vec![
                             Statement::Expression(Expression::Yield(
@@ -2200,8 +2200,8 @@ def test():
             ParsedFile {
                 stmts: vec![Statement::FunctionDef(Function {
                     name: "test".to_string(),
-                    name_span: Span { start: 5, end: 9 },
                     parameters: vec![],
+                    decorators: vec![],
                     block: Block {
                         stmts: vec![Statement::Expression(Expression::YieldFrom(
                             Box::new(Expression::Call(FunctionCall {
@@ -2552,6 +2552,44 @@ l[:]
                         span: Span { start: 35, end: 39 }
                     }))
                 ]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_function_with_decorators() {
+        let parser = Parser::new(
+            "
+@abc
+@abc.cde
+def test():
+   ...
+",
+        );
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::FunctionDef(Function {
+                    name: "test".to_string(),
+                    parameters: vec![],
+                    block: Block {
+                        stmts: vec![Statement::Expression(Expression::Ellipsis(Span { start: 30, end: 33 }))],
+                        span: Span { start: 30, end: 33 }
+                    },
+                    decorators: vec![
+                        Expression::Id("abc".to_string(), Span { start: 2, end: 5 }),
+                        Expression::BinaryOp(
+                            Box::new(Expression::Id("abc".to_string(), Span { start: 7, end: 10 })),
+                            BinaryOperator::AttributeRef,
+                            Box::new(Expression::Id("cde".to_string(), Span { start: 11, end: 14 })),
+                            Span { start: 7, end: 14 }
+                        )
+                    ],
+                    span: Span { start: 1, end: 33 }
+                })]
             }
         )
     }
