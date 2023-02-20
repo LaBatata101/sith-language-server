@@ -44,19 +44,24 @@ impl<'a> Lexer<'a> {
                     break;
                 }
 
+                // Skip comments
+                if self.cs.current_char().map_or(false, |char| char == '#') {
+                    self.cs.advance_while(1, |char| char != '\n');
+                }
+
                 // skip lines containing only white spaces or \n
                 // FIXME: handle \r and \r\n
-                if (whitespace_total > 0 || whitespace_total == 0)
-                    && self.cs.current_char().map_or(false, |char| char == '\n')
-                {
+                if self.cs.current_char().map_or(false, |char| char == '\n') && implicit_line_joining == 0 {
                     is_beginning_of_line = true;
                     // Consume \n
                     self.cs.advance_by(1);
                     continue;
                 }
 
-                if let Err(error) = self.handle_indentation(whitespace_total) {
-                    errors.push(error);
+                if implicit_line_joining == 0 {
+                    if let Err(error) = self.handle_indentation(whitespace_total) {
+                        errors.push(error);
+                    }
                 }
             }
 
@@ -177,9 +182,6 @@ impl<'a> Lexer<'a> {
                 }
                 '#' => {
                     self.cs.advance_while(1, |char| char != '\n');
-                    // consume \n
-                    self.cs.advance_by(1);
-                    is_beginning_of_line = true;
                 }
                 _ => {
                     let start = self.cs.pos();
