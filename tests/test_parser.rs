@@ -2067,6 +2067,64 @@ finally:
     }
 
     #[test]
+    fn parse_try_with_multiple_excepts() {
+        let parser = Parser::new(
+            "
+try:
+    pass
+except:
+    1 + 1
+except:
+    pass
+",
+        );
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Try(TryStmt {
+                    block: Block {
+                        stmts: vec![Statement::Pass(Span { start: 10, end: 14 })],
+                        span: Span { start: 10, end: 14 }
+                    },
+                    finally_block: None,
+                    except_blocks: vec![
+                        ExceptBlock {
+                            block: Block {
+                                stmts: vec![Statement::Expression(Expression::BinaryOp(
+                                    Box::new(Expression::Number("1".to_string(), Span { start: 27, end: 28 })),
+                                    BinaryOperator::Add,
+                                    Box::new(Expression::Number("1".to_string(), Span { start: 31, end: 32 })),
+                                    Span { start: 27, end: 32 }
+                                ))],
+                                span: Span { start: 27, end: 32 }
+                            },
+                            kind: ExceptBlockKind::Except,
+                            expr: None,
+                            expr_alias: None,
+                            span: Span { start: 15, end: 32 }
+                        },
+                        ExceptBlock {
+                            block: Block {
+                                stmts: vec![Statement::Pass(Span { start: 45, end: 49 })],
+                                span: Span { start: 45, end: 49 }
+                            },
+                            kind: ExceptBlockKind::Except,
+                            expr: None,
+                            expr_alias: None,
+                            span: Span { start: 33, end: 49 }
+                        }
+                    ],
+                    else_stmt: None,
+                    span: Span { start: 1, end: 49 }
+                })]
+            }
+        )
+    }
+
+    #[test]
     fn parse_return_stmt() {
         let parser = Parser::new(
             "

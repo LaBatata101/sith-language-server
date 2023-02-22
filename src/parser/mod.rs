@@ -1815,8 +1815,8 @@ impl Parser {
 
         token = self.tokens.get(*index).unwrap();
         let mut has_except = false;
-        // TODO: parse more than one except block
-        if token.kind == TokenType::Keyword(KeywordType::Except) {
+
+        while token.kind == TokenType::Keyword(KeywordType::Except) {
             has_except = true;
             // Consume "except"
             *index += 1;
@@ -1835,7 +1835,7 @@ impl Parser {
             }
 
             if self.tokens.get(*index).unwrap().kind != TokenType::Colon {
-                let (expr, expr_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
+                let (expr, expr_errors) = self.parse_expression(index, AllowedExpr::ALL);
                 except_block.expr = Some(expr);
 
                 if let Some(expr_errors) = expr_errors {
