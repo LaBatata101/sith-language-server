@@ -1652,12 +1652,7 @@ else:
                         })],
                         span: Span { start: 23, end: 55 }
                     },
-                    super_classes: vec![FuncParameter {
-                        name: "Animal".to_string(),
-                        default_value: None,
-                        star_parameter_type: None,
-                        span: Span { start: 10, end: 16 }
-                    }],
+                    base_classes: vec![Expression::Id("Animal".to_string(), Span { start: 10, end: 16 })],
                     span: Span { start: 0, end: 55 }
                 })]
             }

@@ -1442,11 +1442,17 @@ impl Parser {
         if token.kind == TokenType::OpenParenthesis {
             // Consume (
             *index += 1;
-            let (super_classes, super_classes_errors) = self.parse_function_parameters(index);
-            class.super_classes = super_classes;
+            if self
+                .tokens
+                .get(*index)
+                .map_or(false, |token| helpers::is_token_start_of_expr(token))
+            {
+                let (base_classes, base_classes_errors) = self.parse_base_classes(index);
+                class.base_classes = base_classes;
 
-            if let Some(super_classes_errors) = super_classes_errors {
-                errors.extend(super_classes_errors);
+                if let Some(super_classes_errors) = base_classes_errors {
+                    errors.extend(super_classes_errors);
+                }
             }
 
             token = self.tokens.get(*index).unwrap();
@@ -1484,6 +1490,27 @@ impl Parser {
         class.span.end = class.block.span.end;
 
         (class, if errors.is_empty() { None } else { Some(errors) })
+    }
+
+    fn parse_base_classes(&self, index: &mut usize) -> (Vec<Expression>, Option<Vec<PythonError>>) {
+        let mut bases = vec![];
+        let mut errors = vec![];
+        let allowed_expr_in_args = AllowedExpr::ALL ^ AllowedExpr::TUPLE_NO_PARENS | AllowedExpr::ASSIGN;
+
+        loop {
+            let (expr, expr_errors) = self.parse_expression(index, allowed_expr_in_args);
+            bases.push(expr);
+
+            if let Some(expr_errors) = expr_errors {
+                errors.extend(expr_errors);
+            }
+
+            if self.tokens.get(*index).unwrap().kind != TokenType::Comma {
+                break;
+            }
+        }
+
+        (bases, if errors.is_empty() { None } else { Some(errors) })
     }
 
     fn parse_import(&self, index: &mut usize) -> (ImportStmt, Option<Vec<PythonError>>) {
