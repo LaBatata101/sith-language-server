@@ -2,6 +2,7 @@ use crate::lexer::token::Span;
 
 #[derive(Debug, PartialEq, Eq, Default)]
 pub enum Statement {
+    Assert(AssertStmt),
     Expression(Expression),
     Block(Block),
     FunctionDef(Function),
@@ -45,6 +46,7 @@ impl Statement {
             Statement::For(for_stmt) => for_stmt.span,
             Statement::Raise(raise) => raise.span,
             Statement::Del(del) => del.span,
+            Statement::Assert(assert) => assert.span,
             Statement::None => Span { start: 0, end: 0 },
         }
     }
@@ -449,4 +451,10 @@ pub enum SubscriptType {
         step: Option<Expression>,
     },
     Subscript(Expression),
+}
+
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct AssertStmt {
+    pub expr: Expression,
+    pub span: Span,
 }

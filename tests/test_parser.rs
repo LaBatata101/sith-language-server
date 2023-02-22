@@ -6,11 +6,11 @@ mod tests_parser {
         lexer::token::Span,
         parser::{
             ast::{
-                AnnAssign, Assign, AugAssign, AugAssignType, BinaryOperator, Block, ClassStmt, DelStmt, DictItemType,
-                ElIfStmt, ElseStmt, ExceptBlock, ExceptBlockKind, Expression, FinallyBlock, ForStmt, FromImportStmt,
-                FuncParameter, Function, FunctionCall, IfElseExpr, IfStmt, ImportModule, ImportStmt, LambdaExpr,
-                ParsedFile, RaiseStmt, ReturnStmt, StarParameterType, Statement, Subscript, SubscriptType, TryStmt,
-                UnaryOperator, While, WithItem, WithStmt,
+                AnnAssign, AssertStmt, Assign, AugAssign, AugAssignType, BinaryOperator, Block, ClassStmt, DelStmt,
+                DictItemType, ElIfStmt, ElseStmt, ExceptBlock, ExceptBlockKind, Expression, FinallyBlock,
+                ForStmt, FromImportStmt, FuncParameter, Function, FunctionCall, IfElseExpr, IfStmt,
+                ImportModule, ImportStmt, LambdaExpr, ParsedFile, RaiseStmt, ReturnStmt, StarParameterType,
+                Statement, Subscript, SubscriptType, TryStmt, UnaryOperator, While, WithItem, WithStmt,
             },
             Parser,
         },
@@ -2647,6 +2647,28 @@ def test():
                         )
                     ],
                     span: Span { start: 1, end: 33 }
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_assert_stmt() {
+        let parser = Parser::new("assert 1 > x");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Assert(AssertStmt {
+                    expr: Expression::BinaryOp(
+                        Box::new(Expression::Number("1".to_string(), Span { start: 7, end: 8 })),
+                        BinaryOperator::GreaterThan,
+                        Box::new(Expression::Id("x".to_string(), Span { start: 11, end: 12 })),
+                        Span { start: 7, end: 12 }
+                    ),
+                    span: Span { start: 0, end: 12 }
                 })]
             }
         )

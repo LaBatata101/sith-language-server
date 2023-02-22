@@ -2477,4 +2477,16 @@ impl Parser {
             if errors.is_empty() { None } else { Some(errors) },
         )
     }
+
+    fn parse_assert(&self, index: &mut usize) -> (AssertStmt, Option<Vec<PythonError>>) {
+        let (expr, expr_errors) = self.parse_expression(index, AllowedExpr::ALL);
+
+        (
+            AssertStmt {
+                span: expr.span(),
+                expr,
+            },
+            expr_errors,
+        )
+    }
 }
