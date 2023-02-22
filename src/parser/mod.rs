@@ -965,7 +965,8 @@ impl Parser {
 
         // If we see the "**" operator that means we are unpacking a dictionary, therefore, we
         // should parse as a dictionary instead of a set.
-        if self.tokens.get(*index).unwrap().kind == TokenType::Operator(OperatorType::Exponent) {
+        let token = self.tokens.get(*index).unwrap();
+        if token.kind == TokenType::Operator(OperatorType::Exponent) {
             let (lhs, lhs_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
 
             if let Some(lhs_errors) = lhs_errors {
@@ -982,6 +983,23 @@ impl Parser {
             }
 
             return self.parse_dict_expression(index, DictItemType::Unpack(lhs), brace_span_start);
+        }
+
+        // If a "}" is found right after the "{", return an empty dict
+        if token.kind == TokenType::CloseBrace {
+            // consume }
+            *index += 1;
+
+            return (
+                Expression::Dict(
+                    Vec::new(),
+                    Span {
+                        start: brace_span_start,
+                        end: token.span.end,
+                    },
+                ),
+                None,
+            );
         }
 
         let (lhs, lhs_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
