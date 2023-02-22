@@ -2000,7 +2000,7 @@ impl Parser {
                     | TokenType::Keyword(KeywordType::Not | KeywordType::None)
             )
         ) {
-            let (expr, expr_errors) = self.pratt_parsing(index, 0, AllowedExpr::ALL);
+            let (expr, expr_errors) = self.parse_expression(index, AllowedExpr::ALL);
             if let Some(expr_errors) = expr_errors {
                 errors.extend(expr_errors);
             }
