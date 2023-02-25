@@ -7,9 +7,9 @@ mod tests_parser {
         parser::{
             ast::{
                 AnnAssign, AssertStmt, Assign, AugAssign, AugAssignType, BinaryOperator, Block, ClassStmt, DelStmt,
-                DictItemType, ElIfStmt, ElseStmt, ExceptBlock, ExceptBlockKind, Expression, FinallyBlock,
-                ForStmt, FromImportStmt, FuncParameter, Function, FunctionCall, IfElseExpr, IfStmt,
-                ImportModule, ImportStmt, LambdaExpr, ParsedFile, RaiseStmt, ReturnStmt, StarParameterType,
+                DictItemType, ElIfStmt, ElseStmt, ExceptBlock, ExceptBlockKind, Expression, FinallyBlock, ForComp,
+                ForStmt, FromImportStmt, FuncParameter, Function, FunctionCall, IfComp, IfElseExpr, IfStmt,
+                ImportModule, ImportStmt, LambdaExpr, ListComp, ParsedFile, RaiseStmt, ReturnStmt, StarParameterType,
                 Statement, Subscript, SubscriptType, TryStmt, UnaryOperator, While, WithItem, WithStmt,
             },
             Parser,
@@ -338,13 +338,17 @@ mod tests_parser {
                             name: "x".to_string(),
                             default_value: None,
                             span: Span { start: 9, end: 10 },
-                            star_parameter_type: None
+                            star_parameter_type: None,
+                            is_kw_only: false,
+                            is_pos_only: false
                         },
                         FuncParameter {
                             name: "y".to_string(),
                             default_value: Some(Expression::Number("42".to_string(), Span { start: 16, end: 18 })),
                             span: Span { start: 12, end: 18 },
-                            star_parameter_type: None
+                            star_parameter_type: None,
+                            is_kw_only: false,
+                            is_pos_only: false
                         }
                     ],
                     block: Block {
@@ -377,13 +381,17 @@ mod tests_parser {
                             name: "kargs".to_string(),
                             default_value: None,
                             span: Span { start: 10, end: 15 },
-                            star_parameter_type: Some(StarParameterType::Kargs)
+                            star_parameter_type: Some(StarParameterType::Kargs),
+                            is_kw_only: false,
+                            is_pos_only: false
                         },
                         FuncParameter {
                             name: "kwargs".to_string(),
                             default_value: None,
                             span: Span { start: 19, end: 25 },
-                            star_parameter_type: Some(StarParameterType::KWargs)
+                            star_parameter_type: Some(StarParameterType::KWargs),
+                            is_kw_only: false,
+                            is_pos_only: false
                         }
                     ],
                     block: Block {
@@ -1533,7 +1541,9 @@ else:
                         name: "x".to_string(),
                         default_value: None,
                         star_parameter_type: None,
-                        span: Span { start: 7, end: 8 }
+                        span: Span { start: 7, end: 8 },
+                        is_kw_only: false,
+                        is_pos_only: false
                     }],
                     expression: Box::new(Expression::BinaryOp(
                         Box::new(Expression::Id("x".to_string(), Span { start: 10, end: 11 })),
@@ -1562,7 +1572,9 @@ else:
                             name: "x".to_string(),
                             default_value: None,
                             star_parameter_type: None,
-                            span: Span { start: 8, end: 9 }
+                            span: Span { start: 8, end: 9 },
+                            is_kw_only: false,
+                            is_pos_only: false
                         }],
                         expression: Box::new(Expression::BinaryOp(
                             Box::new(Expression::Id("x".to_string(), Span { start: 11, end: 12 })),
@@ -1602,7 +1614,9 @@ else:
                                 name: "self".to_string(),
                                 default_value: None,
                                 star_parameter_type: None,
-                                span: Span { start: 29, end: 33 }
+                                span: Span { start: 29, end: 33 },
+                                is_kw_only: false,
+                                is_pos_only: false
                             }],
                             block: Block {
                                 stmts: vec![Statement::Pass(Span { start: 44, end: 48 })],
@@ -1612,7 +1626,7 @@ else:
                         })],
                         span: Span { start: 16, end: 48 }
                     },
-                    super_classes: vec![],
+                    base_classes: vec![],
                     span: Span { start: 0, end: 48 }
                 })]
             }
@@ -1642,7 +1656,9 @@ else:
                                 name: "self".to_string(),
                                 default_value: None,
                                 star_parameter_type: None,
-                                span: Span { start: 36, end: 40 }
+                                span: Span { start: 36, end: 40 },
+                                is_kw_only: false,
+                                is_pos_only: false
                             }],
                             block: Block {
                                 stmts: vec![Statement::Pass(Span { start: 51, end: 55 })],
@@ -2642,6 +2658,136 @@ def test():
                         )
                     ],
                     span: Span { start: 1, end: 33 }
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_list_comprehension() {
+        let parser = Parser::new("[n for n in dir(module) if n[0] != \"_\"]");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Expression(Expression::ListComp(ListComp {
+                    target: Box::new(Expression::Id("n".to_string(), Span { start: 1, end: 2 })),
+                    ifs: vec![IfComp {
+                        cond: Expression::BinaryOp(
+                            Box::new(Expression::Subscript(Subscript {
+                                lhs: Box::new(Expression::Id("n".to_string(), Span { start: 27, end: 28 })),
+                                slice: Box::new(SubscriptType::Subscript(Expression::Number(
+                                    "0".to_string(),
+                                    Span { start: 29, end: 30 }
+                                ))),
+                                span: Span { start: 27, end: 32 }
+                            })),
+                            BinaryOperator::NotEqual,
+                            Box::new(Expression::String("_".to_string(), Span { start: 35, end: 38 })),
+                            Span { start: 27, end: 38 }
+                        ),
+                        span: Span { start: 24, end: 38 }
+                    }],
+                    fors: vec![ForComp {
+                        target: Expression::Id("n".to_string(), Span { start: 7, end: 8 }),
+                        iter: Expression::Call(FunctionCall {
+                            lhs: Box::new(Expression::Id("dir".to_string(), Span { start: 12, end: 15 })),
+                            args: vec![Expression::Id("module".to_string(), Span { start: 16, end: 22 })],
+                            span: Span { start: 12, end: 26 }
+                        }),
+                        span: Span { start: 3, end: 26 }
+                    }],
+                    span: Span { start: 0, end: 39 }
+                }))]
+            }
+        );
+    }
+
+    #[test]
+    fn parse_function_with_kw_only_parameters() {
+        let parser = Parser::new(
+            "
+def test(x=0, *, y=0):
+    ...",
+        );
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::FunctionDef(Function {
+                    name: "test".to_string(),
+                    parameters: vec![
+                        FuncParameter {
+                            name: "x".to_string(),
+                            default_value: Some(Expression::Number("0".to_string(), Span { start: 12, end: 13 })),
+                            star_parameter_type: None,
+                            is_kw_only: false,
+                            is_pos_only: false,
+                            span: Span { start: 10, end: 13 }
+                        },
+                        FuncParameter {
+                            name: "y".to_string(),
+                            default_value: Some(Expression::Number("0".to_string(), Span { start: 20, end: 21 })),
+                            star_parameter_type: None,
+                            is_kw_only: true,
+                            is_pos_only: false,
+                            span: Span { start: 18, end: 21 }
+                        }
+                    ],
+                    block: Block {
+                        stmts: vec![Statement::Expression(Expression::Ellipsis(Span { start: 28, end: 31 }))],
+                        span: Span { start: 28, end: 31 }
+                    },
+                    decorators: vec![],
+                    span: Span { start: 1, end: 31 }
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_function_with_kw_only_and_pos_only_parameters() {
+        let parser = Parser::new(
+            "
+def test(x, /, *, y):
+    ...",
+        );
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::FunctionDef(Function {
+                    name: "test".to_string(),
+                    parameters: vec![
+                        FuncParameter {
+                            name: "x".to_string(),
+                            default_value: None,
+                            star_parameter_type: None,
+                            is_kw_only: false,
+                            is_pos_only: true,
+                            span: Span { start: 10, end: 11 }
+                        },
+                        FuncParameter {
+                            name: "y".to_string(),
+                            default_value: None,
+                            star_parameter_type: None,
+                            is_kw_only: true,
+                            is_pos_only: false,
+                            span: Span { start: 19, end: 20 }
+                        }
+                    ],
+                    block: Block {
+                        stmts: vec![Statement::Expression(Expression::Ellipsis(Span { start: 27, end: 30 }))],
+                        span: Span { start: 27, end: 30 }
+                    },
+                    decorators: vec![],
+                    span: Span { start: 1, end: 30 }
                 })]
             }
         )

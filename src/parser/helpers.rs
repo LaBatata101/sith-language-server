@@ -9,36 +9,133 @@ use super::ast::{BinaryOperator, Operation, UnaryOperator};
 
 bitflags! {
     #[derive(Default)]
-    pub struct AllowedExpr: u32 {
-        const BINARY_OP = 1 << 0;
-        const BOOL = 1 << 1;
-        const CALL = 1 << 2;
-        const DICT = 1 << 3;
-        const ELLIPSIS = 1 << 4;
-        const ID = 1 << 5;
-        const IF_ELSE = 1 << 6;
-        const LAMBDA = 1 << 7;
-        const LIST = 1 << 8;
-        const NONE = 1 << 9;
-        const NUMBER = 1 << 10;
-        const PARENTHESIZED = 1<< 11;
-        const SET = 1 << 12;
-        const SLICE = 1 << 13;
-        const STRING = 1 << 14;
-        const TUPLE = 1 << 15;
-        const UNARY_OP = 1 << 16;
-        const YIELD = 1 << 17;
-        const YIELD_FROM = 1 << 18;
-        const ATTR_REF = 1 << 19;
-        const ASSIGN = 1 << 20;
-        const TUPLE_NO_PARENS = 1 << 21;
+    pub struct ExprBitflag: u32 {
+        const BOOL = 1 << 0;
+        const DICT = 1 << 1;
+        const ELLIPSIS = 1 << 2;
+        const ID = 1 << 3;
+        const LIST = 1 << 4;
+        const NONE = 1 << 5;
+        const NUMBER = 1 << 6;
+        const PARENTHESIZED = 1 << 7;
+        const SET = 1 << 8;
+        const STRING = 1 << 9;
+        const TUPLE = 1 << 10;
+        const YIELD = 1 << 11;
+        const YIELD_FROM = 1 << 12;
+        const ASSIGN = 1 << 13;
+        const TUPLE_NO_PARENS = 1 << 14;
         /// Doesn't contain the ASSIGN
-        const ALL = Self::BINARY_OP.bits
-                    | Self::BOOL.bits | Self::CALL.bits | Self::DICT.bits | Self::ELLIPSIS.bits | Self::ID.bits
-                    | Self::IF_ELSE.bits | Self::LAMBDA.bits | Self::LIST.bits | Self::NONE.bits | Self::NUMBER.bits
-                    | Self::SET.bits | Self::SLICE.bits | Self::STRING.bits | Self::TUPLE.bits | Self::UNARY_OP.bits
-                    | Self::YIELD.bits | Self::YIELD_FROM.bits | Self::PARENTHESIZED.bits | Self::ATTR_REF.bits
-                    | Self::TUPLE_NO_PARENS.bits;
+        const ALL = Self::BOOL.bits | Self::DICT.bits | Self::ELLIPSIS.bits | Self::ID.bits | Self::LIST.bits
+                    | Self::NONE.bits | Self::NUMBER.bits | Self::SET.bits | Self::STRING.bits | Self::TUPLE.bits
+                    | Self::YIELD.bits | Self::YIELD_FROM.bits | Self::PARENTHESIZED.bits | Self::TUPLE_NO_PARENS.bits;
+    }
+
+    #[derive(Default)]
+    pub struct BinaryOperationsBitflag: u32 {
+        const ADD = 1 << 0;
+        const SUBTRACT = 1 << 1;
+        const FLOOR_DIVISION = 1 << 2;
+        const DIVISION = 1 << 3;
+        const MULTIPLY = 1 << 4;
+        const MODULO = 1 << 5;
+        const EXPONENT = 1 << 6;
+
+        const IN = 1 << 7;
+        const IS = 1 << 8;
+        const NOT_IN = 1 << 9;
+        const IS_NOT = 1 << 10;
+        const LESS_THAN = 1 << 11;
+        const LESS_THAN_OR_EQUAL = 1 << 12;
+        const GREATER_THAN = 1 << 13;
+        const GREATER_THAN_OR_EQUAL = 1 << 14;
+        const EQUALS = 1 << 15;
+        const NOT_EQUAL = 1 << 16;
+        const OR = 1 << 17;
+        const AND = 1 << 18;
+
+        const BITWISE_OR = 1 << 19;
+        const BITWISE_XOR = 1 << 20;
+        const BITWISE_AND = 1 << 22;
+        const BITWISE_LEFT_SHIFT = 1 << 22;
+        const BITWISE_RIGHT_SHIFT = 1 << 23;
+
+        const WALRUS = 1 << 24;
+        const IF_ELSE = 1 << 25;
+        const ATTRIBUTE_REF = 1 << 26;
+
+        const AT = 1 << 27;
+
+        const ALL = Self::ADD.bits | Self::SUBTRACT.bits | Self::FLOOR_DIVISION.bits | Self::DIVISION.bits
+        | Self::MULTIPLY.bits | Self::MODULO.bits | Self::EXPONENT.bits | Self::IN.bits | Self::IS.bits
+        | Self::NOT_IN.bits | Self::IS_NOT.bits | Self::LESS_THAN.bits | Self::LESS_THAN_OR_EQUAL.bits
+        | Self::GREATER_THAN.bits | Self::GREATER_THAN_OR_EQUAL.bits | Self::EQUALS.bits | Self::NOT_EQUAL.bits
+        | Self::OR.bits | Self::AND.bits | Self::BITWISE_OR.bits | Self::BITWISE_XOR.bits | Self::BITWISE_AND.bits
+        | Self::BITWISE_LEFT_SHIFT.bits | Self::BITWISE_RIGHT_SHIFT.bits | Self::WALRUS.bits | Self::IF_ELSE.bits
+        | Self::ATTRIBUTE_REF.bits | Self::AT.bits;
+    }
+
+    #[derive(Default)]
+    pub struct UnaryOperationsBitflag: u32 {
+        const PLUS = 1 << 0;
+        const MINUS = 1 << 1;
+        const BITWISE_NOT = 1 << 2;
+        const NOT = 1 << 3;
+        const AWAIT = 1 << 4;
+        const LAMBDA = 1 << 5;
+        const FUNC_CALL = 1 << 6;
+        const SUBSCRIPT = 1 << 7;
+        const UNPACK_ITERABLE = 1 << 8;
+        const UNPACK_DICT = 1 << 9;
+        const ALL = Self::PLUS.bits | Self::MINUS.bits | Self::BITWISE_NOT.bits | Self::NOT.bits | Self::AWAIT.bits
+                    | Self::LAMBDA.bits | Self::FUNC_CALL.bits | Self::SUBSCRIPT.bits | Self::UNPACK_ITERABLE.bits
+                    | Self::UNPACK_DICT.bits;
+    }
+}
+
+#[derive(Default, Clone, Copy)]
+pub struct ParseExprBitflags {
+    pub expressions: ExprBitflag,
+    pub binary_op: BinaryOperationsBitflag,
+    pub unary_op: UnaryOperationsBitflag,
+}
+
+impl ParseExprBitflags {
+    pub fn empty() -> Self {
+        Self { ..Default::default() }
+    }
+
+    pub fn all() -> Self {
+        Self {
+            expressions: ExprBitflag::ALL | ExprBitflag::ASSIGN,
+            binary_op: BinaryOperationsBitflag::ALL,
+            unary_op: UnaryOperationsBitflag::ALL,
+        }
+    }
+
+    pub fn set_binary_op(mut self, binary_op: BinaryOperationsBitflag) -> Self {
+        self.binary_op = binary_op;
+        self
+    }
+
+    pub fn set_unary_op(mut self, unary_op: UnaryOperationsBitflag) -> Self {
+        self.unary_op = unary_op;
+        self
+    }
+
+    pub fn set_expressions(mut self, expr: ExprBitflag) -> Self {
+        self.expressions = expr;
+        self
+    }
+
+    pub fn remove_expression(mut self, expr: ExprBitflag) -> Self {
+        self.expressions.remove(expr);
+        self
+    }
+
+    pub fn remove_binary_op(mut self, bin_op: BinaryOperationsBitflag) -> Self {
+        self.binary_op.remove(bin_op);
+        self
     }
 }
 
@@ -141,5 +238,6 @@ pub fn is_token_end_of_expr(token: &Token) -> bool {
             | TokenType::Keyword(KeywordType::Else)
             | TokenType::Keyword(KeywordType::As)
             | TokenType::Keyword(KeywordType::From)
+            | TokenType::Keyword(KeywordType::For)
     )
 }

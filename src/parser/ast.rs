@@ -65,6 +65,7 @@ pub enum Expression {
     Call(FunctionCall),
     Subscript(Subscript),
     List(Vec<Expression>, Span),
+    ListComp(ListComp),
     Dict(Vec<DictItemType>, Span),
     Set(Vec<Expression>, Span),
     Tuple(Vec<Expression>, Span),
@@ -91,6 +92,7 @@ impl Expression {
             Expression::Lambda(lambda) => lambda.span,
             Expression::Call(func_call) => func_call.span,
             Expression::Subscript(subscript) => subscript.span,
+            Expression::ListComp(list_comp) => list_comp.span,
             Expression::String(_, span)
             | Expression::Number(_, span)
             | Expression::Bool(_, span)
@@ -177,6 +179,14 @@ impl Operation {
             op => panic!("Current Operation is not unary: {:?}", op),
         }
     }
+
+    pub fn is_binary(&self) -> bool {
+        matches!(self, Operation::Binary(_))
+    }
+
+    pub fn is_unary(&self) -> bool {
+        matches!(self, Operation::Unary(_))
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -210,6 +220,8 @@ pub struct FuncParameter {
     pub name: String,
     pub default_value: Option<Expression>,
     pub star_parameter_type: Option<StarParameterType>,
+    pub is_kw_only: bool,
+    pub is_pos_only: bool,
     pub span: Span,
 }
 
@@ -222,7 +234,7 @@ pub struct CallExpr {
 pub struct ClassStmt {
     pub name: String,
     pub block: Block,
-    pub super_classes: Vec<FuncParameter>,
+    pub base_classes: Vec<Expression>,
     pub span: Span,
 }
 
@@ -451,6 +463,29 @@ pub enum SubscriptType {
         step: Option<Expression>,
     },
     Subscript(Expression),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ListComp {
+    pub target: Box<Expression>,
+    pub ifs: Vec<IfComp>,
+    pub fors: Vec<ForComp>,
+    pub span: Span,
+}
+
+/// The "if" that goes inside a comprehension e.g.: [i for i in range(10) if i % 2 == 0]
+#[derive(Debug, PartialEq, Eq)]
+pub struct IfComp {
+    pub cond: Expression,
+    pub span: Span,
+}
+
+/// The "for" that goes inside a comprehension e.g.: [i for i in range(10)]
+#[derive(Debug, PartialEq, Eq)]
+pub struct ForComp {
+    pub target: Expression,
+    pub iter: Expression,
+    pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
