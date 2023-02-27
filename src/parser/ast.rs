@@ -66,6 +66,7 @@ pub enum Expression {
     Subscript(Subscript),
     List(Vec<Expression>, Span),
     ListComp(ListComp),
+    GeneratorComp(GeneratorComp),
     Dict(Vec<DictItemType>, Span),
     Set(Vec<Expression>, Span),
     Tuple(Vec<Expression>, Span),
@@ -93,6 +94,7 @@ impl Expression {
             Expression::Call(func_call) => func_call.span,
             Expression::Subscript(subscript) => subscript.span,
             Expression::ListComp(list_comp) => list_comp.span,
+            Expression::GeneratorComp(gen_comp) => gen_comp.span,
             Expression::String(_, span)
             | Expression::Number(_, span)
             | Expression::Bool(_, span)
@@ -109,6 +111,36 @@ impl Expression {
             | Expression::YieldFrom(_, span)
             | Expression::None(span) => *span,
             Expression::Empty => Span { start: 0, end: 0 },
+        }
+    }
+
+    pub fn set_span(&mut self, new_span: Span) {
+        match self {
+            Expression::Assign(assign) => assign.span = new_span,
+            Expression::AugAssing(aug_assign) => aug_assign.span = new_span,
+            Expression::AnnAssign(ann_assign) => ann_assign.span = new_span,
+            Expression::IfElse(if_else) => if_else.span = new_span,
+            Expression::Lambda(lambda) => lambda.span = new_span,
+            Expression::Call(func_call) => func_call.span = new_span,
+            Expression::Subscript(subscript) => subscript.span = new_span,
+            Expression::ListComp(list_comp) => list_comp.span = new_span,
+            Expression::GeneratorComp(gen_comp) => gen_comp.span = new_span,
+            Expression::String(_, span)
+            | Expression::Number(_, span)
+            | Expression::Bool(_, span)
+            | Expression::BinaryOp(_, _, _, span)
+            | Expression::UnaryOp(_, _, span)
+            | Expression::Id(_, span)
+            | Expression::List(_, span)
+            | Expression::Dict(_, span)
+            | Expression::Set(_, span)
+            | Expression::Tuple(_, span)
+            | Expression::Ellipsis(span)
+            | Expression::Invalid(span)
+            | Expression::Yield(_, span)
+            | Expression::YieldFrom(_, span)
+            | Expression::None(span) => *span = new_span,
+            Expression::Empty => (),
         }
     }
 }
@@ -467,6 +499,14 @@ pub enum SubscriptType {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ListComp {
+    pub target: Box<Expression>,
+    pub ifs: Vec<IfComp>,
+    pub fors: Vec<ForComp>,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct GeneratorComp {
     pub target: Box<Expression>,
     pub ifs: Vec<IfComp>,
     pub fors: Vec<ForComp>,

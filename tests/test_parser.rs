@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests_parser {
-
+    use pretty_assertions::assert_eq;
     use python_parser::{
         error::{PythonError, PythonErrorType},
         lexer::token::Span,
@@ -8,9 +8,10 @@ mod tests_parser {
             ast::{
                 AnnAssign, AssertStmt, Assign, AugAssign, AugAssignType, BinaryOperator, Block, ClassStmt, DelStmt,
                 DictItemType, ElIfStmt, ElseStmt, ExceptBlock, ExceptBlockKind, Expression, FinallyBlock, ForComp,
-                ForStmt, FromImportStmt, FuncParameter, Function, FunctionCall, IfComp, IfElseExpr, IfStmt,
-                ImportModule, ImportStmt, LambdaExpr, ListComp, ParsedFile, RaiseStmt, ReturnStmt, StarParameterType,
-                Statement, Subscript, SubscriptType, TryStmt, UnaryOperator, While, WithItem, WithStmt,
+                ForStmt, FromImportStmt, FuncParameter, Function, FunctionCall, GeneratorComp, IfComp, IfElseExpr,
+                IfStmt, ImportModule, ImportStmt, LambdaExpr, ListComp, ParsedFile, RaiseStmt, ReturnStmt,
+                StarParameterType, Statement, Subscript, SubscriptType, TryStmt, UnaryOperator, While, WithItem,
+                WithStmt,
             },
             Parser,
         },
@@ -936,15 +937,15 @@ else:
                                 Box::new(Expression::Number("1".to_string(), Span { start: 6, end: 7 })),
                                 BinaryOperator::Add,
                                 Box::new(Expression::Number("2".to_string(), Span { start: 10, end: 11 })),
-                                Span { start: 6, end: 11 }
+                                Span { start: 5, end: 12 }
                             )),
                             BinaryOperator::Multiply,
                             Box::new(Expression::Number("54".to_string(), Span { start: 15, end: 17 })),
-                            Span { start: 6, end: 17 }
+                            Span { start: 4, end: 18 }
                         )),
                         BinaryOperator::Divide,
                         Box::new(Expression::Number("3".to_string(), Span { start: 21, end: 22 })),
-                        Span { start: 6, end: 22 }
+                        Span { start: 4, end: 22 }
                     )),
                     span: Span { start: 0, end: 22 }
                 }))],
@@ -1369,11 +1370,11 @@ else:
                                     Box::new(Expression::Id("y".to_string(), Span { start: 29, end: 30 })),
                                     Span { start: 24, end: 30 }
                                 )),
-                                Span { start: 15, end: 30 }
+                                Span { start: 14, end: 31 }
                             )),
                             BinaryOperator::LogicalAnd,
                             Box::new(Expression::Id("is_id".to_string(), Span { start: 36, end: 41 })),
-                            Span { start: 15, end: 41 }
+                            Span { start: 14, end: 41 }
                         )),
                         span: Span { start: 4, end: 58 }
                     })),
@@ -1452,11 +1453,11 @@ else:
                             Box::new(Expression::Id("x".to_string(), Span { start: 4, end: 5 })),
                             BinaryOperator::Walrus,
                             Box::new(Expression::Number("15".to_string(), Span { start: 9, end: 11 })),
-                            Span { start: 4, end: 11 }
+                            Span { start: 3, end: 12 }
                         )),
                         BinaryOperator::GreaterThan,
                         Box::new(Expression::Number("5".to_string(), Span { start: 15, end: 16 })),
-                        Span { start: 4, end: 16 }
+                        Span { start: 3, end: 16 }
                     ),
                     block: Block {
                         stmts: vec![Statement::Expression(Expression::Id(
@@ -1582,10 +1583,10 @@ else:
                             Box::new(Expression::Number("1".to_string(), Span { start: 15, end: 16 })),
                             Span { start: 11, end: 16 }
                         )),
-                        span: Span { start: 1, end: 16 }
+                        span: Span { start: 0, end: 17 }
                     })),
                     args: vec![],
-                    span: Span { start: 1, end: 20 }
+                    span: Span { start: 0, end: 20 }
                 }),)]
             }
         )
@@ -2361,14 +2362,11 @@ for a, b in ((1, 2, 3)):
                         Span { start: 5, end: 12 }
                     ),
                     iter: Expression::Tuple(
-                        vec![Expression::Tuple(
-                            vec![
-                                Expression::Number("1".to_string(), Span { start: 15, end: 16 }),
-                                Expression::Number("2".to_string(), Span { start: 18, end: 19 }),
-                                Expression::Number("3".to_string(), Span { start: 21, end: 22 })
-                            ],
-                            Span { start: 14, end: 23 }
-                        )],
+                        vec![
+                            Expression::Number("1".to_string(), Span { start: 15, end: 16 }),
+                            Expression::Number("2".to_string(), Span { start: 18, end: 19 }),
+                            Expression::Number("3".to_string(), Span { start: 21, end: 22 })
+                        ],
                         Span { start: 13, end: 24 }
                     ),
                     block: Block {
@@ -2403,14 +2401,11 @@ for *a in ((1, 2, 3)):
                         Span { start: 5, end: 7 }
                     ),
                     iter: Expression::Tuple(
-                        vec![Expression::Tuple(
-                            vec![
-                                Expression::Number("1".to_string(), Span { start: 13, end: 14 }),
-                                Expression::Number("2".to_string(), Span { start: 16, end: 17 }),
-                                Expression::Number("3".to_string(), Span { start: 19, end: 20 })
-                            ],
-                            Span { start: 12, end: 21 }
-                        )],
+                        vec![
+                            Expression::Number("1".to_string(), Span { start: 13, end: 14 }),
+                            Expression::Number("2".to_string(), Span { start: 16, end: 17 }),
+                            Expression::Number("3".to_string(), Span { start: 19, end: 20 })
+                        ],
                         Span { start: 11, end: 22 }
                     ),
                     block: Block {
@@ -2706,6 +2701,60 @@ def test():
     }
 
     #[test]
+    fn parse_list_comprehension2() {
+        let parser = Parser::new("[i for i in l for j in l if i > 0 if j > 1 for x in l]");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Expression(Expression::ListComp(ListComp {
+                    target: Box::new(Expression::Id("i".to_string(), Span { start: 1, end: 2 })),
+                    ifs: vec![
+                        IfComp {
+                            cond: Expression::BinaryOp(
+                                Box::new(Expression::Id("i".to_string(), Span { start: 28, end: 29 })),
+                                BinaryOperator::GreaterThan,
+                                Box::new(Expression::Number("0".to_string(), Span { start: 32, end: 33 })),
+                                Span { start: 28, end: 33 }
+                            ),
+                            span: Span { start: 25, end: 33 }
+                        },
+                        IfComp {
+                            cond: Expression::BinaryOp(
+                                Box::new(Expression::Id("j".to_string(), Span { start: 37, end: 38 })),
+                                BinaryOperator::GreaterThan,
+                                Box::new(Expression::Number("1".to_string(), Span { start: 41, end: 42 })),
+                                Span { start: 37, end: 42 }
+                            ),
+                            span: Span { start: 34, end: 42 }
+                        }
+                    ],
+                    fors: vec![
+                        ForComp {
+                            target: Expression::Id("i".to_string(), Span { start: 7, end: 8 }),
+                            iter: Expression::Id("l".to_string(), Span { start: 12, end: 13 }),
+                            span: Span { start: 3, end: 13 }
+                        },
+                        ForComp {
+                            target: Expression::Id("j".to_string(), Span { start: 18, end: 19 }),
+                            iter: Expression::Id("l".to_string(), Span { start: 23, end: 24 }),
+                            span: Span { start: 14, end: 24 }
+                        },
+                        ForComp {
+                            target: Expression::Id("x".to_string(), Span { start: 47, end: 48 }),
+                            iter: Expression::Id("l".to_string(), Span { start: 52, end: 53 }),
+                            span: Span { start: 43, end: 53 }
+                        }
+                    ],
+                    span: Span { start: 0, end: 54 }
+                }))]
+            }
+        );
+    }
+
+    #[test]
     fn parse_function_with_kw_only_parameters() {
         let parser = Parser::new(
             "
@@ -2811,6 +2860,42 @@ def test(x, /, *, y):
                     ),
                     span: Span { start: 0, end: 12 }
                 })]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_generator_comprehension() {
+        let parser = Parser::new("(i for i in l if i % 2 == 0)");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Expression(Expression::GeneratorComp(GeneratorComp {
+                    target: Box::new(Expression::Id("i".to_string(), Span { start: 1, end: 2 })),
+                    ifs: vec![IfComp {
+                        cond: Expression::BinaryOp(
+                            Box::new(Expression::BinaryOp(
+                                Box::new(Expression::Id("i".to_string(), Span { start: 17, end: 18 })),
+                                BinaryOperator::Modulo,
+                                Box::new(Expression::Number("2".to_string(), Span { start: 21, end: 22 })),
+                                Span { start: 17, end: 22 }
+                            )),
+                            BinaryOperator::Equals,
+                            Box::new(Expression::Number("0".to_string(), Span { start: 26, end: 27 })),
+                            Span { start: 17, end: 27 }
+                        ),
+                        span: Span { start: 14, end: 27 }
+                    }],
+                    fors: vec![ForComp {
+                        target: Expression::Id("i".to_string(), Span { start: 7, end: 8 }),
+                        iter: Expression::Id("l".to_string(), Span { start: 12, end: 13 }),
+                        span: Span { start: 3, end: 13 }
+                    }],
+                    span: Span { start: 0, end: 28 }
+                }))]
             }
         )
     }

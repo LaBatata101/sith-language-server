@@ -52,22 +52,22 @@ impl Token {
     }
 
     pub fn to_augassign_type(&self) -> Result<AugAssignType, String> {
-        match &self.kind {
-            TokenType::Operator(OperatorType::AsteriskEqual) => Ok(AugAssignType::Asterisk),
-            TokenType::Operator(OperatorType::AtEqual) => Ok(AugAssignType::At),
-            TokenType::Operator(OperatorType::BitwiseAndEqual) => Ok(AugAssignType::BitwiseAnd),
-            TokenType::Operator(OperatorType::BitwiseLeftShiftEqual) => Ok(AugAssignType::BitwiseLeftShift),
-            TokenType::Operator(OperatorType::BitwiseNotEqual) => Ok(AugAssignType::BitwiseNot),
-            TokenType::Operator(OperatorType::BitwiseOrEqual) => Ok(AugAssignType::BitwiseOr),
-            TokenType::Operator(OperatorType::BitwiseRightShiftEqual) => Ok(AugAssignType::BitwiseRightShift),
-            TokenType::Operator(OperatorType::BitwiseXOrEqual) => Ok(AugAssignType::BitwiseXOr),
-            TokenType::Operator(OperatorType::DivideEqual) => Ok(AugAssignType::Divide),
-            TokenType::Operator(OperatorType::ExponentEqual) => Ok(AugAssignType::Exponent),
-            TokenType::Operator(OperatorType::FloorDivisionEqual) => Ok(AugAssignType::FloorDivision),
-            TokenType::Operator(OperatorType::MinusEqual) => Ok(AugAssignType::Minus),
-            TokenType::Operator(OperatorType::ModulusEqual) => Ok(AugAssignType::Modulus),
-            TokenType::Operator(OperatorType::PlusEqual) => Ok(AugAssignType::Plus),
-            t => Err(format!("Invalid conversion of token {:?} to augassign type!", t)),
-        }
+        Ok(match &self.kind {
+            TokenType::Operator(OperatorType::AsteriskEqual) => AugAssignType::Asterisk,
+            TokenType::Operator(OperatorType::AtEqual) => AugAssignType::At,
+            TokenType::Operator(OperatorType::BitwiseAndEqual) => AugAssignType::BitwiseAnd,
+            TokenType::Operator(OperatorType::BitwiseLeftShiftEqual) => AugAssignType::BitwiseLeftShift,
+            TokenType::Operator(OperatorType::BitwiseNotEqual) => AugAssignType::BitwiseNot,
+            TokenType::Operator(OperatorType::BitwiseOrEqual) => AugAssignType::BitwiseOr,
+            TokenType::Operator(OperatorType::BitwiseRightShiftEqual) => AugAssignType::BitwiseRightShift,
+            TokenType::Operator(OperatorType::BitwiseXOrEqual) => AugAssignType::BitwiseXOr,
+            TokenType::Operator(OperatorType::DivideEqual) => AugAssignType::Divide,
+            TokenType::Operator(OperatorType::ExponentEqual) => AugAssignType::Exponent,
+            TokenType::Operator(OperatorType::FloorDivisionEqual) => AugAssignType::FloorDivision,
+            TokenType::Operator(OperatorType::MinusEqual) => AugAssignType::Minus,
+            TokenType::Operator(OperatorType::ModulusEqual) => AugAssignType::Modulus,
+            TokenType::Operator(OperatorType::PlusEqual) => AugAssignType::Plus,
+            t => return Err(format!("Invalid conversion of token {:?} to augassign type!", t)),
+        })
     }
 }

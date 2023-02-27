@@ -21,8 +21,8 @@ use helpers::{infix_binding_power, postfix_binding_power, prefix_binding_power};
 use self::{
     ast::{
         AnnAssign, AssertStmt, Assign, AugAssign, ClassStmt, DelStmt, ForComp, ForStmt, FromImportStmt, FuncParameter,
-        FunctionCall, IfComp, ImportModule, ImportStmt, LambdaExpr, ListComp, RaiseStmt, ReturnStmt, StarParameterType,
-        Subscript, SubscriptType, TryStmt, WithItem, WithStmt,
+        FunctionCall, GeneratorComp, IfComp, ImportModule, ImportStmt, LambdaExpr, ListComp, RaiseStmt, ReturnStmt,
+        StarParameterType, Subscript, SubscriptType, TryStmt, WithItem, WithStmt,
     },
     helpers::{BinaryOperationsBitflag, ExprBitflag, ParseExprBitflags, UnaryOperationsBitflag},
 };
@@ -896,26 +896,24 @@ impl Parser {
             });
         }
 
-        let (expr, expr_errors) = if self
-            .tokens
-            .iter()
-            .skip(*index)
-            .find(|&token| token.kind == TokenType::Comma)
-            .is_some()
-        {
-            self.parse_tuple_expr_with_no_parens(index, paren_span_start, ParseExprBitflags::all())
-        } else {
-            self.pratt_parsing(index, 0, ParseExprBitflags::all())
-        };
-        // FIXME: should be using this, but haven't found a way to set the right start of the tuple
-        // yet.
-        // let (expr, expr_span, expr_errors) = self.parse_expression(index);
+        let (mut expr, expr_errors) =
+            self.parse_expression(index, ParseExprBitflags::all().remove_expression(ExprBitflag::ASSIGN));
 
         if let Some(expr_errors) = expr_errors {
             errors.extend(expr_errors);
         }
 
-        let token = self.tokens.get(*index).unwrap();
+        let mut token = self.tokens.get(*index).unwrap();
+        if token.kind == TokenType::Keyword(KeywordType::For) {
+            let (generator_comp, generator_errors) = self.parse_generator_comprehension(index, expr);
+            expr = generator_comp;
+
+            if let Some(generator_errors) = generator_errors {
+                errors.extend(generator_errors);
+            }
+        }
+
+        token = self.tokens.get(*index).unwrap();
         if token.kind != TokenType::CloseParenthesis {
             errors.push(PythonError {
                 error: PythonErrorType::Syntax,
@@ -926,6 +924,11 @@ impl Parser {
             // Consume )
             *index += 1;
         }
+
+        expr.set_span(Span {
+            start: paren_span_start,
+            end: token.span.end,
+        });
 
         (expr, if errors.is_empty() { None } else { Some(errors) })
     }
@@ -1193,37 +1196,55 @@ impl Parser {
         )
     }
 
-    fn parse_list_expr(&self, index: &mut usize, list_expr_start: usize) -> (Expression, Option<Vec<PythonError>>) {
+    fn parse_list_expr(&self, index: &mut usize, bracket_span_start: usize) -> (Expression, Option<Vec<PythonError>>) {
         let mut errors = Vec::new();
         // Consume [
         *index += 1;
 
         let mut expressions = vec![];
-        let mut list_span = Span {
-            start: list_expr_start,
-            end: 0,
-        };
 
-        // Check if there is a "for" keyword inside the list, then start parsing a list
-        // comprehension. This code doesn't catch proper syntax errors
-        // TODO: Probably rewrite this in the future
-        if self
-            .tokens
-            .get(*index + 1)
-            .map_or(false, |token| token.kind == TokenType::Keyword(KeywordType::For))
-        {
-            return self.parse_list_comprehension(index);
+        // FIXME: improve this, if we have only an opening bracket the error message "SyntaxError: expecting ']' got ..."
+        // will not be displayed
+        let token = self.tokens.get(*index).unwrap();
+        if token.kind == TokenType::CloseBrackets {
+            // Consume ]
+            *index += 1;
+            return (
+                Expression::List(
+                    expressions,
+                    Span {
+                        start: bracket_span_start,
+                        end: token.span.end,
+                    },
+                ),
+                None,
+            );
         }
 
-        loop {
-            let token = self.tokens.get(*index).unwrap();
+        let (mut expr, expr_errors) = self.parse_expression(
+            index,
+            ParseExprBitflags::all().remove_expression(ExprBitflag::ASSIGN | ExprBitflag::TUPLE_NO_PARENS),
+        );
 
-            // allow trailing comma
-            if self.tokens.get(*index).unwrap().kind == TokenType::CloseBrackets {
-                break;
+        if let Some(expr_errors) = expr_errors {
+            errors.extend(expr_errors);
+        }
+
+        // Check if there is a "for" keyword inside the list, then start parsing a list
+        // comprehension.
+        if self
+            .tokens
+            .get(*index)
+            .map_or(false, |token| token.kind == TokenType::Keyword(KeywordType::For))
+        {
+            let (list_comp, list_comp_errors) = self.parse_list_comprehension(index, expr);
+            expr = list_comp;
+
+            if let Some(list_comp_errors) = list_comp_errors {
+                errors.extend(list_comp_errors);
             }
-
-            if token.kind == TokenType::Operator(OperatorType::Exponent) {
+        } else {
+            if matches!(expr, Expression::UnaryOp(_, UnaryOperator::UnpackDictionary, _)) {
                 errors.push(PythonError {
                     error: PythonErrorType::Syntax,
                     msg: "SyntaxError: can't unpack dictionary inside list!".to_string(),
@@ -1231,20 +1252,43 @@ impl Parser {
                 });
             }
 
-            let (expr, expr_errors) = self.pratt_parsing(index, 0, ParseExprBitflags::all());
-
-            if let Some(expr_errors) = expr_errors {
-                errors.extend(expr_errors);
-            }
-
             expressions.push(expr);
 
-            if self.tokens.get(*index).unwrap().kind != TokenType::Comma {
-                break;
+            while self
+                .tokens
+                .get(*index)
+                .map_or(false, |token| token.kind == TokenType::Comma)
+            {
+                // Consume ,
+                *index += 1;
+                let token = self.tokens.get(*index).unwrap();
+
+                // allow trailing comma
+                if token.kind == TokenType::CloseBrackets {
+                    break;
+                }
+
+                if token.kind == TokenType::Operator(OperatorType::Exponent) {
+                    errors.push(PythonError {
+                        error: PythonErrorType::Syntax,
+                        msg: "SyntaxError: can't unpack dictionary inside list!".to_string(),
+                        span: token.span,
+                    });
+                }
+
+                let (expr, expr_errors) = self.parse_expression(
+                    index,
+                    ParseExprBitflags::all().remove_expression(ExprBitflag::TUPLE_NO_PARENS | ExprBitflag::ASSIGN),
+                );
+
+                if let Some(expr_errors) = expr_errors {
+                    errors.extend(expr_errors);
+                }
+
+                expressions.push(expr);
             }
 
-            // Consume ,
-            *index += 1;
+            expr = Expression::List(expressions, Span::default());
         }
 
         let token = self.tokens.get(*index).unwrap();
@@ -1254,17 +1298,17 @@ impl Parser {
                 msg: format!("SyntaxError: expecting ']' got {:?}", token.kind),
                 span: token.span,
             });
+        } else {
+            // Consume ]
+            *index += 1;
         }
 
-        list_span.end = self.tokens.get(*index).map(|token| token.span.end).unwrap();
+        expr.set_span(Span {
+            start: bracket_span_start,
+            end: token.span.end,
+        });
 
-        // Consume ]
-        *index += 1;
-
-        (
-            Expression::List(expressions, list_span),
-            if errors.is_empty() { None } else { Some(errors) },
-        )
+        (expr, if errors.is_empty() { None } else { Some(errors) })
     }
 
     /// This function assumes that `lhs` is already parsed.
@@ -2618,21 +2662,14 @@ impl Parser {
         )
     }
 
-    // FIXME: handle more syntax errors
-    fn parse_list_comprehension(&self, index: &mut usize) -> (Expression, Option<Vec<PythonError>>) {
+    fn parse_comprehension(&self, index: &mut usize) -> (Vec<ForComp>, Vec<IfComp>, Option<Vec<PythonError>>) {
         let mut errors = Vec::new();
         let mut ifs = Vec::new();
         let mut fors = Vec::new();
 
-        let (list_target, target_errors) = self.parse_expression(
-            index,
-            ParseExprBitflags::all().remove_expression(ExprBitflag::TUPLE_NO_PARENS),
-        );
-        if let Some(target_errors) = target_errors {
-            errors.extend(target_errors);
-        }
-
-        loop {
+        while self.tokens.get(*index).map_or(false, |token| {
+            matches!(token.kind, TokenType::Keyword(KeywordType::For | KeywordType::If))
+        }) {
             let token = self.tokens.get(*index).unwrap();
             if token.kind == TokenType::Keyword(KeywordType::For) {
                 // consume "for"
@@ -2685,7 +2722,10 @@ impl Parser {
                 // consume "if"
                 *index += 1;
 
-                let (cond, cond_errors) = self.parse_expression(index, ParseExprBitflags::all());
+                let (cond, cond_errors) = self.parse_expression(
+                    index,
+                    ParseExprBitflags::all().remove_binary_op(BinaryOperationsBitflag::IF_ELSE),
+                );
                 if let Some(cond_errors) = cond_errors {
                     errors.extend(cond_errors);
                 }
@@ -2698,40 +2738,38 @@ impl Parser {
                     cond,
                 });
             }
-
-            // FIXME: change the exit condition
-            if self
-                .tokens
-                .get(*index)
-                .map_or(false, |token| token.kind == TokenType::CloseBrackets)
-            {
-                break;
-            }
         }
 
-        let token = self.tokens.get(*index).unwrap();
-        if token.kind != TokenType::CloseBrackets {
+        (fors, ifs, if errors.is_empty() { None } else { Some(errors) })
+    }
+
+    // FIXME: handle more syntax errors
+    fn parse_list_comprehension(
+        &self,
+        index: &mut usize,
+        comprehension_target: Expression,
+    ) -> (Expression, Option<Vec<PythonError>>) {
+        let mut errors = Vec::new();
+
+        if matches!(comprehension_target, Expression::Tuple(_, _)) {
             errors.push(PythonError {
                 error: PythonErrorType::Syntax,
-                msg: format!("SyntaxError: expecting ']' got {:?}", token.kind),
-                span: token.span,
+                msg: "SyntaxError: did you forget parentheses around the comprehension target?".to_string(),
+                span: comprehension_target.span(),
             });
         }
 
-        let list_span_end = self.tokens.get(*index).map(|token| token.span.end).unwrap();
-
-        // consume ]
-        *index += 1;
+        let (fors, ifs, comp_errors) = self.parse_comprehension(index);
+        if let Some(comp_errors) = comp_errors {
+            errors.extend(comp_errors);
+        }
 
         (
             Expression::ListComp(ListComp {
-                target: Box::new(list_target),
+                target: Box::new(comprehension_target),
                 ifs,
                 fors,
-                span: Span {
-                    start: 0,
-                    end: list_span_end,
-                },
+                span: Span::default(),
             }),
             if errors.is_empty() { None } else { Some(errors) },
         )
@@ -2746,6 +2784,37 @@ impl Parser {
                 expr,
             },
             expr_errors,
+        )
+    }
+
+    fn parse_generator_comprehension(
+        &self,
+        index: &mut usize,
+        comprehension_target: Expression,
+    ) -> (Expression, Option<Vec<PythonError>>) {
+        let mut errors = Vec::new();
+
+        if matches!(comprehension_target, Expression::Tuple(_, _)) {
+            errors.push(PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: tuple is not allowed inside generator comprehension".to_string(),
+                span: comprehension_target.span(),
+            });
+        }
+
+        let (fors, ifs, comp_errors) = self.parse_comprehension(index);
+        if let Some(comp_errors) = comp_errors {
+            errors.extend(comp_errors);
+        }
+
+        (
+            Expression::GeneratorComp(GeneratorComp {
+                target: Box::new(comprehension_target),
+                fors,
+                ifs,
+                span: Span::default(),
+            }),
+            if errors.is_empty() { None } else { Some(errors) },
         )
     }
 }
