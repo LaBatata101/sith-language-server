@@ -1483,7 +1483,7 @@ impl Parser {
             TokenType::Operator(OperatorType::Asterisk) => Operation::Binary(BinaryOperator::Multiply),
             TokenType::Operator(OperatorType::Divide) => Operation::Binary(BinaryOperator::Divide),
             TokenType::Operator(OperatorType::FloorDivision) => Operation::Binary(BinaryOperator::FloorDivision),
-            TokenType::Operator(OperatorType::Modulus) => Operation::Binary(BinaryOperator::Modulo),
+            TokenType::Operator(OperatorType::Modulo) => Operation::Binary(BinaryOperator::Modulo),
             TokenType::Operator(OperatorType::At) => Operation::Binary(BinaryOperator::At),
             TokenType::Operator(OperatorType::LessThan) => Operation::Binary(BinaryOperator::LessThan),
             TokenType::Operator(OperatorType::LessThanOrEqual) => Operation::Binary(BinaryOperator::LessThanOrEqual),

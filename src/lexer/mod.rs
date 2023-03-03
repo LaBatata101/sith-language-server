@@ -525,7 +525,7 @@ impl<'a> Lexer<'a> {
             ('^', Some('=')) => (TokenType::Operator(OperatorType::BitwiseXOrEqual), 2),
             ('~', Some('=')) => (TokenType::Operator(OperatorType::BitwiseNotEqual), 2),
             ('!', Some('=')) => (TokenType::Operator(OperatorType::NotEquals), 2),
-            ('%', Some('=')) => (TokenType::Operator(OperatorType::ModulusEqual), 2),
+            ('%', Some('=')) => (TokenType::Operator(OperatorType::ModuloEqual), 2),
             ('&', Some('=')) => (TokenType::Operator(OperatorType::BitwiseAndEqual), 2),
             ('|', Some('=')) => (TokenType::Operator(OperatorType::BitwiseOrEqual), 2),
             ('@', Some('=')) => (TokenType::Operator(OperatorType::AtEqual), 2),
@@ -552,7 +552,7 @@ impl<'a> Lexer<'a> {
                 }
             }
 
-            ('%', _) => (TokenType::Operator(OperatorType::Modulus), 1),
+            ('%', _) => (TokenType::Operator(OperatorType::Modulo), 1),
             ('&', _) => (TokenType::Operator(OperatorType::BitwiseAnd), 1),
             ('*', _) => (TokenType::Operator(OperatorType::Asterisk), 1),
             ('+', _) => (TokenType::Operator(OperatorType::Plus), 1),

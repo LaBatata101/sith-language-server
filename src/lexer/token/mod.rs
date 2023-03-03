@@ -35,7 +35,7 @@ impl Token {
                     | OperatorType::DivideEqual
                     | OperatorType::FloorDivisionEqual
                     | OperatorType::AsteriskEqual
-                    | OperatorType::ModulusEqual
+                    | OperatorType::ModuloEqual
                     | OperatorType::ExponentEqual
                     | OperatorType::BitwiseAndEqual
                     | OperatorType::BitwiseOrEqual
@@ -65,7 +65,7 @@ impl Token {
             TokenType::Operator(OperatorType::ExponentEqual) => AugAssignType::Exponent,
             TokenType::Operator(OperatorType::FloorDivisionEqual) => AugAssignType::FloorDivision,
             TokenType::Operator(OperatorType::MinusEqual) => AugAssignType::Minus,
-            TokenType::Operator(OperatorType::ModulusEqual) => AugAssignType::Modulus,
+            TokenType::Operator(OperatorType::ModuloEqual) => AugAssignType::Modulus,
             TokenType::Operator(OperatorType::PlusEqual) => AugAssignType::Plus,
             t => return Err(format!("Invalid conversion of token {:?} to augassign type!", t)),
         })
