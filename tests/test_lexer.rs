@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod test_lexer {
+mod tests_lexer {
     use pretty_assertions::assert_eq;
     use python_parser::{
         error::{PythonError, PythonErrorType},
@@ -13,7 +13,7 @@ mod test_lexer {
     };
 
     #[test]
-    fn test_lex_var_assign() {
+    fn lex_var_assign() {
         let mut lexer = Lexer::new("test = 12");
         lexer.tokenize();
         assert_eq!(
@@ -32,7 +32,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_invalid_operator() {
+    fn lex_invalid_operator() {
         let mut lexer = Lexer::new("test +! 12");
         lexer.tokenize();
         assert_eq!(
@@ -52,7 +52,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_equals_operator() {
+    fn lex_equals_operator() {
         let mut lexer = Lexer::new("test == 12");
         lexer.tokenize();
         assert_eq!(
@@ -71,7 +71,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_plus_equal_operator() {
+    fn lex_plus_equal_operator() {
         let mut lexer = Lexer::new("test += 42");
         lexer.tokenize();
         assert_eq!(
@@ -90,7 +90,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_multiply_equal_operator() {
+    fn lex_multiply_equal_operator() {
         let mut lexer = Lexer::new("test *= 42");
         lexer.tokenize();
         assert_eq!(
@@ -109,7 +109,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_multiply_operator() {
+    fn lex_multiply_operator() {
         let mut lexer = Lexer::new("test * 42");
         lexer.tokenize();
         assert_eq!(
@@ -128,7 +128,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_plus_operator() {
+    fn lex_plus_operator() {
         let mut lexer = Lexer::new("test + 42");
         lexer.tokenize();
         assert_eq!(
@@ -147,7 +147,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_minus_operator() {
+    fn lex_minus_operator() {
         let mut lexer = Lexer::new("test - 42");
         lexer.tokenize();
         assert_eq!(
@@ -166,7 +166,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_minus_equal_operator() {
+    fn lex_minus_equal_operator() {
         let mut lexer = Lexer::new("test -= 42");
         lexer.tokenize();
         assert_eq!(
@@ -185,7 +185,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_exponentiation_operator() {
+    fn lex_exponentiation_operator() {
         let mut lexer = Lexer::new("test ** 42");
         lexer.tokenize();
         assert_eq!(
@@ -204,7 +204,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_lessthan_or_equal_operator() {
+    fn lex_lessthan_or_equal_operator() {
         let mut lexer = Lexer::new("test <= 42");
         lexer.tokenize();
         assert_eq!(
@@ -223,7 +223,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_lessthan_operator() {
+    fn lex_lessthan_operator() {
         let mut lexer = Lexer::new("test < 42");
         lexer.tokenize();
         assert_eq!(
@@ -242,7 +242,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_greaterthan_operator() {
+    fn lex_greaterthan_operator() {
         let mut lexer = Lexer::new("test > 42");
         lexer.tokenize();
         assert_eq!(
@@ -261,7 +261,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_greaterthan_or_equal_operator() {
+    fn lex_greaterthan_or_equal_operator() {
         let mut lexer = Lexer::new("test >= 42");
         lexer.tokenize();
         assert_eq!(
@@ -280,7 +280,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_bitwise_or_operator() {
+    fn lex_bitwise_or_operator() {
         let mut lexer = Lexer::new("test | 42");
         lexer.tokenize();
         assert_eq!(
@@ -299,7 +299,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_bitwise_or_equal_operator() {
+    fn lex_bitwise_or_equal_operator() {
         let mut lexer = Lexer::new("test |= 42");
         lexer.tokenize();
         assert_eq!(
@@ -318,7 +318,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_bitwise_and_operator() {
+    fn lex_bitwise_and_operator() {
         let mut lexer = Lexer::new("test & 42");
         lexer.tokenize();
         assert_eq!(
@@ -337,7 +337,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_bitwise_and_equal_operator() {
+    fn lex_bitwise_and_equal_operator() {
         let mut lexer = Lexer::new("test &= 42");
         lexer.tokenize();
         assert_eq!(
@@ -356,7 +356,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_leftshift_operator() {
+    fn lex_leftshift_operator() {
         let mut lexer = Lexer::new("test << 42");
         lexer.tokenize();
         assert_eq!(
@@ -375,7 +375,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_leftshift_equal_operator() {
+    fn lex_leftshift_equal_operator() {
         let mut lexer = Lexer::new("test <<= 42");
         lexer.tokenize();
         assert_eq!(
@@ -394,7 +394,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_rightshift_operator() {
+    fn lex_rightshift_operator() {
         let mut lexer = Lexer::new("test >> 42");
         lexer.tokenize();
         assert_eq!(
@@ -413,7 +413,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_rightshift_equal_operator() {
+    fn lex_rightshift_equal_operator() {
         let mut lexer = Lexer::new("test >>= 42");
         lexer.tokenize();
         assert_eq!(
@@ -432,7 +432,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_bitwise_not_operator() {
+    fn lex_bitwise_not_operator() {
         let mut lexer = Lexer::new("~test");
         lexer.tokenize();
         assert_eq!(
@@ -446,7 +446,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_bitwise_not_equal_operator() {
+    fn lex_bitwise_not_equal_operator() {
         let mut lexer = Lexer::new("test ~= 42");
         lexer.tokenize();
         assert_eq!(
@@ -465,7 +465,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_at_operator() {
+    fn lex_at_operator() {
         let mut lexer = Lexer::new("matrix1 @ matrix2");
         lexer.tokenize();
 
@@ -481,7 +481,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_at_equal_operator() {
+    fn lex_at_equal_operator() {
         let mut lexer = Lexer::new("matrix1 @= matrix2");
         lexer.tokenize();
 
@@ -497,7 +497,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_string() {
+    fn lex_string() {
         let mut lexer = Lexer::new("\"Hello World!\"");
         lexer.tokenize();
 
@@ -511,7 +511,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_string2() {
+    fn lex_string2() {
         let mut lexer = Lexer::new("\"\\\"Hello World❤️\\\"\"");
         lexer.tokenize();
 
@@ -525,7 +525,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_string3() {
+    fn lex_string3() {
         let mut lexer = Lexer::new("\"\"\"\"\"\"\"\"\"\"\"\"\"\"");
         let errors = lexer.tokenize();
 
@@ -541,7 +541,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_string4() {
+    fn lex_string4() {
         let mut lexer = Lexer::new("'Hello World!'");
         lexer.tokenize();
 
@@ -555,7 +555,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_string_with_prefix() {
+    fn lex_string_with_prefix() {
         let mut lexer = Lexer::new("s = f'Hello World!'");
         lexer.tokenize();
 
@@ -571,7 +571,7 @@ mod test_lexer {
     }
 
     #[test]
-    fn test_lex_indentation() {
+    fn lex_indentation() {
         let mut lexer = Lexer::new(
             "if True:
     print()
@@ -607,7 +607,7 @@ else:
     }
 
     #[test]
-    fn test_lex_indentation2() {
+    fn lex_indentation2() {
         let mut lexer = Lexer::new(
             " def perm(l):          # error: first line indented
 for i in range(len(l)):             # error: not indented
@@ -631,7 +631,7 @@ for i in range(len(l)):             # error: not indented
     }
 
     #[test]
-    fn test_lex_indentation3() {
+    fn lex_indentation3() {
         let mut lexer = Lexer::new(
             "def test(x):
     if x:
@@ -670,7 +670,7 @@ for i in range(len(l)):             # error: not indented
     }
 
     #[test]
-    fn test_lex_implicit_line_joining() {
+    fn lex_implicit_line_joining() {
         let mut lexer = Lexer::new("\n[\n(\n\r)\r{\n}\r\n]\r");
 
         lexer.tokenize();
@@ -690,7 +690,7 @@ for i in range(len(l)):             # error: not indented
     }
 
     #[test]
-    fn test_lex_explicit_line_joining() {
+    fn lex_explicit_line_joining() {
         let mut lexer = Lexer::new(
             "if True and \\
             True:\n    pass",
@@ -714,7 +714,7 @@ for i in range(len(l)):             # error: not indented
     }
 
     #[test]
-    fn test_lex_explicit_line_joining_str() {
+    fn lex_explicit_line_joining_str() {
         let mut lexer = Lexer::new(
             "\"Hello \\
 World!\"",
@@ -730,7 +730,7 @@ World!\"",
     }
 
     #[test]
-    fn test_lex_explicit_line_joining_str2() {
+    fn lex_explicit_line_joining_str2() {
         let mut lexer = Lexer::new(
             "\"\\\"Hello \\
 World!\\\"\"",
@@ -746,7 +746,7 @@ World!\\\"\"",
     }
 
     #[test]
-    fn test_lex_invalid_explicit_line_joining() {
+    fn lex_invalid_explicit_line_joining() {
         let mut lexer = Lexer::new(
             "\"Hello \\a
 World!\"",
@@ -772,7 +772,7 @@ World!\"",
     }
 
     #[test]
-    fn test_lex_invalid_explicit_line_joining2() {
+    fn lex_invalid_explicit_line_joining2() {
         let mut lexer = Lexer::new("if True and \\aa True:\n    pass");
 
         let errors = lexer.tokenize();
@@ -1098,7 +1098,7 @@ Multiline text
                     span: Span { start: 1, end: 8 }
                 },
                 Token {
-                    kind: TokenType::Operator(OperatorType::Modulus),
+                    kind: TokenType::Operator(OperatorType::Modulo),
                     span: Span { start: 9, end: 10 }
                 },
                 Token {
