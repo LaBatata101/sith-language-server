@@ -471,7 +471,7 @@ impl Parser {
         if !matches!(token.kind, TokenType::Indent) {
             errors.push(PythonError {
                 error: PythonErrorType::Indentation,
-                msg: format!("Expected an indented after function definition"),
+                msg: "Expected an indented block after function definition".to_string(),
                 span: token.span,
             });
         }
