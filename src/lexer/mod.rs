@@ -2,6 +2,8 @@ mod char_codepoints;
 mod char_stream;
 pub mod token;
 
+use std::borrow::Cow;
+
 use char_stream::CharStream;
 use token::Token;
 
@@ -67,11 +69,24 @@ impl<'a> Lexer<'a> {
 
             match self.cs.current_char().unwrap() {
                 valid_id_initial_chars!() => self.lex_identifier_or_keyword(),
-                '0'..='9' => errors.extend(self.lex_number()),
-                '"' | '\'' => errors.extend(self.lex_string()),
+                '0'..='9' => {
+                    if let Some(number_errors) = self.lex_number() {
+                        errors.extend(number_errors);
+                    }
+                }
+                '"' | '\'' => {
+                    if let Some(string_errors) = self.lex_string() {
+                        errors.extend(string_errors);
+                    }
+                }
                 '(' => {
                     implicit_line_joining += 1;
+
                     self.lex_single_char(TokenType::OpenParenthesis);
+
+                    if self.cs.current_char().map_or(false, |char| matches!(char, '"' | '\'')) {
+                        self.lex_string_within_parens();
+                    }
                 }
                 ')' => {
                     implicit_line_joining -= 1;
@@ -274,6 +289,7 @@ impl<'a> Lexer<'a> {
 
         let str = self.cs.get_slice(start..end).unwrap();
 
+        // FIXME: check if the string is within a parenthesis and use `lex_string_within_parens`
         if self.is_str_prefix(str) && self.cs.current_char().map_or(false, |char| matches!(char, '"' | '\'')) {
             self.lex_string();
             return;
@@ -335,8 +351,58 @@ impl<'a> Lexer<'a> {
     }
 
     // TODO: Define a different string type for string prefixes
+    // TODO: try to refactor this code
     //https://docs.python.org/3/reference/lexical_analysis.html#string-and-bytes-literals
-    fn lex_string(&mut self) -> Vec<PythonError> {
+    fn lex_string(&mut self) -> Option<Vec<PythonError>> {
+        let (string, str_span, errors) = self.process_string();
+        let string = string.into();
+
+        self.tokens.push(Token {
+            kind: TokenType::String(string),
+            span: str_span,
+        });
+
+        errors
+    }
+
+    fn lex_string_within_parens(&mut self) -> Option<Vec<PythonError>> {
+        let mut errors = Vec::new();
+        let mut out_string = String::new();
+        let mut str_span = Span {
+            start: self.cs.pos(),
+            ..Default::default()
+        };
+
+        while self.cs.current_char().map_or(false, |char| matches!(char, '"' | '\'')) {
+            let (string, span, str_errors) = self.process_string();
+            out_string.push_str(&string);
+            str_span.end = span.end;
+
+            if let Some(str_errors) = str_errors {
+                errors.extend(str_errors);
+            }
+
+            // this is not good
+            self.cs.skip_whitespace();
+            if self.cs.current_char().map_or(false, |char| char == '\n') {
+                self.cs.advance_by(1);
+            }
+            self.cs.skip_whitespace();
+        }
+
+        self.tokens.push(Token {
+            kind: TokenType::String(out_string),
+            span: str_span,
+        });
+
+        if errors.is_empty() {
+            None
+        } else {
+            Some(errors)
+        }
+    }
+
+    fn process_string(&mut self) -> (Cow<str>, Span, Option<Vec<PythonError>>) {
         let mut errors: Vec<PythonError> = vec![];
 
         let mut has_explicit_line_join = false;
@@ -354,29 +420,46 @@ impl<'a> Lexer<'a> {
             start_quote_total += 1;
         }
 
-        while self
-            .cs
-            .current_char()
-            .map_or(false, |char| char != quote_char && char != '\n')
-        {
-            // If current char is \ and next is \n then join line
-            // create flag for the presence of \ and \n, and store the index of the \ and after the \n
+        if start_quote_total == 3 {
+            loop {
+                self.cs.advance_by(1);
 
-            if self.cs.current_char().map_or(false, |char| char == '\\') {
-                // store the backslashes positions
-                if self.cs.next_char().map_or(false, |char| char == '\n') {
-                    has_explicit_line_join = true;
-                    backslash_positions.push(self.cs.pos());
-                    self.cs.advance_by(2);
-                }
-
-                // Skip escaped `quote_char`
-                if self.cs.next_char().map_or(false, |char| char == quote_char) {
-                    self.cs.advance_by(2);
-                    continue;
+                if self.cs.current_char().map_or(false, |char| char == quote_char) {
+                    let quote_pos = self.cs.pos();
+                    if matches!(
+                        (
+                            self.cs.peek_char(quote_pos),
+                            self.cs.peek_char(quote_pos + 1),
+                            self.cs.peek_char(quote_pos + 2)
+                        ),
+                        (Some('"'), Some('"'), Some('"')) | (Some('\''), Some('\''), Some('\''))
+                    ) {
+                        break;
+                    }
                 }
             }
-            self.cs.advance_by(1);
+        } else {
+            while self
+                .cs
+                .current_char()
+                .map_or(false, |char| char != quote_char && char != '\n')
+            {
+                if self.cs.current_char().map_or(false, |char| char == '\\') {
+                    // store the backslashes positions
+                    if self.cs.next_char().map_or(false, |char| char == '\n') {
+                        has_explicit_line_join = true;
+                        backslash_positions.push(self.cs.pos());
+                        self.cs.advance_by(2);
+                    }
+
+                    // Skip escaped `quote_char`
+                    if self.cs.next_char().map_or(false, |char| char == quote_char) {
+                        self.cs.advance_by(2);
+                        continue;
+                    }
+                }
+                self.cs.advance_by(1);
+            }
         }
 
         // Consume `"` or `'`
@@ -394,51 +477,42 @@ impl<'a> Lexer<'a> {
             });
         }
 
-        if has_explicit_line_join {
-            let mut str_bytes = vec![];
-            // string literals are the only type of Token that can be split accross lines,
+        let out_string = if has_explicit_line_join {
+            let mut str: Cow<str> = Cow::default();
+            // string literals are the only type of Token that can be split across lines,
             // so we need to take every string char until the backslash, for every string line that
             // has a backslash, to join as one string.
             for backslash_position in &backslash_positions {
-                str_bytes.extend_from_slice(
+                str.to_mut().push_str(&String::from_utf8_lossy(
                     self.cs
                         .get_slice(start + start_quote_total..*backslash_position)
                         .unwrap(),
-                );
+                ));
             }
             // Here we join the last string line that doesn't have the backslash.
-            str_bytes.extend_from_slice(
+            str.to_mut().push_str(&String::from_utf8_lossy(
                 self.cs
                     .get_slice(*backslash_positions.last().unwrap() + 2..end - end_quote_total)
                     .unwrap(),
-            );
-
-            self.tokens.push(Token::new(
-                TokenType::String(String::from_utf8(str_bytes).unwrap()),
-                start,
-                end,
             ));
+
+            str
         } else {
-            self.tokens.push(Token::new(
-                TokenType::String(
-                    String::from_utf8_lossy(
-                        self.cs
-                            .get_slice(start + start_quote_total..end - end_quote_total)
-                            .unwrap(),
-                    )
-                    .into(),
-                ),
-                start,
-                end,
-            ));
-        }
+            String::from_utf8_lossy(
+                self.cs
+                    .get_slice(start + start_quote_total..end - end_quote_total)
+                    .unwrap(),
+            )
+        };
 
-        errors
+        (
+            out_string,
+            Span { start, end },
+            if errors.is_empty() { None } else { Some(errors) },
+        )
     }
 
-    fn lex_operator(&mut self) -> Vec<PythonError> {
-        let mut errors = vec![];
-
+    fn lex_operator(&mut self) {
         let start = self.cs.pos();
         let (token_type, advance_offset) = match (self.cs.current_char().unwrap(), self.cs.next_char()) {
             ('=', Some('=')) => (TokenType::Operator(OperatorType::Equals), 2),
@@ -492,19 +566,16 @@ impl<'a> Lexer<'a> {
             ('@', _) => (TokenType::Operator(OperatorType::At), 1),
             ('/', _) => (TokenType::Operator(OperatorType::Divide), 1),
 
-            ('!', _) => (TokenType::Invalid('!'), 1),
             (char, _) => (TokenType::Invalid(char), 1),
         };
 
         self.cs.advance_by(advance_offset);
         let end = self.cs.pos();
         self.tokens.push(Token::new(token_type, start, end));
-
-        errors
     }
 
     // TODO: handle invalid numbers
-    fn lex_number(&mut self) -> Vec<PythonError> {
+    fn lex_number(&mut self) -> Option<Vec<PythonError>> {
         let mut errors = vec![];
         let mut number_type = NumberType::Invalid;
         let start = self.cs.pos();
@@ -567,7 +638,11 @@ impl<'a> Lexer<'a> {
             end,
         ));
 
-        errors
+        if errors.is_empty() {
+            None
+        } else {
+            Some(errors)
+        }
     }
 
     // Handle the fraction part of the float number

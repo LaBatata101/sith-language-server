@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod test_lexer {
+    use pretty_assertions::assert_eq;
     use python_parser::{
         error::{PythonError, PythonErrorType},
         lexer::{
@@ -1011,5 +1012,108 @@ World!\"",
                 span: Span { start: 0, end: 5 }
             }]
         );
+    }
+
+    #[test]
+    fn lex_triple_quote_string() {
+        let mut lexer = Lexer::new(
+            "
+r\"\"\"Multiline text
+\\
+Multiline text
+Multiline text
+\"\"\"
+",
+        );
+        let errors = lexer.tokenize();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token {
+                    kind: TokenType::String("Multiline text\n\\\nMultiline text\nMultiline text\n".to_string()),
+                    span: Span { start: 2, end: 55 }
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span { start: 55, end: 56 }
+                },
+                Token {
+                    kind: TokenType::Eof,
+                    span: Span { start: 56, end: 57 }
+                }
+            ]
+        );
+    }
+
+    #[test]
+    fn lex_parenthesized_string() {
+        let mut lexer = Lexer::new(
+            "
+(\"Hello \"
+ \"World\")",
+        );
+        let errors = lexer.tokenize();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token {
+                    kind: TokenType::OpenParenthesis,
+                    span: Span { start: 1, end: 2 }
+                },
+                Token {
+                    kind: TokenType::String("Hello World".to_string()),
+                    span: Span { start: 2, end: 19 }
+                },
+                Token {
+                    kind: TokenType::CloseParenthesis,
+                    span: Span { start: 19, end: 20 }
+                },
+                Token {
+                    kind: TokenType::Eof,
+                    span: Span { start: 20, end: 21 }
+                }
+            ]
+        );
+    }
+
+    #[test]
+    fn lex_parenthesized_string2() {
+        let mut lexer = Lexer::new("(\"Hello\" % world)");
+        let errors = lexer.tokenize();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token {
+                    kind: TokenType::OpenParenthesis,
+                    span: Span { start: 0, end: 1 }
+                },
+                Token {
+                    kind: TokenType::String("Hello".to_string()),
+                    span: Span { start: 1, end: 8 }
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::Modulus),
+                    span: Span { start: 9, end: 10 }
+                },
+                Token {
+                    kind: TokenType::Id("world".to_string()),
+                    span: Span { start: 11, end: 16 }
+                },
+                Token {
+                    kind: TokenType::CloseParenthesis,
+                    span: Span { start: 16, end: 17 }
+                },
+                Token {
+                    kind: TokenType::Eof,
+                    span: Span { start: 17, end: 18 }
+                }
+            ]
+        )
     }
 }
