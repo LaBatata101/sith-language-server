@@ -100,10 +100,12 @@ impl Parser {
 
             expr = Expression::Tuple(items, tuple_span);
 
-            if expr_errors.is_none() {
-                expr_errors = tuple_errors;
-            } else if tuple_errors.is_some() {
-                expr_errors.as_mut().map(|errors| errors.extend(tuple_errors.unwrap()));
+            if let Some(tuple_errors) = tuple_errors {
+                if let Some(errors) = expr_errors.as_mut() {
+                    errors.extend(tuple_errors);
+                } else {
+                    expr_errors = Some(tuple_errors);
+                }
             }
         }
 
@@ -116,10 +118,12 @@ impl Parser {
             let (assign_expr, assign_errors) = self.parse_assign(index, token.unwrap(), expr, allowed_expr);
 
             expr = assign_expr;
-            if expr_errors.is_none() {
-                expr_errors = assign_errors;
-            } else if assign_errors.is_some() {
-                expr_errors.as_mut().map(|errors| errors.extend(assign_errors.unwrap()));
+            if let Some(assign_errors) = assign_errors {
+                if let Some(errors) = expr_errors.as_mut() {
+                    errors.extend(assign_errors);
+                } else {
+                    expr_errors = Some(assign_errors);
+                }
             }
         }
 
@@ -217,7 +221,7 @@ impl Parser {
         }
 
         while self.tokens.get(*index).map_or(false, |token| {
-            !helpers::is_token_end_of_expr(token) && !(token.is_assign() || token.is_augassign())
+            !(helpers::is_token_end_of_expr(token) || token.is_assign() || token.is_augassign())
         }) {
             token = self.tokens.get(*index).unwrap();
 
@@ -342,7 +346,7 @@ impl Parser {
         } else {
             errors.push(PythonError {
                 error: PythonErrorType::Syntax,
-                msg: format!("SyntaxError: invalid function name"),
+                msg: "SyntaxError: invalid function name".to_string(),
                 span: token.span,
             });
 
@@ -993,7 +997,7 @@ impl Parser {
         loop {
             let mut token = self.tokens.get(*index).unwrap();
 
-            let expr_span = if helpers::is_token_start_of_expr(&token) {
+            let expr_span = if helpers::is_token_start_of_expr(token) {
                 let (expr, expr_errors) = self.pratt_parsing(index, 0, allowed_expr);
                 if let Some(expr_errors) = expr_errors {
                     errors.extend(expr_errors);
@@ -1014,7 +1018,7 @@ impl Parser {
                 // Consume ,
                 *index += 1;
                 tuple_span.column_end = token.span.column_end;
-            } else if !helpers::is_token_start_of_expr(&token) {
+            } else if !helpers::is_token_start_of_expr(token) {
                 break;
             } else {
                 errors.push(PythonError {
@@ -1629,11 +1633,7 @@ impl Parser {
         if token.kind == TokenType::OpenParenthesis {
             // Consume (
             *index += 1;
-            if self
-                .tokens
-                .get(*index)
-                .map_or(false, |token| helpers::is_token_start_of_expr(token))
-            {
+            if self.tokens.get(*index).map_or(false, helpers::is_token_start_of_expr) {
                 let (base_classes, base_classes_errors) = self.parse_base_classes(index);
                 class.base_classes = base_classes;
 
@@ -2242,11 +2242,7 @@ impl Parser {
         return_stmt.span.column_end = token.span.column_end;
         return_stmt.span.row_end = token.span.row_end;
 
-        if self
-            .tokens
-            .get(*index)
-            .map_or(false, |token| helpers::is_token_start_of_expr(token))
-        {
+        if self.tokens.get(*index).map_or(false, helpers::is_token_start_of_expr) {
             let (expr, expr_errors) = self.parse_expression(index, ParseExprBitflags::all());
             if let Some(expr_errors) = expr_errors {
                 errors.extend(expr_errors);
@@ -2290,7 +2286,7 @@ impl Parser {
             return (Expression::Yield(Some(Box::new(rhs)), yield_span), rhs_errors);
         }
 
-        return (Expression::Yield(None, yield_span), None);
+        (Expression::Yield(None, yield_span), None)
     }
 
     fn parse_for_stmt(&self, index: &mut usize) -> (ForStmt, Option<Vec<PythonError>>) {
@@ -2608,7 +2604,7 @@ impl Parser {
         loop {
             let mut token = self.tokens.get(*index).unwrap();
 
-            let expr_span = if helpers::is_token_start_of_expr(&token) {
+            let expr_span = if helpers::is_token_start_of_expr(token) {
                 let (expr, expr_errors) = self.parse_expression(index, allowed_expr_in_args);
                 if let Some(expr_errors) = expr_errors {
                     errors.extend(expr_errors);
@@ -2625,7 +2621,7 @@ impl Parser {
             if token.kind == TokenType::Comma {
                 // Consume ,
                 *index += 1;
-            } else if helpers::is_token_end_of_expr(&token) {
+            } else if helpers::is_token_end_of_expr(token) {
                 break;
             } else {
                 errors.push(PythonError {
@@ -2677,7 +2673,6 @@ impl Parser {
         let mut errors = Vec::new();
         let mut is_slice = false;
         let mut column_end_span = 0;
-        let mut row_end_span = 0;
         let allowed_expr_in_slice = ParseExprBitflags::all().remove_expression(ExprBitflag::ASSIGN);
 
         let token = self.tokens.get(*index).unwrap();
@@ -2709,7 +2704,6 @@ impl Parser {
             if helpers::is_token_start_of_expr(token) {
                 let (upper_expr, upper_errors) = self.parse_expression(index, allowed_expr_in_slice);
                 column_end_span = upper_expr.span().column_end;
-                row_end_span = upper_expr.span().row_end;
                 upper = Some(upper_expr);
 
                 if let Some(upper_errors) = upper_errors {
@@ -2729,7 +2723,6 @@ impl Parser {
                 if helpers::is_token_start_of_expr(token) {
                     let (step_expr, step_errors) = self.parse_expression(index, allowed_expr_in_slice);
                     column_end_span = step_expr.span().column_end;
-                    row_end_span = step_expr.span().row_end;
                     step = Some(step_expr);
 
                     if let Some(step_errors) = step_errors {
