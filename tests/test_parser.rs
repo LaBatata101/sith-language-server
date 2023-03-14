@@ -9,9 +9,9 @@ mod tests_parser {
                 AnnAssign, AssertStmt, Assign, AugAssign, AugAssignType, BinaryOperator, Block, ClassStmt, DelStmt,
                 DictItemType, ElIfStmt, ElseStmt, ExceptBlock, ExceptBlockKind, Expression, FinallyBlock, ForComp,
                 ForStmt, FromImportStmt, FuncParameter, Function, FunctionCall, GeneratorComp, GlobalStmt, IfComp,
-                IfElseExpr, IfStmt, ImportModule, ImportStmt, LambdaExpr, ListComp, ParsedFile, RaiseStmt, ReturnStmt,
-                StarParameterType, Statement, Subscript, SubscriptType, TryStmt, UnaryOperator, While, WithItem,
-                WithStmt,
+                IfElseExpr, IfStmt, ImportModule, ImportStmt, LambdaExpr, ListComp, NonLocalStmt, ParsedFile,
+                RaiseStmt, ReturnStmt, StarParameterType, Statement, Subscript, SubscriptType, TryStmt, UnaryOperator,
+                While, WithItem, WithStmt,
             },
             Parser,
         },
@@ -6624,6 +6624,36 @@ def test(x, /, *, y):
                         column_end: 8,
                     },
                 },),]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_nonlocal_statement() {
+        let parser = Parser::new("nonlocal x");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::NonLocal(NonLocalStmt {
+                    name: Expression::Id(
+                        "x".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 10,
+                            column_end: 10,
+                        },
+                    ),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 10,
+                    },
+                })]
             }
         )
     }

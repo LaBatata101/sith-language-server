@@ -22,8 +22,8 @@ use helpers::{infix_binding_power, postfix_binding_power, prefix_binding_power};
 use self::{
     ast::{
         AnnAssign, AssertStmt, Assign, AugAssign, ClassStmt, DelStmt, ForComp, ForStmt, FromImportStmt, FuncParameter,
-        FunctionCall, GeneratorComp, GlobalStmt, IfComp, ImportModule, ImportStmt, LambdaExpr, ListComp, RaiseStmt,
-        ReturnStmt, StarParameterType, Subscript, SubscriptType, TryStmt, WithItem, WithStmt,
+        FunctionCall, GeneratorComp, GlobalStmt, IfComp, ImportModule, ImportStmt, LambdaExpr, ListComp, NonLocalStmt,
+        RaiseStmt, ReturnStmt, StarParameterType, Subscript, SubscriptType, TryStmt, WithItem, WithStmt,
     },
     helpers::{BinaryOperationsBitflag, ExprBitflag, ParseExprBitflags, UnaryOperationsBitflag},
 };
@@ -628,6 +628,13 @@ impl Parser {
                 global_stmt.span.column_start = token.span.column_start;
 
                 (Statement::Global(global_stmt), global_stmt_errors)
+            }
+            TokenType::Keyword(KeywordType::NonLocal) => {
+                let (mut nonlocal_stmt, nonlocal_stmt_errors) = self.parse_nonlocal_stmt(index);
+                nonlocal_stmt.span.row_start = token.span.row_start;
+                nonlocal_stmt.span.column_start = token.span.column_start;
+
+                (Statement::NonLocal(nonlocal_stmt), nonlocal_stmt_errors)
             }
             TokenType::Operator(OperatorType::ColonEqual) => {
                 self.skip_line(index);
@@ -2592,6 +2599,7 @@ impl Parser {
 
         (
             DelStmt {
+                // FIXME: fix this span
                 span: Span {
                     column_end: expr.span().column_end,
                     row_end: expr.span().row_end,
@@ -2937,6 +2945,19 @@ impl Parser {
             self.parse_expression(index, ParseExprBitflags::empty().set_expressions(ExprBitflag::ID));
         (
             GlobalStmt {
+                span: expr.span(),
+                name: expr,
+            },
+            expr_errors,
+        )
+    }
+
+    fn parse_nonlocal_stmt(&self, index: &mut usize) -> (NonLocalStmt, Option<Vec<PythonError>>) {
+        let (expr, expr_errors) =
+            self.parse_expression(index, ParseExprBitflags::empty().set_expressions(ExprBitflag::ID));
+
+        (
+            NonLocalStmt {
                 span: expr.span(),
                 name: expr,
             },

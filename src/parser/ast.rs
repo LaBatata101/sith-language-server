@@ -21,6 +21,7 @@ pub enum Statement {
     For(ForStmt),
     Del(DelStmt),
     Global(GlobalStmt),
+    NonLocal(NonLocalStmt),
     Invalid(Span),
 
     #[default]
@@ -49,6 +50,7 @@ impl Statement {
             Statement::Del(del) => del.span,
             Statement::Assert(assert) => assert.span,
             Statement::Global(global) => global.span,
+            Statement::NonLocal(nonlocal) => nonlocal.span,
             Statement::None => Span::default(),
         }
     }
@@ -538,6 +540,12 @@ pub struct AssertStmt {
 
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct GlobalStmt {
+    pub name: Expression,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct NonLocalStmt {
     pub name: Expression,
     pub span: Span,
 }
