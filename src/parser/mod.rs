@@ -4,9 +4,10 @@ mod helpers;
 use crate::{
     error::{PythonError, PythonErrorType},
     lexer::{
+        span::Span,
         token::{
             types::{KeywordType, OperatorType, TokenType},
-            Span, Token,
+            Token,
         },
         Lexer,
     },
@@ -87,8 +88,7 @@ impl Parser {
             // consume ,
             *index += 1;
 
-            let (tuple_expr, tuple_errors) =
-                self.parse_tuple_expr_with_no_parens(index, expr.span().start, allowed_expr);
+            let (tuple_expr, tuple_errors) = self.parse_tuple_expr_with_no_parens(index, expr.span(), allowed_expr);
 
             let mut tuple_span = expr.span();
             let mut items = vec![expr];
@@ -189,7 +189,7 @@ impl Parser {
                 self.parse_parenthesized_expr(index, token)
             }
             TokenType::OpenBrackets if allowed_expr.expressions.contains(ExprBitflag::LIST) => {
-                self.parse_list_expr(index, token.span.start)
+                self.parse_list_expr(index, token.span)
             }
             TokenType::OpenBrace if allowed_expr.expressions.contains(ExprBitflag::SET) => {
                 self.parse_bracesized_expr(index, token)
@@ -278,8 +278,9 @@ impl Parser {
                         error: PythonErrorType::Syntax,
                         msg: format!("SyntaxError: missing rhs in {:?} operation", op),
                         span: Span {
-                            start: lhs.span().end,
-                            end: next_token.span.end,
+                            column_start: lhs.span().column_end,
+                            column_end: next_token.span.column_end,
+                            ..next_token.span
                         },
                     })
                 } else {
@@ -288,8 +289,9 @@ impl Parser {
                         errors.extend(rhs_error);
                     }
                     let lhs_span = Span {
-                        start: lhs.span().start,
-                        end: rhs.span().end,
+                        column_start: lhs.span().column_start,
+                        column_end: rhs.span().column_end,
+                        ..lhs.span()
                     };
                     lhs = Expression::BinaryOp(Box::new(lhs), op.get_binary_op(), Box::new(rhs), lhs_span);
                 }
@@ -404,7 +406,8 @@ impl Parser {
             errors.extend(block_errors);
         }
 
-        function.span.end = block.span.end;
+        function.span.row_end = block.span.row_end;
+        function.span.column_end = block.span.column_end;
         function.block = block;
 
         (function, if errors.is_empty() { None } else { Some(errors) })
@@ -478,7 +481,11 @@ impl Parser {
         *index += 1;
 
         let mut block = Block::new();
-        block.span.start = self.tokens.get(*index).map(|token| token.span.start).unwrap();
+        (block.span.column_start, block.span.row_start) = self
+            .tokens
+            .get(*index)
+            .map(|token| (token.span.column_start, token.span.row_start))
+            .unwrap();
 
         while let Some(mut token_kind) = self.tokens.get(*index).map(|token| &token.kind) {
             // Not sure if this should be here or in the parse_statements
@@ -493,7 +500,8 @@ impl Parser {
             }
 
             let (statement, stmt_errors) = self.parse_statements(index);
-            block.span.end = statement.span().end;
+            block.span.row_end = statement.span().row_end;
+            block.span.column_end = statement.span().column_end;
             block.stmts.push(statement);
 
             if let Some(stmt_errors) = stmt_errors {
@@ -511,85 +519,99 @@ impl Parser {
         match &token.kind {
             TokenType::Keyword(KeywordType::Def) => {
                 let (mut func, func_errors) = self.parse_function(index);
-                func.span.start = token.span.start;
+                func.span.row_start = token.span.row_start;
+                func.span.column_start = token.span.column_start;
 
                 (Statement::FunctionDef(func), func_errors)
             }
             TokenType::Operator(OperatorType::At) => {
                 let (mut func, func_errors) = self.parse_function_with_decorator(index);
-                func.span.start = token.span.start;
+                func.span.row_start = token.span.row_start;
+                func.span.column_start = token.span.column_start;
 
                 (Statement::FunctionDef(func), func_errors)
             }
             TokenType::Keyword(KeywordType::If) => {
                 let (mut if_stmt, if_stmt_errors) = self.parse_if(index);
-                if_stmt.span.start = token.span.start;
+                if_stmt.span.row_start = token.span.row_start;
+                if_stmt.span.column_start = token.span.column_start;
 
                 (Statement::If(if_stmt), if_stmt_errors)
             }
             TokenType::Keyword(KeywordType::While) => {
                 let (mut while_stmt, while_stmt_errors) = self.parse_while(index);
-                while_stmt.span.start = token.span.start;
+                while_stmt.span.row_start = token.span.row_start;
+                while_stmt.span.column_start = token.span.column_start;
 
                 (Statement::While(while_stmt), while_stmt_errors)
             }
             TokenType::Keyword(KeywordType::Class) => {
                 let (mut class_stmt, class_stmt_errors) = self.parse_class(index);
-                class_stmt.span.start = token.span.start;
+                class_stmt.span.row_start = token.span.row_start;
+                class_stmt.span.column_start = token.span.column_start;
 
                 (Statement::Class(class_stmt), class_stmt_errors)
             }
             TokenType::Keyword(KeywordType::Import) => {
                 let (mut import_stmt, import_stmt_errors) = self.parse_import(index);
-                import_stmt.span.start = token.span.start;
+                import_stmt.span.row_start = token.span.row_start;
+                import_stmt.span.column_start = token.span.column_start;
 
                 (Statement::Import(import_stmt), import_stmt_errors)
             }
             TokenType::Keyword(KeywordType::From) => {
                 let (mut from_import_stmt, from_import_errors) = self.parse_from_import(index);
-                from_import_stmt.span.start = token.span.start;
+                from_import_stmt.span.row_start = token.span.row_start;
+                from_import_stmt.span.column_start = token.span.column_start;
 
                 (Statement::FromImport(from_import_stmt), from_import_errors)
             }
             TokenType::Keyword(KeywordType::With) => {
                 let (mut with_stmt, with_stmt_errors) = self.parse_with(index);
-                with_stmt.span.start = token.span.start;
+                with_stmt.span.row_start = token.span.row_start;
+                with_stmt.span.column_start = token.span.column_start;
 
                 (Statement::With(with_stmt), with_stmt_errors)
             }
             TokenType::Keyword(KeywordType::Try) => {
                 let (mut try_stmt, try_stmt_errors) = self.parse_try(index);
-                try_stmt.span.start = token.span.start;
+                try_stmt.span.row_start = token.span.row_start;
+                try_stmt.span.column_start = token.span.column_start;
 
                 (Statement::Try(try_stmt), try_stmt_errors)
             }
             TokenType::Keyword(KeywordType::Return) => {
                 let (mut return_stmt, return_stmt_errors) = self.parse_return(index);
-                return_stmt.span.start = token.span.start;
+                return_stmt.span.row_start = token.span.row_start;
+                return_stmt.span.column_start = token.span.column_start;
 
                 (Statement::Return(return_stmt), return_stmt_errors)
             }
             TokenType::Keyword(KeywordType::For) => {
                 let (mut for_stmt, for_stmt_errors) = self.parse_for_stmt(index);
-                for_stmt.span.start = token.span.start;
+                for_stmt.span.row_start = token.span.row_start;
+                for_stmt.span.column_start = token.span.column_start;
 
                 (Statement::For(for_stmt), for_stmt_errors)
             }
             TokenType::Keyword(KeywordType::Raise) => {
                 let (mut raise_stmt, raise_stmt_errors) = self.parse_raise_stmt(index);
-                raise_stmt.span.start = token.span.start;
+                raise_stmt.span.row_start = token.span.row_start;
+                raise_stmt.span.column_start = token.span.column_start;
 
                 (Statement::Raise(raise_stmt), raise_stmt_errors)
             }
             TokenType::Keyword(KeywordType::Del) => {
                 let (mut del_stmt, del_stmt_errors) = self.parse_del_stmt(index);
-                del_stmt.span.start = token.span.start;
+                del_stmt.span.row_start = token.span.row_start;
+                del_stmt.span.column_start = token.span.column_start;
 
                 (Statement::Del(del_stmt), del_stmt_errors)
             }
             TokenType::Keyword(KeywordType::Assert) => {
                 let (mut assert_stmt, assert_stmt_errors) = self.parse_assert(index);
-                assert_stmt.span.start = token.span.start;
+                assert_stmt.span.row_start = token.span.row_start;
+                assert_stmt.span.column_start = token.span.column_start;
 
                 (Statement::Assert(assert_stmt), assert_stmt_errors)
             }
@@ -646,8 +668,9 @@ impl Parser {
             elif_stms: vec![],
             else_stmt: None,
             span: Span {
-                start: 0,
-                end: block.span.end,
+                row_end: block.span.row_end,
+                column_end: block.span.column_end,
+                ..Default::default()
             },
             block,
         };
@@ -663,7 +686,8 @@ impl Parser {
                     errors.extend(condition_expr_errors);
                 }
 
-                let elif_start = token.span.start;
+                let elif_column_start = token.span.column_start;
+                let elif_row_start = token.span.row_start;
                 token = self.tokens.get(*index).unwrap();
                 if !matches!(token.kind, TokenType::Colon) {
                     errors.push(PythonError {
@@ -681,12 +705,15 @@ impl Parser {
                     errors.extend(elif_block_errors);
                 }
 
-                if_stmt.span.end = elif_block.span.end;
+                if_stmt.span.column_end = elif_block.span.column_end;
+                if_stmt.span.row_end = elif_block.span.row_end;
                 elif_stms.push(ElIfStmt {
                     condition: condition_expr,
                     span: Span {
-                        start: elif_start,
-                        end: elif_block.span.end,
+                        row_start: elif_row_start,
+                        row_end: elif_block.span.row_end,
+                        column_start: elif_column_start,
+                        column_end: elif_block.span.column_end,
                     },
                     block: elif_block,
                 });
@@ -699,7 +726,8 @@ impl Parser {
 
         if token.kind == TokenType::Keyword(KeywordType::Else) {
             *index += 1;
-            let else_start = token.span.start;
+            let else_column_start = token.span.column_start;
+            let else_row_start = token.span.row_start;
             token = self.tokens.get(*index).unwrap();
             if !matches!(token.kind, TokenType::Colon) {
                 errors.push(PythonError {
@@ -716,11 +744,14 @@ impl Parser {
                 errors.extend(else_block_errors);
             }
 
-            if_stmt.span.end = else_block.span.end;
+            if_stmt.span.column_end = else_block.span.column_end;
+            if_stmt.span.row_end = else_block.span.row_end;
             if_stmt.else_stmt = Some(ElseStmt {
                 span: Span {
-                    start: else_start,
-                    end: else_block.span.end,
+                    row_start: else_row_start,
+                    row_end: else_block.span.row_end,
+                    column_start: else_column_start,
+                    column_end: else_block.span.column_end,
                 },
                 block: else_block,
             });
@@ -758,8 +789,9 @@ impl Parser {
             condition: condition_expr,
             else_stmt: None,
             span: Span {
-                start: 0,
-                end: while_block.span.end,
+                column_end: while_block.span.column_end,
+                row_end: while_block.span.row_end,
+                ..Default::default()
             },
             block: while_block,
         };
@@ -767,7 +799,8 @@ impl Parser {
         token = self.tokens.get(*index).unwrap();
         if token.kind == TokenType::Keyword(KeywordType::Else) {
             *index += 1;
-            let else_start = token.span.start;
+            let else_column_start = token.span.column_start;
+            let else_row_start = token.span.row_start;
             token = self.tokens.get(*index).unwrap();
             if !matches!(token.kind, TokenType::Colon) {
                 errors.push(PythonError {
@@ -784,11 +817,14 @@ impl Parser {
                 errors.extend(else_block_errors);
             }
 
-            while_stmt.span.end = else_block.span.end;
+            while_stmt.span.column_end = else_block.span.column_end;
+            while_stmt.span.row_end = else_block.span.row_end;
             while_stmt.else_stmt = Some(ElseStmt {
                 span: Span {
-                    start: else_start,
-                    end: else_block.span.end,
+                    row_start: else_row_start,
+                    row_end: else_block.span.row_end,
+                    column_start: else_column_start,
+                    column_end: else_block.span.column_end,
                 },
                 block: else_block,
             });
@@ -836,8 +872,10 @@ impl Parser {
                 ParseExprBitflags::all().remove_expression(ExprBitflag::ASSIGN),
             );
             let lambda_span = Span {
-                start: token.span.start,
-                end: expr.span().end,
+                row_start: token.span.row_start,
+                row_end: expr.span().row_end,
+                column_start: token.span.column_start,
+                column_end: expr.span().column_end,
             };
 
             if let Some(expr_errors) = expr_errors {
@@ -860,8 +898,10 @@ impl Parser {
             ParseExprBitflags::all().remove_expression(ExprBitflag::ASSIGN),
         );
         let rhs_span = Span {
-            start: token.span.start,
-            end: rhs.span().end,
+            row_start: token.span.row_start,
+            row_end: rhs.span().row_end,
+            column_start: token.span.column_start,
+            column_end: rhs.span().column_end,
         };
 
         if let Some(rhs_errors) = rhs_errors {
@@ -879,7 +919,8 @@ impl Parser {
 
         // Consume (
         *index += 1;
-        let paren_span_start = token.span.start;
+        let paren_column_start = token.span.column_start;
+        let paren_row_start = token.span.row_start;
         let next_token = self.tokens.get(*index).unwrap();
 
         if next_token.kind == TokenType::Operator(OperatorType::Asterisk) {
@@ -926,8 +967,10 @@ impl Parser {
         }
 
         expr.set_span(Span {
-            start: paren_span_start,
-            end: token.span.end,
+            row_start: paren_row_start,
+            row_end: token.span.row_end,
+            column_start: paren_column_start,
+            column_end: token.span.column_end,
         });
 
         (expr, if errors.is_empty() { None } else { Some(errors) })
@@ -936,14 +979,15 @@ impl Parser {
     fn parse_tuple_expr_with_no_parens(
         &self,
         index: &mut usize,
-        tuple_span_start: usize,
+        tuple_span_start: Span,
         allowed_expr: ParseExprBitflags,
     ) -> (Expression, Option<Vec<PythonError>>) {
         let mut errors = Vec::new();
         let mut expressions = vec![];
         let mut tuple_span = Span {
-            start: tuple_span_start,
-            end: 0,
+            row_start: tuple_span_start.row_start,
+            column_start: tuple_span_start.column_start,
+            ..Default::default()
         };
 
         loop {
@@ -962,11 +1006,14 @@ impl Parser {
                 break;
             };
 
+            tuple_span.column_end = expr_span.column_end;
+
             // allow tuples with trailing comma, e.g. "(1, 2, 3,)", "1, 2, 3,"
             token = self.tokens.get(*index).unwrap();
             if token.kind == TokenType::Comma {
                 // Consume ,
                 *index += 1;
+                tuple_span.column_end = token.span.column_end;
             } else if !helpers::is_token_start_of_expr(&token) {
                 break;
             } else {
@@ -974,14 +1021,15 @@ impl Parser {
                     error: PythonErrorType::Syntax,
                     msg: format!("SyntaxError: expected comma, got {:?}", token.kind),
                     span: Span {
-                        start: expr_span.end,
-                        end: expr_span.end + 1,
+                        column_start: expr_span.column_end,
+                        column_end: expr_span.column_end + 1,
+                        ..expr_span
                     },
                 });
             }
         }
 
-        tuple_span.end = self.tokens.get(*index).map(|token| token.span.end).unwrap();
+        tuple_span.row_end = self.tokens.get(*index).map(|token| token.span.row_end).unwrap();
 
         (
             Expression::Tuple(expressions, tuple_span),
@@ -993,7 +1041,7 @@ impl Parser {
         let mut errors = Vec::new();
         // Consume {
         *index += 1;
-        let brace_span_start = token.span.start;
+        let brace_span = token.span;
 
         // If we see the "**" operator that means we are unpacking a dictionary, therefore, we
         // should parse as a dictionary instead of a set.
@@ -1014,7 +1062,7 @@ impl Parser {
                 });
             }
 
-            return self.parse_dict_expression(index, DictItemType::Unpack(lhs), brace_span_start);
+            return self.parse_dict_expression(index, DictItemType::Unpack(lhs), brace_span);
         }
 
         // If a "}" is found right after the "{", return an empty dict
@@ -1026,8 +1074,9 @@ impl Parser {
                 Expression::Dict(
                     Vec::new(),
                     Span {
-                        start: brace_span_start,
-                        end: token.span.end,
+                        row_end: token.span.row_end,
+                        column_end: token.span.column_end,
+                        ..brace_span
                     },
                 ),
                 None,
@@ -1062,13 +1111,14 @@ impl Parser {
                 });
             }
 
-            return self.parse_dict_expression(index, DictItemType::KeyValue(lhs, rhs), brace_span_start);
+            return self.parse_dict_expression(index, DictItemType::KeyValue(lhs, rhs), brace_span);
         }
 
         let mut expressions = vec![lhs];
         let mut set_span = Span {
-            start: brace_span_start,
-            end: 0,
+            row_start: brace_span.row_start,
+            column_start: brace_span.column_start,
+            ..Default::default()
         };
 
         while self
@@ -1100,7 +1150,11 @@ impl Parser {
             });
         }
 
-        set_span.end = self.tokens.get(*index).map(|token| token.span.end).unwrap();
+        (set_span.row_end, set_span.column_end) = self
+            .tokens
+            .get(*index)
+            .map(|token| (token.span.row_end, token.span.column_end))
+            .unwrap();
         // Consume }
         *index += 1;
 
@@ -1114,13 +1168,14 @@ impl Parser {
         &self,
         index: &mut usize,
         lhs: DictItemType,
-        brace_span_start: usize,
+        brace_span: Span,
     ) -> (Expression, Option<Vec<PythonError>>) {
         let mut errors = Vec::new();
         let mut dict_items = vec![lhs];
         let mut dict_span = Span {
-            start: brace_span_start,
-            end: 0,
+            column_start: brace_span.column_start,
+            row_start: brace_span.row_start,
+            ..Default::default()
         };
 
         while self.tokens.get(*index).unwrap().kind == TokenType::Comma {
@@ -1185,7 +1240,11 @@ impl Parser {
             });
         }
 
-        dict_span.end = self.tokens.get(*index).map(|token| token.span.end).unwrap();
+        (dict_span.row_end, dict_span.column_end) = self
+            .tokens
+            .get(*index)
+            .map(|token| (token.span.row_end, token.span.column_end))
+            .unwrap();
 
         // Consume }
         *index += 1;
@@ -1196,7 +1255,7 @@ impl Parser {
         )
     }
 
-    fn parse_list_expr(&self, index: &mut usize, bracket_span_start: usize) -> (Expression, Option<Vec<PythonError>>) {
+    fn parse_list_expr(&self, index: &mut usize, bracket_span: Span) -> (Expression, Option<Vec<PythonError>>) {
         let mut errors = Vec::new();
         // Consume [
         *index += 1;
@@ -1213,8 +1272,9 @@ impl Parser {
                 Expression::List(
                     expressions,
                     Span {
-                        start: bracket_span_start,
-                        end: token.span.end,
+                        row_end: token.span.row_end,
+                        column_end: token.span.column_end,
+                        ..bracket_span
                     },
                 ),
                 None,
@@ -1304,8 +1364,9 @@ impl Parser {
         }
 
         expr.set_span(Span {
-            start: bracket_span_start,
-            end: token.span.end,
+            row_end: token.span.row_end,
+            column_end: token.span.column_end,
+            ..bracket_span
         });
 
         (expr, if errors.is_empty() { None } else { Some(errors) })
@@ -1342,8 +1403,10 @@ impl Parser {
         (
             Expression::IfElse(IfElseExpr {
                 span: Span {
-                    start: lhs.span().start,
-                    end: rhs.span().end,
+                    row_start: lhs.span().row_start,
+                    row_end: rhs.span().row_end,
+                    column_start: lhs.span().column_start,
+                    column_end: rhs.span().column_end,
                 },
                 lhs: Box::new(lhs),
                 rhs: Box::new(rhs),
@@ -1378,7 +1441,8 @@ impl Parser {
                             index,
                             ParseExprBitflags::all().remove_expression(ExprBitflag::TUPLE_NO_PARENS),
                         );
-                        func_parameter.span.end = expr.span().end;
+                        func_parameter.span.column_end = expr.span().column_end;
+                        func_parameter.span.row_end = expr.span().row_end;
                         func_parameter.default_value = Some(expr);
 
                         if let Some(expr_errors) = expr_errors {
@@ -1610,7 +1674,8 @@ impl Parser {
         }
 
         class.block = class_block;
-        class.span.end = class.block.span.end;
+        class.span.row_end = class.block.span.row_end;
+        class.span.column_end = class.block.span.column_end;
 
         (class, if errors.is_empty() { None } else { Some(errors) })
     }
@@ -1644,7 +1709,8 @@ impl Parser {
         loop {
             let (name, span_end, module_name_errors) = self.parse_import_module_name(index);
             let mut import_module = ImportModule { name, alias: None };
-            import_stmt.span.end = span_end;
+            import_stmt.span.column_end = span_end.column_end;
+            import_stmt.span.row_end = span_end.row_end;
 
             if let Some(module_name_errors) = module_name_errors {
                 errors.extend(module_name_errors);
@@ -1661,7 +1727,8 @@ impl Parser {
                 {
                     // Consume Id
                     *index += 1;
-                    import_stmt.span.end = span.end;
+                    import_stmt.span.column_end = span.column_end;
+                    import_stmt.span.row_end = span.row_end;
 
                     import_module.alias = Some(alias_name.to_string());
                 } else {
@@ -1760,7 +1827,8 @@ impl Parser {
                 name: vec!["*".to_string()],
                 alias: None,
             });
-            from_import_stmt.span.end = token.span.end;
+            from_import_stmt.span.column_end = token.span.column_end;
+            from_import_stmt.span.row_end = token.span.row_end;
 
             return (from_import_stmt, if errors.is_empty() { None } else { Some(errors) });
         }
@@ -1779,7 +1847,8 @@ impl Parser {
                 // Consume Id
                 *index += 1;
 
-                from_import_stmt.span.end = token.span.end;
+                from_import_stmt.span.row_end = token.span.row_end;
+                from_import_stmt.span.column_end = token.span.column_end;
                 target.name = vec![target_name.to_string()];
             } else {
                 errors.push(PythonError {
@@ -1800,7 +1869,8 @@ impl Parser {
                 {
                     // Consume Id
                     *index += 1;
-                    from_import_stmt.span.end = span.end;
+                    from_import_stmt.span.row_end = span.row_end;
+                    from_import_stmt.span.column_end = span.column_end;
 
                     target.alias = Some(alias_name.to_string());
                 } else {
@@ -1844,10 +1914,10 @@ impl Parser {
     }
 
     // TODO: refactor this
-    fn parse_import_module_name(&self, index: &mut usize) -> (Vec<String>, usize, Option<Vec<PythonError>>) {
+    fn parse_import_module_name(&self, index: &mut usize) -> (Vec<String>, Span, Option<Vec<PythonError>>) {
         let mut errors = Vec::new();
         let mut module_name = vec![];
-        let mut span_end = 0;
+        let mut span_end = Span::default();
 
         loop {
             let token = self.tokens.get(*index).unwrap();
@@ -1855,7 +1925,8 @@ impl Parser {
                 // Consume Id
                 *index += 1;
 
-                span_end = token.span.end;
+                span_end.row_end = token.span.row_end;
+                span_end.column_end = token.span.column_end;
                 module_name.push(target.to_string());
             } else {
                 errors.push(PythonError {
@@ -1914,7 +1985,8 @@ impl Parser {
                         .set_expressions(ExprBitflag::ID)
                         .set_binary_op(BinaryOperationsBitflag::ALL),
                 );
-                with_item.span.end = target.span().end;
+                with_item.span.row_end = target.span().row_end;
+                with_item.span.column_end = target.span().column_end;
                 with_item.target = Some(target);
 
                 if let Some(target_errors) = target_errors {
@@ -1965,7 +2037,8 @@ impl Parser {
         }
 
         with_stmt.block = with_block;
-        with_stmt.span.end = with_stmt.block.span.end;
+        with_stmt.span.column_end = with_stmt.block.span.column_end;
+        with_stmt.span.row_end = with_stmt.block.span.row_end;
 
         (with_stmt, if errors.is_empty() { None } else { Some(errors) })
     }
@@ -2008,8 +2081,9 @@ impl Parser {
             *index += 1;
             let mut except_block = ExceptBlock {
                 span: Span {
-                    start: token.span.start,
-                    end: 0,
+                    row_start: token.span.row_start,
+                    column_start: token.span.column_start,
+                    ..Default::default()
                 },
                 ..Default::default()
             };
@@ -2071,9 +2145,11 @@ impl Parser {
             }
 
             except_block.block = except;
-            except_block.span.end = except_block.block.span.end;
+            except_block.span.column_end = except_block.block.span.column_end;
+            except_block.span.row_end = except_block.block.span.row_end;
 
-            try_stmt.span.end = except_block.span.end;
+            try_stmt.span.column_end = except_block.span.column_end;
+            try_stmt.span.row_end = except_block.span.row_end;
             try_stmt.except_blocks.push(except_block);
 
             token = self.tokens.get(*index).unwrap();
@@ -2082,7 +2158,8 @@ impl Parser {
         if has_except && token.kind == TokenType::Keyword(KeywordType::Else) {
             // Consume "else"
             *index += 1;
-            let else_start = token.span.start;
+            let else_column_start = token.span.column_start;
+            let else_row_start = token.span.row_start;
 
             token = self.tokens.get(*index).unwrap();
             if !matches!(token.kind, TokenType::Colon) {
@@ -2102,11 +2179,14 @@ impl Parser {
                 errors.extend(else_block_errors);
             }
 
-            try_stmt.span.end = else_block.span.end;
+            try_stmt.span.column_end = else_block.span.column_end;
+            try_stmt.span.row_end = else_block.span.row_end;
             try_stmt.else_stmt = Some(ElseStmt {
                 span: Span {
-                    start: else_start,
-                    end: else_block.span.end,
+                    row_start: else_row_start,
+                    row_end: else_block.span.row_end,
+                    column_start: else_column_start,
+                    column_end: else_block.span.column_end,
                 },
                 block: else_block,
             });
@@ -2117,7 +2197,8 @@ impl Parser {
         if token.kind == TokenType::Keyword(KeywordType::Finally) {
             // Consume "finally"
             *index += 1;
-            let finally_start = token.span.start;
+            let finally_column_start = token.span.column_start;
+            let finally_row_start = token.span.row_start;
 
             token = self.tokens.get(*index).unwrap();
             if !matches!(token.kind, TokenType::Colon) {
@@ -2137,11 +2218,14 @@ impl Parser {
                 errors.extend(finally_block_errors);
             }
 
-            try_stmt.span.end = finally_block.span.end;
+            try_stmt.span.column_end = finally_block.span.column_end;
+            try_stmt.span.row_end = finally_block.span.row_end;
             try_stmt.finally_block = Some(FinallyBlock {
                 span: Span {
-                    start: finally_start,
-                    end: finally_block.span.end,
+                    row_start: finally_row_start,
+                    row_end: finally_block.span.row_end,
+                    column_start: finally_column_start,
+                    column_end: finally_block.span.column_end,
                 },
                 block: finally_block,
             })
@@ -2155,7 +2239,8 @@ impl Parser {
         let mut return_stmt = ReturnStmt::default();
 
         let token = self.tokens.get(*index).unwrap();
-        return_stmt.span.end = token.span.end;
+        return_stmt.span.column_end = token.span.column_end;
+        return_stmt.span.row_end = token.span.row_end;
 
         if self
             .tokens
@@ -2166,7 +2251,8 @@ impl Parser {
             if let Some(expr_errors) = expr_errors {
                 errors.extend(expr_errors);
             }
-            return_stmt.span.end = expr.span().end;
+            return_stmt.span.column_end = expr.span().column_end;
+            return_stmt.span.row_end = expr.span().row_end;
             return_stmt.value = Some(expr);
         }
 
@@ -2185,8 +2271,10 @@ impl Parser {
 
             let (rhs, rhs_errors) = self.parse_expression(index, ParseExprBitflags::all());
             yield_span = Span {
-                start: yield_span.start,
-                end: rhs.span().end,
+                row_start: yield_span.row_start,
+                row_end: rhs.span().row_end,
+                column_start: yield_span.column_start,
+                column_end: rhs.span().column_end,
             };
             return (Expression::YieldFrom(Box::new(rhs), yield_span), rhs_errors);
         }
@@ -2194,8 +2282,10 @@ impl Parser {
         if helpers::is_token_start_of_expr(token) {
             let (rhs, rhs_errors) = self.parse_expression(index, ParseExprBitflags::all());
             yield_span = Span {
-                start: yield_span.start,
-                end: rhs.span().end,
+                row_start: yield_span.row_start,
+                row_end: rhs.span().row_end,
+                column_start: yield_span.column_start,
+                column_end: rhs.span().column_end,
             };
             return (Expression::Yield(Some(Box::new(rhs)), yield_span), rhs_errors);
         }
@@ -2254,7 +2344,8 @@ impl Parser {
         }
 
         let (for_block, while_block_errors) = self.parse_block(index);
-        for_stmt.span.end = for_block.span.end;
+        for_stmt.span.column_end = for_block.span.column_end;
+        for_stmt.span.row_end = for_block.span.row_end;
         for_stmt.block = for_block;
 
         if let Some(while_block_errors) = while_block_errors {
@@ -2264,7 +2355,8 @@ impl Parser {
         token = self.tokens.get(*index).unwrap();
         if token.kind == TokenType::Keyword(KeywordType::Else) {
             *index += 1;
-            let else_start = token.span.start;
+            let else_column_start = token.span.column_start;
+            let else_row_start = token.span.row_start;
             token = self.tokens.get(*index).unwrap();
             if token.kind != TokenType::Colon {
                 errors.push(PythonError {
@@ -2281,11 +2373,14 @@ impl Parser {
                 errors.extend(else_block_errors);
             }
 
-            for_stmt.span.end = else_block.span.end;
+            for_stmt.span.column_end = else_block.span.column_end;
+            for_stmt.span.row_end = else_block.span.row_end;
             for_stmt.else_stmt = Some(ElseStmt {
                 span: Span {
-                    start: else_start,
-                    end: else_block.span.end,
+                    row_start: else_row_start,
+                    row_end: else_block.span.row_end,
+                    column_start: else_column_start,
+                    column_end: else_block.span.column_end,
                 },
                 block: else_block,
             });
@@ -2307,8 +2402,10 @@ impl Parser {
             self.skip_line(index);
 
             let span = Span {
-                start: lhs.span().start,
-                end: token.span.end,
+                row_start: lhs.span().row_start,
+                row_end: token.span.row_end,
+                column_start: lhs.span().column_start,
+                column_end: token.span.column_end,
             };
 
             return (
@@ -2327,8 +2424,10 @@ impl Parser {
             let (typehint_expr, typehint_errors) =
                 self.parse_expression(index, ParseExprBitflags::all().remove_expression(ExprBitflag::ASSIGN));
             let mut span = Span {
-                start: lhs.span().start,
-                end: typehint_expr.span().end,
+                row_start: lhs.span().row_start,
+                row_end: typehint_expr.span().row_end,
+                column_start: lhs.span().column_start,
+                column_end: typehint_expr.span().column_end,
             };
 
             if let Some(typehint_errors) = typehint_errors {
@@ -2355,7 +2454,8 @@ impl Parser {
                 // consume assign token
                 *index += 1;
                 let (rhs, rhs_errors) = self.parse_expression(index, allowed_expr_in_rhs);
-                span.end = rhs.span().end;
+                span.column_end = rhs.span().column_end;
+                span.row_end = rhs.span().row_end;
                 if let Some(rhs_errors) = rhs_errors {
                     errors.extend(rhs_errors);
                 }
@@ -2387,8 +2487,10 @@ impl Parser {
             (
                 Expression::Assign(Assign {
                     span: Span {
-                        start: lhs.span().start,
-                        end: rhs.span().end,
+                        row_start: lhs.span().row_start,
+                        row_end: rhs.span().row_end,
+                        column_start: lhs.span().column_start,
+                        column_end: rhs.span().column_end,
                     },
                     lhs: Box::new(lhs),
                     rhs: Box::new(rhs),
@@ -2397,8 +2499,10 @@ impl Parser {
             )
         } else {
             let span = Span {
-                start: lhs.span().start,
-                end: rhs.span().end,
+                row_start: lhs.span().row_start,
+                row_end: rhs.span().row_end,
+                column_start: lhs.span().column_start,
+                column_end: rhs.span().column_end,
             };
 
             (
@@ -2425,10 +2529,13 @@ impl Parser {
                 errors.extend(expr_errors);
             }
 
-            span.end = expr.span().end;
+            span.column_end = expr.span().column_end;
+            span.row_end = expr.span().row_end;
 
             Some(expr)
         } else {
+            span.column_end = token.span.column_start - 1;
+            span.row_end = token.span.row_end;
             // consume NEWLINE token
             *index += 1;
 
@@ -2448,7 +2555,8 @@ impl Parser {
                 errors.extend(expr_errors);
             }
 
-            span.end = expr.span().end;
+            span.column_end = expr.span().column_end;
+            span.row_end = expr.span().row_end;
 
             Some(expr)
         } else {
@@ -2482,8 +2590,9 @@ impl Parser {
         (
             DelStmt {
                 span: Span {
-                    start: 0,
-                    end: expr.span().end,
+                    column_end: expr.span().column_end,
+                    row_end: expr.span().row_end,
+                    ..Default::default()
                 },
                 expr,
             },
@@ -2523,37 +2632,38 @@ impl Parser {
                     error: PythonErrorType::Syntax,
                     msg: format!("SyntaxError: expected comma, got {:?}", token.kind),
                     span: Span {
-                        start: expr_span.end,
-                        end: expr_span.end + 1,
+                        column_start: expr_span.column_end,
+                        column_end: expr_span.column_end + 1,
+                        ..expr_span
                     },
                 });
             }
         }
 
-        if self
-            .tokens
-            .get(*index)
-            .map_or(false, |token| token.kind != TokenType::CloseParenthesis)
-        {
+        let token = self.tokens.get(*index).unwrap();
+        if token.kind != TokenType::CloseParenthesis {
             errors.push(PythonError {
                 error: PythonErrorType::Syntax,
-                msg: format!("SyntaxError: expecting a ')' at position: {}", lhs.span().end + 1),
+                msg: format!(
+                    "SyntaxError: expecting a ')' at position: {}",
+                    lhs.span().column_end + 1
+                ),
                 span: Span {
-                    start: lhs.span().end,
-                    end: lhs.span().end + 1,
+                    column_start: lhs.span().column_end,
+                    column_end: lhs.span().column_end + 1,
+                    ..lhs.span()
                 },
             })
         } else {
             *index += 1;
         }
 
-        let span_end = self.tokens.get(*index).unwrap().span.end;
-
         (
             Expression::Call(FunctionCall {
                 span: Span {
-                    start: lhs.span().start,
-                    end: span_end,
+                    row_start: lhs.span().row_start,
+                    column_start: lhs.span().column_start,
+                    ..token.span
                 },
                 args,
                 lhs: Box::new(lhs),
@@ -2566,7 +2676,8 @@ impl Parser {
         // FIXME: handle more syntax errors
         let mut errors = Vec::new();
         let mut is_slice = false;
-        let mut end_span = 0;
+        let mut column_end_span = 0;
+        let mut row_end_span = 0;
         let allowed_expr_in_slice = ParseExprBitflags::all().remove_expression(ExprBitflag::ASSIGN);
 
         let token = self.tokens.get(*index).unwrap();
@@ -2597,7 +2708,8 @@ impl Parser {
             let token = self.tokens.get(*index).unwrap();
             if helpers::is_token_start_of_expr(token) {
                 let (upper_expr, upper_errors) = self.parse_expression(index, allowed_expr_in_slice);
-                end_span = upper_expr.span().end;
+                column_end_span = upper_expr.span().column_end;
+                row_end_span = upper_expr.span().row_end;
                 upper = Some(upper_expr);
 
                 if let Some(upper_errors) = upper_errors {
@@ -2616,7 +2728,8 @@ impl Parser {
                 let token = self.tokens.get(*index).unwrap();
                 if helpers::is_token_start_of_expr(token) {
                     let (step_expr, step_errors) = self.parse_expression(index, allowed_expr_in_slice);
-                    end_span = step_expr.span().end;
+                    column_end_span = step_expr.span().column_end;
+                    row_end_span = step_expr.span().row_end;
                     step = Some(step_expr);
 
                     if let Some(step_errors) = step_errors {
@@ -2626,30 +2739,27 @@ impl Parser {
             }
         }
 
-        if self
-            .tokens
-            .get(*index)
-            .map_or(false, |token| token.kind != TokenType::CloseBrackets)
-        {
+        let token = self.tokens.get(*index).unwrap();
+        if token.kind != TokenType::CloseBrackets {
             errors.push(PythonError {
                 error: PythonErrorType::Syntax,
-                msg: format!("SyntaxError: expecting ']' at position: {}", end_span + 1),
+                msg: format!("SyntaxError: expecting ']' at position: {}", column_end_span + 1),
                 span: Span {
-                    start: lhs.span().start,
-                    end: end_span + 1,
+                    column_start: lhs.span().column_start,
+                    column_end: column_end_span + 1,
+                    ..lhs.span()
                 },
             })
         } else {
             *index += 1;
         }
 
-        end_span = self.tokens.get(*index).unwrap().span.start;
-
         (
             Expression::Subscript(Subscript {
                 span: Span {
-                    start: lhs.span().start,
-                    end: end_span,
+                    row_start: lhs.span().row_start,
+                    column_start: lhs.span().column_start,
+                    ..token.span
                 },
                 lhs: Box::new(lhs),
                 slice: Box::new(if is_slice {
@@ -2711,8 +2821,10 @@ impl Parser {
                 fors.push(ForComp {
                     target: for_target,
                     span: Span {
-                        start: token.span.start,
-                        end: iter.span().end,
+                        row_start: token.span.row_start,
+                        row_end: iter.span().row_end,
+                        column_start: token.span.column_start,
+                        column_end: iter.span().column_end,
                     },
                     iter,
                 });
@@ -2732,8 +2844,10 @@ impl Parser {
 
                 ifs.push(IfComp {
                     span: Span {
-                        start: token.span.start,
-                        end: cond.span().end,
+                        row_start: token.span.row_start,
+                        row_end: cond.span().row_end,
+                        column_start: token.span.column_start,
+                        column_end: cond.span().column_end,
                     },
                     cond,
                 });

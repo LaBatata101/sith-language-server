@@ -1,4 +1,4 @@
-use crate::lexer::token::Span;
+use crate::lexer::span::Span;
 
 #[derive(Debug, PartialEq)]
 pub struct PythonError {

@@ -3,7 +3,7 @@ mod tests_parser {
     use pretty_assertions::assert_eq;
     use python_parser::{
         error::{PythonError, PythonErrorType},
-        lexer::token::Span,
+        lexer::span::Span,
         parser::{
             ast::{
                 AnnAssign, AssertStmt, Assign, AugAssign, AugAssignType, BinaryOperator, Block, ClassStmt, DelStmt,
@@ -27,12 +27,30 @@ mod tests_parser {
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
-                    lhs: Box::new(Expression::Id("test".to_string(), Span { start: 0, end: 4 })),
+                    lhs: Box::new(Expression::Id(
+                        "test".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 4
+                        }
+                    )),
                     rhs: Box::new(Expression::String(
                         "Hello World!".to_string(),
-                        Span { start: 7, end: 21 }
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 8,
+                            column_end: 21
+                        }
                     )),
-                    span: Span { start: 0, end: 21 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 21
+                    }
                 },))]
             }
         );
@@ -49,14 +67,56 @@ mod tests_parser {
             ParsedFile {
                 stmts: vec![
                     Statement::Expression(Expression::Assign(Assign {
-                        lhs: Box::new(Expression::Id("test".to_string(), Span { start: 0, end: 4 })),
-                        rhs: Box::new(Expression::Number("42".to_string(), Span { start: 7, end: 9 })),
-                        span: Span { start: 0, end: 9 }
+                        lhs: Box::new(Expression::Id(
+                            "test".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 1,
+                                column_end: 4
+                            }
+                        )),
+                        rhs: Box::new(Expression::Number(
+                            "42".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 8,
+                                column_end: 9
+                            }
+                        )),
+                        span: Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 9
+                        }
                     },)),
                     Statement::Expression(Expression::Assign(Assign {
-                        lhs: Box::new(Expression::Id("x".to_string(), Span { start: 11, end: 12 })),
-                        rhs: Box::new(Expression::Number("12".to_string(), Span { start: 15, end: 17 })),
-                        span: Span { start: 11, end: 17 }
+                        lhs: Box::new(Expression::Id(
+                            "x".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 12,
+                                column_end: 12
+                            }
+                        )),
+                        rhs: Box::new(Expression::Number(
+                            "12".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 16,
+                                column_end: 17
+                            }
+                        )),
+                        span: Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 12,
+                            column_end: 17
+                        }
                     },))
                 ]
             }
@@ -74,14 +134,56 @@ mod tests_parser {
             ParsedFile {
                 stmts: vec![
                     Statement::Expression(Expression::Assign(Assign {
-                        lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
-                        rhs: Box::new(Expression::Bool(true, Span { start: 4, end: 8 })),
-                        span: Span { start: 0, end: 8 }
+                        lhs: Box::new(Expression::Id(
+                            "x".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 1,
+                                column_end: 1
+                            }
+                        )),
+                        rhs: Box::new(Expression::Bool(
+                            true,
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 5,
+                                column_end: 8
+                            }
+                        )),
+                        span: Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 8
+                        }
                     },)),
                     Statement::Expression(Expression::Assign(Assign {
-                        lhs: Box::new(Expression::Id("y".to_string(), Span { start: 9, end: 10 })),
-                        rhs: Box::new(Expression::Bool(false, Span { start: 13, end: 18 })),
-                        span: Span { start: 9, end: 18 }
+                        lhs: Box::new(Expression::Id(
+                            "y".to_string(),
+                            Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 1,
+                                column_end: 1
+                            }
+                        )),
+                        rhs: Box::new(Expression::Bool(
+                            false,
+                            Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 5,
+                                column_end: 9
+                            }
+                        )),
+                        span: Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 1,
+                            column_end: 9
+                        }
                     },))
                 ]
             }
@@ -99,7 +201,12 @@ mod tests_parser {
             vec![PythonError {
                 error: PythonErrorType::Syntax,
                 msg: "SyntaxError: unexpected token Eof".to_string(),
-                span: Span { start: 6, end: 7 },
+                span: Span {
+                    row_start: 1,
+                    row_end: 1,
+                    column_start: 7,
+                    column_end: 7
+                },
             },]
         )
     }
@@ -114,13 +221,39 @@ mod tests_parser {
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::AnnAssign(AnnAssign {
-                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    lhs: Box::new(Expression::Id(
+                        "x".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 1
+                        }
+                    )),
                     rhs: Some(Box::new(Expression::Number(
                         "0".to_string(),
-                        Span { start: 9, end: 10 }
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 10,
+                            column_end: 10
+                        }
                     ))),
-                    typehint: Box::new(Expression::Id("int".to_string(), Span { start: 3, end: 6 })),
-                    span: Span { start: 0, end: 10 }
+                    typehint: Box::new(Expression::Id(
+                        "int".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 4,
+                            column_end: 6
+                        }
+                    )),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 10
+                    }
                 }))]
             }
         )
@@ -138,21 +271,84 @@ mod tests_parser {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
                     lhs: Box::new(Expression::Tuple(
                         vec![
-                            Expression::Id("a".to_string(), Span { start: 0, end: 1 }),
-                            Expression::Id("b".to_string(), Span { start: 3, end: 4 }),
-                            Expression::Id("c".to_string(), Span { start: 6, end: 7 })
+                            Expression::Id(
+                                "a".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 1,
+                                    column_end: 1
+                                }
+                            ),
+                            Expression::Id(
+                                "b".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 4,
+                                    column_end: 4
+                                }
+                            ),
+                            Expression::Id(
+                                "c".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 7,
+                                    column_end: 7
+                                }
+                            )
                         ],
-                        Span { start: 0, end: 9 }
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 7
+                        }
                     )),
                     rhs: Box::new(Expression::Tuple(
                         vec![
-                            Expression::Number("1".to_string(), Span { start: 10, end: 11 }),
-                            Expression::Number("2".to_string(), Span { start: 13, end: 14 }),
-                            Expression::Number("3".to_string(), Span { start: 16, end: 17 })
+                            Expression::Number(
+                                "1".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 11,
+                                    column_end: 11
+                                }
+                            ),
+                            Expression::Number(
+                                "2".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 14,
+                                    column_end: 14
+                                }
+                            ),
+                            Expression::Number(
+                                "3".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 17,
+                                    column_end: 17
+                                }
+                            )
                         ],
-                        Span { start: 10, end: 18 }
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 11,
+                            column_end: 17
+                        }
                     )),
-                    span: Span { start: 0, end: 18 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 17
+                    }
                 }))]
             }
         )
@@ -169,7 +365,12 @@ mod tests_parser {
             vec![PythonError {
                 error: PythonErrorType::Syntax,
                 msg: "SyntaxError: only single target (not tuple) can be annotated".to_string(),
-                span: Span { start: 0, end: 8 },
+                span: Span {
+                    row_start: 1,
+                    row_end: 1,
+                    column_start: 1,
+                    column_end: 8
+                },
             },]
         )
     }
@@ -186,21 +387,84 @@ mod tests_parser {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
                     lhs: Box::new(Expression::List(
                         vec![
-                            Expression::Id("a".to_string(), Span { start: 1, end: 2 }),
-                            Expression::Id("b".to_string(), Span { start: 4, end: 5 }),
-                            Expression::Id("c".to_string(), Span { start: 7, end: 8 })
+                            Expression::Id(
+                                "a".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 2,
+                                    column_end: 2
+                                }
+                            ),
+                            Expression::Id(
+                                "b".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 5,
+                                    column_end: 5
+                                }
+                            ),
+                            Expression::Id(
+                                "c".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 8,
+                                    column_end: 8
+                                }
+                            )
                         ],
-                        Span { start: 0, end: 9 }
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 9
+                        }
                     )),
                     rhs: Box::new(Expression::Tuple(
                         vec![
-                            Expression::Number("1".to_string(), Span { start: 12, end: 13 }),
-                            Expression::Number("2".to_string(), Span { start: 15, end: 16 }),
-                            Expression::Number("3".to_string(), Span { start: 18, end: 19 })
+                            Expression::Number(
+                                "1".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 13,
+                                    column_end: 13
+                                }
+                            ),
+                            Expression::Number(
+                                "2".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 16,
+                                    column_end: 16
+                                }
+                            ),
+                            Expression::Number(
+                                "3".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 19,
+                                    column_end: 19
+                                }
+                            )
                         ],
-                        Span { start: 12, end: 20 }
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 13,
+                            column_end: 19
+                        }
                     )),
-                    span: Span { start: 0, end: 20 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 19
+                    }
                 }))]
             }
         )
@@ -216,10 +480,31 @@ mod tests_parser {
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::AnnAssign(AnnAssign {
-                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    lhs: Box::new(Expression::Id(
+                        "x".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 1
+                        }
+                    )),
                     rhs: None,
-                    typehint: Box::new(Expression::Id("int".to_string(), Span { start: 3, end: 6 })),
-                    span: Span { start: 0, end: 6 }
+                    typehint: Box::new(Expression::Id(
+                        "int".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 4,
+                            column_end: 6
+                        }
+                    )),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 6
+                    }
                 }))]
             }
         )
@@ -235,10 +520,31 @@ mod tests_parser {
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::AugAssing(AugAssign {
-                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
-                    rhs: Box::new(Expression::Number("1".to_string(), Span { start: 5, end: 6 })),
+                    lhs: Box::new(Expression::Id(
+                        "x".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 1
+                        }
+                    )),
+                    rhs: Box::new(Expression::Number(
+                        "1".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 6,
+                            column_end: 6
+                        }
+                    )),
                     kind: AugAssignType::Plus,
-                    span: Span { start: 0, end: 6 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 6
+                    }
                 }))]
             }
         )
@@ -255,7 +561,12 @@ mod tests_parser {
             vec![PythonError {
                 error: PythonErrorType::Syntax,
                 msg: "SyntaxError: invalid syntax, typehint not allowed in this kind of expression".to_string(),
-                span: Span { start: 0, end: 6 },
+                span: Span {
+                    row_start: 1,
+                    row_end: 1,
+                    column_start: 1,
+                    column_end: 6
+                },
             }],
         )
     }
@@ -276,10 +587,25 @@ mod tests_parser {
                     name: "x".to_string(),
                     decorators: vec![],
                     block: Block {
-                        stmts: vec![Statement::Pass(Span { start: 13, end: 17 })],
-                        span: Span { start: 13, end: 17 }
+                        stmts: vec![Statement::Pass(Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        })],
+                        span: Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        }
                     },
-                    span: Span { start: 0, end: 17 },
+                    span: Span {
+                        row_start: 1,
+                        row_end: 2,
+                        column_start: 1,
+                        column_end: 8
+                    },
                     parameters: vec![]
                 })]
             }
@@ -306,13 +632,38 @@ mod tests_parser {
                     decorators: vec![],
                     block: Block {
                         stmts: vec![
-                            Statement::Pass(Span { start: 13, end: 17 }),
-                            Statement::Pass(Span { start: 22, end: 26 }),
-                            Statement::Pass(Span { start: 31, end: 35 })
+                            Statement::Pass(Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 5,
+                                column_end: 8
+                            }),
+                            Statement::Pass(Span {
+                                row_start: 3,
+                                row_end: 3,
+                                column_start: 5,
+                                column_end: 8
+                            }),
+                            Statement::Pass(Span {
+                                row_start: 4,
+                                row_end: 4,
+                                column_start: 5,
+                                column_end: 8
+                            })
                         ],
-                        span: Span { start: 13, end: 35 }
+                        span: Span {
+                            row_start: 2,
+                            row_end: 4,
+                            column_start: 5,
+                            column_end: 8
+                        }
                     },
-                    span: Span { start: 0, end: 35 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 4,
+                        column_start: 1,
+                        column_end: 8
+                    }
                 })]
             }
         )
@@ -338,25 +689,58 @@ mod tests_parser {
                         FuncParameter {
                             name: "x".to_string(),
                             default_value: None,
-                            span: Span { start: 9, end: 10 },
+                            span: Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 10,
+                                column_end: 10
+                            },
                             star_parameter_type: None,
                             is_kw_only: false,
                             is_pos_only: false
                         },
                         FuncParameter {
                             name: "y".to_string(),
-                            default_value: Some(Expression::Number("42".to_string(), Span { start: 16, end: 18 })),
-                            span: Span { start: 12, end: 18 },
+                            default_value: Some(Expression::Number(
+                                "42".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 17,
+                                    column_end: 18
+                                }
+                            )),
+                            span: Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 13,
+                                column_end: 18
+                            },
                             star_parameter_type: None,
                             is_kw_only: false,
                             is_pos_only: false
                         }
                     ],
                     block: Block {
-                        stmts: vec![Statement::Pass(Span { start: 25, end: 29 })],
-                        span: Span { start: 25, end: 29 }
+                        stmts: vec![Statement::Pass(Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        })],
+                        span: Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        }
                     },
-                    span: Span { start: 0, end: 29 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 2,
+                        column_start: 1,
+                        column_end: 8
+                    }
                 })]
             }
         )
@@ -381,7 +765,12 @@ mod tests_parser {
                         FuncParameter {
                             name: "kargs".to_string(),
                             default_value: None,
-                            span: Span { start: 10, end: 15 },
+                            span: Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 11,
+                                column_end: 15
+                            },
                             star_parameter_type: Some(StarParameterType::Kargs),
                             is_kw_only: false,
                             is_pos_only: false
@@ -389,17 +778,37 @@ mod tests_parser {
                         FuncParameter {
                             name: "kwargs".to_string(),
                             default_value: None,
-                            span: Span { start: 19, end: 25 },
+                            span: Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 20,
+                                column_end: 25
+                            },
                             star_parameter_type: Some(StarParameterType::KWargs),
                             is_kw_only: false,
                             is_pos_only: false
                         }
                     ],
                     block: Block {
-                        stmts: vec![Statement::Pass(Span { start: 32, end: 36 })],
-                        span: Span { start: 32, end: 36 }
+                        stmts: vec![Statement::Pass(Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        })],
+                        span: Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        }
                     },
-                    span: Span { start: 0, end: 36 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 2,
+                        column_start: 1,
+                        column_end: 8
+                    }
                 })]
             }
         )
@@ -419,14 +828,37 @@ mod tests_parser {
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::If(IfStmt {
-                    condition: Expression::Bool(true, Span { start: 3, end: 7 }),
+                    condition: Expression::Bool(
+                        true,
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 4,
+                            column_end: 7
+                        }
+                    ),
                     block: Block {
-                        stmts: vec![Statement::Pass(Span { start: 13, end: 17 })],
-                        span: Span { start: 13, end: 17 }
+                        stmts: vec![Statement::Pass(Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        })],
+                        span: Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        }
                     },
                     elif_stms: vec![],
                     else_stmt: None,
-                    span: Span { start: 0, end: 17 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 2,
+                        column_start: 1,
+                        column_end: 8
+                    }
                 })]
             }
         )
@@ -447,20 +879,58 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::If(IfStmt {
-                    condition: Expression::Bool(true, Span { start: 3, end: 7 }),
+                    condition: Expression::Bool(
+                        true,
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 4,
+                            column_end: 7
+                        }
+                    ),
                     block: Block {
-                        stmts: vec![Statement::Pass(Span { start: 13, end: 17 })],
-                        span: Span { start: 13, end: 17 }
+                        stmts: vec![Statement::Pass(Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        })],
+                        span: Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        }
                     },
                     elif_stms: vec![],
                     else_stmt: Some(ElseStmt {
                         block: Block {
-                            stmts: vec![Statement::Pass(Span { start: 28, end: 32 })],
-                            span: Span { start: 28, end: 32 }
+                            stmts: vec![Statement::Pass(Span {
+                                row_start: 4,
+                                row_end: 4,
+                                column_start: 5,
+                                column_end: 8
+                            })],
+                            span: Span {
+                                row_start: 4,
+                                row_end: 4,
+                                column_start: 5,
+                                column_end: 8
+                            }
                         },
-                        span: Span { start: 18, end: 32 },
+                        span: Span {
+                            row_start: 3,
+                            row_end: 4,
+                            column_start: 1,
+                            column_end: 8
+                        },
                     }),
-                    span: Span { start: 0, end: 32 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 4,
+                        column_start: 1,
+                        column_end: 8
+                    }
                 })]
             }
         )
@@ -483,31 +953,100 @@ elif True:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::If(IfStmt {
-                    condition: Expression::Bool(true, Span { start: 3, end: 7 }),
+                    condition: Expression::Bool(
+                        true,
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 4,
+                            column_end: 7
+                        }
+                    ),
                     block: Block {
-                        stmts: vec![Statement::Pass(Span { start: 13, end: 17 })],
-                        span: Span { start: 13, end: 17 },
+                        stmts: vec![Statement::Pass(Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        })],
+                        span: Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        },
                     },
                     elif_stms: vec![
                         ElIfStmt {
-                            condition: Expression::Bool(true, Span { start: 23, end: 27 }),
+                            condition: Expression::Bool(
+                                true,
+                                Span {
+                                    row_start: 3,
+                                    row_end: 3,
+                                    column_start: 6,
+                                    column_end: 9
+                                }
+                            ),
                             block: Block {
-                                stmts: vec![Statement::Pass(Span { start: 33, end: 37 })],
-                                span: Span { start: 33, end: 37 },
+                                stmts: vec![Statement::Pass(Span {
+                                    row_start: 4,
+                                    row_end: 4,
+                                    column_start: 5,
+                                    column_end: 8
+                                })],
+                                span: Span {
+                                    row_start: 4,
+                                    row_end: 4,
+                                    column_start: 5,
+                                    column_end: 8
+                                },
                             },
-                            span: Span { start: 18, end: 37 },
+                            span: Span {
+                                row_start: 3,
+                                row_end: 4,
+                                column_start: 1,
+                                column_end: 8
+                            },
                         },
                         ElIfStmt {
-                            condition: Expression::Bool(true, Span { start: 43, end: 47 }),
+                            condition: Expression::Bool(
+                                true,
+                                Span {
+                                    row_start: 5,
+                                    row_end: 5,
+                                    column_start: 6,
+                                    column_end: 9
+                                }
+                            ),
                             block: Block {
-                                stmts: vec![Statement::Pass(Span { start: 53, end: 57 })],
-                                span: Span { start: 53, end: 57 }
+                                stmts: vec![Statement::Pass(Span {
+                                    row_start: 6,
+                                    row_end: 6,
+                                    column_start: 5,
+                                    column_end: 8
+                                })],
+                                span: Span {
+                                    row_start: 6,
+                                    row_end: 6,
+                                    column_start: 5,
+                                    column_end: 8
+                                }
                             },
-                            span: Span { start: 38, end: 57 },
+                            span: Span {
+                                row_start: 5,
+                                row_end: 6,
+                                column_start: 1,
+                                column_end: 8
+                            },
                         },
                     ],
                     else_stmt: None,
-                    span: Span { start: 0, end: 57 },
+                    span: Span {
+                        row_start: 1,
+                        row_end: 6,
+                        column_start: 1,
+                        column_end: 8
+                    },
                 })],
             }
         )
@@ -532,37 +1071,121 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::If(IfStmt {
-                    condition: Expression::Bool(true, Span { start: 3, end: 7 }),
+                    condition: Expression::Bool(
+                        true,
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 4,
+                            column_end: 7
+                        }
+                    ),
                     block: Block {
-                        stmts: vec![Statement::Pass(Span { start: 13, end: 17 })],
-                        span: Span { start: 13, end: 17 },
+                        stmts: vec![Statement::Pass(Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        })],
+                        span: Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        },
                     },
                     elif_stms: vec![
                         ElIfStmt {
-                            condition: Expression::Bool(true, Span { start: 23, end: 27 }),
+                            condition: Expression::Bool(
+                                true,
+                                Span {
+                                    row_start: 3,
+                                    row_end: 3,
+                                    column_start: 6,
+                                    column_end: 9
+                                }
+                            ),
                             block: Block {
-                                stmts: vec![Statement::Pass(Span { start: 33, end: 37 })],
-                                span: Span { start: 33, end: 37 },
+                                stmts: vec![Statement::Pass(Span {
+                                    row_start: 4,
+                                    row_end: 4,
+                                    column_start: 5,
+                                    column_end: 8
+                                })],
+                                span: Span {
+                                    row_start: 4,
+                                    row_end: 4,
+                                    column_start: 5,
+                                    column_end: 8
+                                },
                             },
-                            span: Span { start: 18, end: 37 },
+                            span: Span {
+                                row_start: 3,
+                                row_end: 4,
+                                column_start: 1,
+                                column_end: 8
+                            },
                         },
                         ElIfStmt {
-                            condition: Expression::Bool(true, Span { start: 43, end: 47 }),
+                            condition: Expression::Bool(
+                                true,
+                                Span {
+                                    row_start: 5,
+                                    row_end: 5,
+                                    column_start: 6,
+                                    column_end: 9
+                                }
+                            ),
                             block: Block {
-                                stmts: vec![Statement::Pass(Span { start: 53, end: 57 })],
-                                span: Span { start: 53, end: 57 }
+                                stmts: vec![Statement::Pass(Span {
+                                    row_start: 6,
+                                    row_end: 6,
+                                    column_start: 5,
+                                    column_end: 8
+                                })],
+                                span: Span {
+                                    row_start: 6,
+                                    row_end: 6,
+                                    column_start: 5,
+                                    column_end: 8
+                                }
                             },
-                            span: Span { start: 38, end: 57 },
+                            span: Span {
+                                row_start: 5,
+                                row_end: 6,
+                                column_start: 1,
+                                column_end: 8
+                            },
                         },
                     ],
                     else_stmt: Some(ElseStmt {
                         block: Block {
-                            stmts: vec![Statement::Pass(Span { start: 68, end: 72 })],
-                            span: Span { start: 68, end: 72 }
+                            stmts: vec![Statement::Pass(Span {
+                                row_start: 8,
+                                row_end: 8,
+                                column_start: 5,
+                                column_end: 8
+                            })],
+                            span: Span {
+                                row_start: 8,
+                                row_end: 8,
+                                column_start: 5,
+                                column_end: 8
+                            }
                         },
-                        span: Span { start: 58, end: 72 },
+                        span: Span {
+                            row_start: 7,
+                            row_end: 8,
+                            column_start: 1,
+                            column_end: 8
+                        },
                     }),
-                    span: Span { start: 0, end: 72 },
+                    span: Span {
+                        row_start: 1,
+                        row_end: 8,
+                        column_start: 1,
+                        column_end: 8
+                    },
                 })],
             }
         )
@@ -582,13 +1205,36 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::While(While {
-                    condition: Expression::Bool(true, Span { start: 6, end: 10 }),
+                    condition: Expression::Bool(
+                        true,
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 7,
+                            column_end: 10
+                        }
+                    ),
                     else_stmt: None,
                     block: Block {
-                        stmts: vec![Statement::Pass(Span { start: 16, end: 20 })],
-                        span: Span { start: 16, end: 20 }
+                        stmts: vec![Statement::Pass(Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        })],
+                        span: Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        }
                     },
-                    span: Span { start: 0, end: 20 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 2,
+                        column_start: 1,
+                        column_end: 8
+                    }
                 })]
             }
         )
@@ -609,19 +1255,57 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::While(While {
-                    condition: Expression::Bool(true, Span { start: 6, end: 10 },),
+                    condition: Expression::Bool(
+                        true,
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 7,
+                            column_end: 10
+                        },
+                    ),
                     else_stmt: Some(ElseStmt {
                         block: Block {
-                            stmts: vec![Statement::Pass(Span { start: 31, end: 35 },),],
-                            span: Span { start: 31, end: 35 },
+                            stmts: vec![Statement::Pass(Span {
+                                row_start: 4,
+                                row_end: 4,
+                                column_start: 5,
+                                column_end: 8
+                            },),],
+                            span: Span {
+                                row_start: 4,
+                                row_end: 4,
+                                column_start: 5,
+                                column_end: 8
+                            },
                         },
-                        span: Span { start: 21, end: 35 },
+                        span: Span {
+                            row_start: 3,
+                            row_end: 4,
+                            column_start: 1,
+                            column_end: 8
+                        },
                     },),
                     block: Block {
-                        stmts: vec![Statement::Pass(Span { start: 16, end: 20 })],
-                        span: Span { start: 16, end: 20 }
+                        stmts: vec![Statement::Pass(Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        })],
+                        span: Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        }
                     },
-                    span: Span { start: 0, end: 35 },
+                    span: Span {
+                        row_start: 1,
+                        row_end: 4,
+                        column_start: 1,
+                        column_end: 8
+                    },
                 })]
             }
         )
@@ -637,19 +1321,66 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
-                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    lhs: Box::new(Expression::Id(
+                        "x".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 1
+                        }
+                    )),
                     rhs: Box::new(Expression::BinaryOp(
                         Box::new(Expression::BinaryOp(
-                            Box::new(Expression::Number("1".to_string(), Span { start: 4, end: 5 })),
+                            Box::new(Expression::Number(
+                                "1".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 5,
+                                    column_end: 5
+                                }
+                            )),
                             BinaryOperator::Add,
-                            Box::new(Expression::Number("2".to_string(), Span { start: 8, end: 9 })),
-                            Span { start: 4, end: 9 }
+                            Box::new(Expression::Number(
+                                "2".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 9,
+                                    column_end: 9
+                                }
+                            )),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 5,
+                                column_end: 9
+                            }
                         )),
                         BinaryOperator::Add,
-                        Box::new(Expression::Number("3".to_string(), Span { start: 12, end: 13 })),
-                        Span { start: 4, end: 13 }
+                        Box::new(Expression::Number(
+                            "3".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 13,
+                                column_end: 13
+                            }
+                        )),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 5,
+                            column_end: 13
+                        }
                     )),
-                    span: Span { start: 0, end: 13 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 13
+                    }
                 }))]
             }
         )
@@ -665,24 +1396,84 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
-                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    lhs: Box::new(Expression::Id(
+                        "x".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 1
+                        }
+                    )),
                     rhs: Box::new(Expression::BinaryOp(
-                        Box::new(Expression::Number("1".to_string(), Span { start: 4, end: 5 })),
+                        Box::new(Expression::Number(
+                            "1".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 5,
+                                column_end: 5
+                            }
+                        )),
                         BinaryOperator::Add,
                         Box::new(Expression::BinaryOp(
                             Box::new(Expression::BinaryOp(
-                                Box::new(Expression::Number("2".to_string(), Span { start: 8, end: 9 })),
+                                Box::new(Expression::Number(
+                                    "2".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 9,
+                                        column_end: 9
+                                    }
+                                )),
                                 BinaryOperator::Multiply,
-                                Box::new(Expression::Number("3".to_string(), Span { start: 12, end: 13 })),
-                                Span { start: 8, end: 13 }
+                                Box::new(Expression::Number(
+                                    "3".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 13,
+                                        column_end: 13
+                                    }
+                                )),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 9,
+                                    column_end: 13
+                                }
                             )),
                             BinaryOperator::Divide,
-                            Box::new(Expression::Number("2".to_string(), Span { start: 16, end: 17 })),
-                            Span { start: 8, end: 17 }
+                            Box::new(Expression::Number(
+                                "2".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 17,
+                                    column_end: 17
+                                }
+                            )),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 9,
+                                column_end: 17
+                            }
                         )),
-                        Span { start: 4, end: 17 }
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 5,
+                            column_end: 17
+                        }
                     )),
-                    span: Span { start: 0, end: 17 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 17
+                    }
                 }))]
             }
         );
@@ -698,18 +1489,57 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
-                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    lhs: Box::new(Expression::Id(
+                        "x".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 1
+                        }
+                    )),
                     rhs: Box::new(Expression::BinaryOp(
-                        Box::new(Expression::Number("3".to_string(), Span { start: 4, end: 5 })),
+                        Box::new(Expression::Number(
+                            "3".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 5,
+                                column_end: 5
+                            }
+                        )),
                         BinaryOperator::Add,
                         Box::new(Expression::UnaryOp(
-                            Box::new(Expression::Number("5".to_string(), Span { start: 9, end: 10 })),
+                            Box::new(Expression::Number(
+                                "5".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 10,
+                                    column_end: 10
+                                }
+                            )),
                             UnaryOperator::Minus,
-                            Span { start: 8, end: 10 }
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 9,
+                                column_end: 10
+                            }
                         )),
-                        Span { start: 4, end: 10 }
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 5,
+                            column_end: 10
+                        }
                     )),
-                    span: Span { start: 0, end: 10 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 10
+                    }
                 }))]
             }
         )
@@ -725,22 +1555,66 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
-                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    lhs: Box::new(Expression::Id(
+                        "x".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 1
+                        }
+                    )),
                     rhs: Box::new(Expression::UnaryOp(
                         Box::new(Expression::BinaryOp(
-                            Box::new(Expression::Number("3".to_string(), Span { start: 8, end: 9 })),
+                            Box::new(Expression::Number(
+                                "3".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 9,
+                                    column_end: 9
+                                }
+                            )),
                             BinaryOperator::Add,
                             Box::new(Expression::UnaryOp(
-                                Box::new(Expression::Number("5".to_string(), Span { start: 13, end: 14 })),
+                                Box::new(Expression::Number(
+                                    "5".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 14,
+                                        column_end: 14
+                                    }
+                                )),
                                 UnaryOperator::Minus,
-                                Span { start: 12, end: 14 }
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 13,
+                                    column_end: 14
+                                }
                             )),
-                            Span { start: 8, end: 14 }
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 9,
+                                column_end: 14
+                            }
                         )),
                         UnaryOperator::LogicalNot,
-                        Span { start: 4, end: 14 }
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 5,
+                            column_end: 14
+                        }
                     )),
-                    span: Span { start: 0, end: 14 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 14
+                    }
                 }))]
             }
         );
@@ -756,18 +1630,57 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
-                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    lhs: Box::new(Expression::Id(
+                        "x".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 1
+                        }
+                    )),
                     rhs: Box::new(Expression::BinaryOp(
-                        Box::new(Expression::Id("x".to_string(), Span { start: 4, end: 5 })),
+                        Box::new(Expression::Id(
+                            "x".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 5,
+                                column_end: 5
+                            }
+                        )),
                         BinaryOperator::Add,
                         Box::new(Expression::UnaryOp(
-                            Box::new(Expression::Number("5".to_string(), Span { start: 9, end: 10 })),
+                            Box::new(Expression::Number(
+                                "5".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 10,
+                                    column_end: 10
+                                }
+                            )),
                             UnaryOperator::Plus,
-                            Span { start: 8, end: 10 }
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 9,
+                                column_end: 10
+                            }
                         )),
-                        Span { start: 4, end: 10 }
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 5,
+                            column_end: 10
+                        }
                     )),
-                    span: Span { start: 0, end: 10 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 10
+                    }
                 }))]
             }
         );
@@ -783,38 +1696,129 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
-                    lhs: Box::new(Expression::Id("a".to_string(), Span { start: 0, end: 1 })),
+                    lhs: Box::new(Expression::Id(
+                        "a".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 1
+                        }
+                    )),
                     rhs: Box::new(Expression::BinaryOp(
                         Box::new(Expression::BinaryOp(
-                            Box::new(Expression::Id("x".to_string(), Span { start: 4, end: 5 })),
+                            Box::new(Expression::Id(
+                                "x".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 5,
+                                    column_end: 5
+                                }
+                            )),
                             BinaryOperator::LessThan,
-                            Box::new(Expression::Id("y".to_string(), Span { start: 8, end: 9 })),
-                            Span { start: 4, end: 9 }
+                            Box::new(Expression::Id(
+                                "y".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 9,
+                                    column_end: 9
+                                }
+                            )),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 5,
+                                column_end: 9
+                            }
                         )),
                         BinaryOperator::LogicalOr,
                         Box::new(Expression::BinaryOp(
                             Box::new(Expression::BinaryOp(
-                                Box::new(Expression::Number("69".to_string(), Span { start: 13, end: 15 })),
+                                Box::new(Expression::Number(
+                                    "69".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 14,
+                                        column_end: 15
+                                    }
+                                )),
                                 BinaryOperator::GreaterThan,
-                                Box::new(Expression::Number("9".to_string(), Span { start: 18, end: 19 })),
-                                Span { start: 13, end: 19 }
+                                Box::new(Expression::Number(
+                                    "9".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 19,
+                                        column_end: 19
+                                    }
+                                )),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 14,
+                                    column_end: 19
+                                }
                             )),
                             BinaryOperator::LogicalAnd,
                             Box::new(Expression::UnaryOp(
                                 Box::new(Expression::BinaryOp(
-                                    Box::new(Expression::Number("101".to_string(), Span { start: 28, end: 31 })),
+                                    Box::new(Expression::Number(
+                                        "101".to_string(),
+                                        Span {
+                                            row_start: 1,
+                                            row_end: 1,
+                                            column_start: 29,
+                                            column_end: 31
+                                        }
+                                    )),
                                     BinaryOperator::BitwiseRightShift,
-                                    Box::new(Expression::Number("666".to_string(), Span { start: 35, end: 38 })),
-                                    Span { start: 28, end: 38 }
+                                    Box::new(Expression::Number(
+                                        "666".to_string(),
+                                        Span {
+                                            row_start: 1,
+                                            row_end: 1,
+                                            column_start: 36,
+                                            column_end: 38
+                                        }
+                                    )),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 29,
+                                        column_end: 38
+                                    }
                                 )),
                                 UnaryOperator::LogicalNot,
-                                Span { start: 24, end: 38 }
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 25,
+                                    column_end: 38
+                                }
                             )),
-                            Span { start: 13, end: 38 }
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 14,
+                                column_end: 38
+                            }
                         )),
-                        Span { start: 4, end: 38 }
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 5,
+                            column_end: 38
+                        }
                     )),
-                    span: Span { start: 0, end: 38 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 38
+                    }
                 }))]
             }
         );
@@ -830,19 +1834,66 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
-                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    lhs: Box::new(Expression::Id(
+                        "x".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 1
+                        }
+                    )),
                     rhs: Box::new(Expression::BinaryOp(
-                        Box::new(Expression::Id("a".to_string(), Span { start: 4, end: 5 })),
+                        Box::new(Expression::Id(
+                            "a".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 5,
+                                column_end: 5
+                            }
+                        )),
                         BinaryOperator::AttributeRef,
                         Box::new(Expression::BinaryOp(
-                            Box::new(Expression::Id("b".to_string(), Span { start: 6, end: 7 })),
+                            Box::new(Expression::Id(
+                                "b".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 7,
+                                    column_end: 7
+                                }
+                            )),
                             BinaryOperator::AttributeRef,
-                            Box::new(Expression::Id("c".to_string(), Span { start: 8, end: 9 })),
-                            Span { start: 6, end: 9 }
+                            Box::new(Expression::Id(
+                                "c".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 9,
+                                    column_end: 9
+                                }
+                            )),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 7,
+                                column_end: 9
+                            }
                         )),
-                        Span { start: 4, end: 9 }
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 5,
+                            column_end: 9
+                        }
                     )),
-                    span: Span { start: 0, end: 9 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 9
+                    }
                 }))],
             }
         )
@@ -858,13 +1909,39 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
-                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    lhs: Box::new(Expression::Id(
+                        "x".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 1
+                        }
+                    )),
                     rhs: Box::new(Expression::Call(FunctionCall {
-                        lhs: Box::new(Expression::Id("hello".to_string(), Span { start: 4, end: 9 })),
+                        lhs: Box::new(Expression::Id(
+                            "hello".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 5,
+                                column_end: 9
+                            }
+                        )),
                         args: vec![],
-                        span: Span { start: 4, end: 12 }
+                        span: Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 5,
+                            column_end: 11
+                        }
                     })),
-                    span: Span { start: 0, end: 12 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 11
+                    }
                 }))],
             }
         )
@@ -880,18 +1957,65 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
-                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    lhs: Box::new(Expression::Id(
+                        "x".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 1
+                        }
+                    )),
                     rhs: Box::new(Expression::Subscript(Subscript {
-                        lhs: Box::new(Expression::Id("l".to_string(), Span { start: 4, end: 5 })),
+                        lhs: Box::new(Expression::Id(
+                            "l".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 5,
+                                column_end: 5
+                            }
+                        )),
                         slice: Box::new(SubscriptType::Subscript(Expression::BinaryOp(
-                            Box::new(Expression::Number("1".to_string(), Span { start: 6, end: 7 })),
+                            Box::new(Expression::Number(
+                                "1".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 7,
+                                    column_end: 7
+                                }
+                            )),
                             BinaryOperator::Add,
-                            Box::new(Expression::Number("2".to_string(), Span { start: 10, end: 11 })),
-                            Span { start: 6, end: 11 }
+                            Box::new(Expression::Number(
+                                "2".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 11,
+                                    column_end: 11
+                                }
+                            )),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 7,
+                                column_end: 11
+                            }
                         ))),
-                        span: Span { start: 4, end: 12 }
+                        span: Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 5,
+                            column_end: 12
+                        }
                     })),
-                    span: Span { start: 0, end: 12 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 12
+                    }
                 }))]
             }
         )
@@ -907,14 +2031,48 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
-                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
-                    rhs: Box::new(Expression::BinaryOp(
-                        Box::new(Expression::Id("a".to_string(), Span { start: 4, end: 5 })),
-                        BinaryOperator::NotIn,
-                        Box::new(Expression::Id("b".to_string(), Span { start: 13, end: 14 })),
-                        Span { start: 4, end: 14 }
+                    lhs: Box::new(Expression::Id(
+                        "x".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 1
+                        }
                     )),
-                    span: Span { start: 0, end: 14 }
+                    rhs: Box::new(Expression::BinaryOp(
+                        Box::new(Expression::Id(
+                            "a".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 5,
+                                column_end: 5
+                            }
+                        )),
+                        BinaryOperator::NotIn,
+                        Box::new(Expression::Id(
+                            "b".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 14,
+                                column_end: 14
+                            }
+                        )),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 5,
+                            column_end: 14
+                        }
+                    )),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 14
+                    }
                 }))],
             }
         )
@@ -930,24 +2088,84 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
-                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    lhs: Box::new(Expression::Id(
+                        "x".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 1
+                        }
+                    )),
                     rhs: Box::new(Expression::BinaryOp(
                         Box::new(Expression::BinaryOp(
                             Box::new(Expression::BinaryOp(
-                                Box::new(Expression::Number("1".to_string(), Span { start: 6, end: 7 })),
+                                Box::new(Expression::Number(
+                                    "1".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 7,
+                                        column_end: 7
+                                    }
+                                )),
                                 BinaryOperator::Add,
-                                Box::new(Expression::Number("2".to_string(), Span { start: 10, end: 11 })),
-                                Span { start: 5, end: 12 }
+                                Box::new(Expression::Number(
+                                    "2".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 11,
+                                        column_end: 11
+                                    }
+                                )),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 6,
+                                    column_end: 12
+                                }
                             )),
                             BinaryOperator::Multiply,
-                            Box::new(Expression::Number("54".to_string(), Span { start: 15, end: 17 })),
-                            Span { start: 4, end: 18 }
+                            Box::new(Expression::Number(
+                                "54".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 16,
+                                    column_end: 17
+                                }
+                            )),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 5,
+                                column_end: 18
+                            }
                         )),
                         BinaryOperator::Divide,
-                        Box::new(Expression::Number("3".to_string(), Span { start: 21, end: 22 })),
-                        Span { start: 4, end: 22 }
+                        Box::new(Expression::Number(
+                            "3".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 22,
+                                column_end: 22
+                            }
+                        )),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 5,
+                            column_end: 22
+                        }
                     )),
-                    span: Span { start: 0, end: 22 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 22
+                    }
                 }))],
             }
         );
@@ -963,34 +2181,120 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
-                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    lhs: Box::new(Expression::Id(
+                        "x".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 1
+                        }
+                    )),
                     rhs: Box::new(Expression::Tuple(
                         vec![
                             Expression::BinaryOp(
-                                Box::new(Expression::Number("1".to_string(), Span { start: 5, end: 6 })),
+                                Box::new(Expression::Number(
+                                    "1".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 6,
+                                        column_end: 6
+                                    }
+                                )),
                                 BinaryOperator::Add,
-                                Box::new(Expression::Number("2".to_string(), Span { start: 9, end: 10 })),
-                                Span { start: 5, end: 10 }
+                                Box::new(Expression::Number(
+                                    "2".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 10,
+                                        column_end: 10
+                                    }
+                                )),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 6,
+                                    column_end: 10
+                                }
                             ),
-                            Expression::Bool(true, Span { start: 12, end: 16 }),
+                            Expression::Bool(
+                                true,
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 13,
+                                    column_end: 16
+                                }
+                            ),
                             Expression::Call(FunctionCall {
-                                lhs: Box::new(Expression::Id("y".to_string(), Span { start: 18, end: 19 })),
+                                lhs: Box::new(Expression::Id(
+                                    "y".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 19,
+                                        column_end: 19
+                                    }
+                                )),
                                 args: vec![],
-                                span: Span { start: 18, end: 22 }
+                                span: Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 19,
+                                    column_end: 21
+                                }
                             }),
-                            Expression::String("Hello".to_string(), Span { start: 23, end: 30 }),
+                            Expression::String(
+                                "Hello".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 24,
+                                    column_end: 30
+                                }
+                            ),
                             Expression::Subscript(Subscript {
-                                lhs: Box::new(Expression::Id("l".to_string(), Span { start: 32, end: 33 })),
+                                lhs: Box::new(Expression::Id(
+                                    "l".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 33,
+                                        column_end: 33
+                                    }
+                                )),
                                 slice: Box::new(SubscriptType::Subscript(Expression::Id(
                                     "i".to_string(),
-                                    Span { start: 34, end: 35 }
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 35,
+                                        column_end: 35
+                                    }
                                 ))),
-                                span: Span { start: 32, end: 36 }
+                                span: Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 33,
+                                    column_end: 36
+                                }
                             })
                         ],
-                        Span { start: 4, end: 38 }
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 5,
+                            column_end: 38
+                        }
                     )),
-                    span: Span { start: 0, end: 38 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 38
+                    }
                 }))]
             }
         );
@@ -1008,28 +2312,101 @@ else:
                 stmts: vec![Statement::Expression(Expression::Tuple(
                     vec![
                         Expression::BinaryOp(
-                            Box::new(Expression::Number("1".to_string(), Span { start: 0, end: 1 })),
+                            Box::new(Expression::Number(
+                                "1".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 1,
+                                    column_end: 1
+                                }
+                            )),
                             BinaryOperator::Add,
-                            Box::new(Expression::Number("2".to_string(), Span { start: 4, end: 5 })),
-                            Span { start: 0, end: 5 }
+                            Box::new(Expression::Number(
+                                "2".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 5,
+                                    column_end: 5
+                                }
+                            )),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 1,
+                                column_end: 5
+                            }
                         ),
-                        Expression::Bool(true, Span { start: 7, end: 11 }),
+                        Expression::Bool(
+                            true,
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 8,
+                                column_end: 11
+                            }
+                        ),
                         Expression::Call(FunctionCall {
-                            lhs: Box::new(Expression::Id("y".to_string(), Span { start: 13, end: 14 })),
+                            lhs: Box::new(Expression::Id(
+                                "y".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 14,
+                                    column_end: 14
+                                }
+                            )),
                             args: vec![],
-                            span: Span { start: 13, end: 17 }
+                            span: Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 14,
+                                column_end: 16
+                            }
                         }),
-                        Expression::String("Hello".to_string(), Span { start: 18, end: 25 }),
+                        Expression::String(
+                            "Hello".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 19,
+                                column_end: 25
+                            }
+                        ),
                         Expression::Subscript(Subscript {
-                            lhs: Box::new(Expression::Id("l".to_string(), Span { start: 27, end: 28 })),
+                            lhs: Box::new(Expression::Id(
+                                "l".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 28,
+                                    column_end: 28
+                                }
+                            )),
                             slice: Box::new(SubscriptType::Subscript(Expression::Id(
                                 "i".to_string(),
-                                Span { start: 29, end: 30 }
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 30,
+                                    column_end: 30
+                                }
                             ))),
-                            span: Span { start: 27, end: 31 }
+                            span: Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 28,
+                                column_end: 31
+                            }
                         })
                     ],
-                    Span { start: 0, end: 33 }
+                    Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 32
+                    }
                 ),)]
             }
         )
@@ -1045,34 +2422,120 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
-                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    lhs: Box::new(Expression::Id(
+                        "x".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 1
+                        }
+                    )),
                     rhs: Box::new(Expression::List(
                         vec![
                             Expression::BinaryOp(
-                                Box::new(Expression::Number("1".to_string(), Span { start: 5, end: 6 })),
+                                Box::new(Expression::Number(
+                                    "1".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 6,
+                                        column_end: 6
+                                    }
+                                )),
                                 BinaryOperator::Add,
-                                Box::new(Expression::Number("2".to_string(), Span { start: 9, end: 10 })),
-                                Span { start: 5, end: 10 }
+                                Box::new(Expression::Number(
+                                    "2".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 10,
+                                        column_end: 10
+                                    }
+                                )),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 6,
+                                    column_end: 10
+                                }
                             ),
-                            Expression::Bool(true, Span { start: 12, end: 16 }),
+                            Expression::Bool(
+                                true,
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 13,
+                                    column_end: 16
+                                }
+                            ),
                             Expression::Call(FunctionCall {
-                                lhs: Box::new(Expression::Id("y".to_string(), Span { start: 18, end: 19 })),
+                                lhs: Box::new(Expression::Id(
+                                    "y".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 19,
+                                        column_end: 19
+                                    }
+                                )),
                                 args: vec![],
-                                span: Span { start: 18, end: 22 }
+                                span: Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 19,
+                                    column_end: 21
+                                }
                             }),
-                            Expression::String("Hello".to_string(), Span { start: 23, end: 30 }),
+                            Expression::String(
+                                "Hello".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 24,
+                                    column_end: 30
+                                }
+                            ),
                             Expression::Subscript(Subscript {
-                                lhs: Box::new(Expression::Id("l".to_string(), Span { start: 32, end: 33 })),
+                                lhs: Box::new(Expression::Id(
+                                    "l".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 33,
+                                        column_end: 33
+                                    }
+                                )),
                                 slice: Box::new(SubscriptType::Subscript(Expression::Id(
                                     "i".to_string(),
-                                    Span { start: 34, end: 35 }
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 35,
+                                        column_end: 35
+                                    }
                                 ))),
-                                span: Span { start: 32, end: 36 }
+                                span: Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 33,
+                                    column_end: 36
+                                }
                             })
                         ],
-                        Span { start: 4, end: 38 }
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 5,
+                            column_end: 38
+                        }
                     )),
-                    span: Span { start: 0, end: 38 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 38
+                    }
                 }))]
             }
         );
@@ -1088,31 +2551,104 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
-                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    lhs: Box::new(Expression::Id(
+                        "x".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 1
+                        }
+                    )),
                     rhs: Box::new(Expression::List(
                         vec![
                             Expression::UnaryOp(
-                                Box::new(Expression::Id("l".to_string(), Span { start: 6, end: 7 })),
+                                Box::new(Expression::Id(
+                                    "l".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 7,
+                                        column_end: 7
+                                    }
+                                )),
                                 UnaryOperator::UnpackIterable,
-                                Span { start: 5, end: 7 }
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 6,
+                                    column_end: 7
+                                }
                             ),
                             Expression::UnaryOp(
                                 Box::new(Expression::List(
                                     vec![
-                                        Expression::Number("1".to_string(), Span { start: 11, end: 12 }),
-                                        Expression::Number("2".to_string(), Span { start: 13, end: 14 }),
-                                        Expression::Number("3".to_string(), Span { start: 15, end: 16 })
+                                        Expression::Number(
+                                            "1".to_string(),
+                                            Span {
+                                                row_start: 1,
+                                                row_end: 1,
+                                                column_start: 12,
+                                                column_end: 12
+                                            }
+                                        ),
+                                        Expression::Number(
+                                            "2".to_string(),
+                                            Span {
+                                                row_start: 1,
+                                                row_end: 1,
+                                                column_start: 14,
+                                                column_end: 14
+                                            }
+                                        ),
+                                        Expression::Number(
+                                            "3".to_string(),
+                                            Span {
+                                                row_start: 1,
+                                                row_end: 1,
+                                                column_start: 16,
+                                                column_end: 16
+                                            }
+                                        )
                                     ],
-                                    Span { start: 10, end: 17 }
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 11,
+                                        column_end: 17
+                                    }
                                 )),
                                 UnaryOperator::UnpackIterable,
-                                Span { start: 9, end: 17 }
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 10,
+                                    column_end: 17
+                                }
                             ),
-                            Expression::Bool(true, Span { start: 19, end: 23 })
+                            Expression::Bool(
+                                true,
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 20,
+                                    column_end: 23
+                                }
+                            )
                         ],
-                        Span { start: 4, end: 24 }
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 5,
+                            column_end: 24
+                        }
                     )),
-                    span: Span { start: 0, end: 24 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 24
+                    }
                 }))]
             }
         );
@@ -1129,7 +2665,12 @@ else:
             Some(vec![PythonError {
                 error: PythonErrorType::Syntax,
                 msg: "SyntaxError: can't unpack dictionary inside list!".to_string(),
-                span: Span { start: 1, end: 3 },
+                span: Span {
+                    row_start: 1,
+                    row_end: 1,
+                    column_start: 2,
+                    column_end: 3
+                },
             },])
         )
     }
@@ -1145,7 +2686,12 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::List(
                     vec![],
-                    Span { start: 0, end: 2 }
+                    Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 2
+                    }
                 ),)]
             }
         );
@@ -1161,13 +2707,39 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
-                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
-                    rhs: Box::new(Expression::UnaryOp(
-                        Box::new(Expression::Id("iterable".to_string(), Span { start: 5, end: 13 })),
-                        UnaryOperator::UnpackIterable,
-                        Span { start: 4, end: 13 }
+                    lhs: Box::new(Expression::Id(
+                        "x".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 1
+                        }
                     )),
-                    span: Span { start: 0, end: 13 }
+                    rhs: Box::new(Expression::UnaryOp(
+                        Box::new(Expression::Id(
+                            "iterable".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 6,
+                                column_end: 13
+                            }
+                        )),
+                        UnaryOperator::UnpackIterable,
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 5,
+                            column_end: 13
+                        }
+                    )),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 13
+                    }
                 }))]
             }
         )
@@ -1183,21 +2755,76 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
-                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    lhs: Box::new(Expression::Id(
+                        "x".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 1
+                        }
+                    )),
                     rhs: Box::new(Expression::Set(
                         vec![
-                            Expression::Number("1".to_string(), Span { start: 5, end: 6 }),
-                            Expression::Bool(true, Span { start: 8, end: 12 }),
-                            Expression::String("hello".to_string(), Span { start: 14, end: 21 }),
+                            Expression::Number(
+                                "1".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 6,
+                                    column_end: 6
+                                }
+                            ),
+                            Expression::Bool(
+                                true,
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 9,
+                                    column_end: 12
+                                }
+                            ),
+                            Expression::String(
+                                "hello".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 15,
+                                    column_end: 21
+                                }
+                            ),
                             Expression::UnaryOp(
-                                Box::new(Expression::Id("l".to_string(), Span { start: 24, end: 25 })),
+                                Box::new(Expression::Id(
+                                    "l".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 25,
+                                        column_end: 25
+                                    }
+                                )),
                                 UnaryOperator::UnpackIterable,
-                                Span { start: 23, end: 25 }
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 24,
+                                    column_end: 25
+                                }
                             )
                         ],
-                        Span { start: 4, end: 27 }
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 5,
+                            column_end: 27
+                        }
                     )),
-                    span: Span { start: 0, end: 27 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 27
+                    }
                 }))]
             }
         )
@@ -1213,36 +2840,128 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
-                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    lhs: Box::new(Expression::Id(
+                        "x".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 1
+                        }
+                    )),
                     rhs: Box::new(Expression::Dict(
                         vec![
                             DictItemType::KeyValue(
-                                Expression::Number("1".to_string(), Span { start: 5, end: 6 }),
-                                Expression::String("Hello".to_string(), Span { start: 8, end: 15 })
+                                Expression::Number(
+                                    "1".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 6,
+                                        column_end: 6
+                                    }
+                                ),
+                                Expression::String(
+                                    "Hello".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 9,
+                                        column_end: 15
+                                    }
+                                )
                             ),
                             DictItemType::KeyValue(
                                 Expression::BinaryOp(
-                                    Box::new(Expression::Number("1".to_string(), Span { start: 17, end: 18 })),
+                                    Box::new(Expression::Number(
+                                        "1".to_string(),
+                                        Span {
+                                            row_start: 1,
+                                            row_end: 1,
+                                            column_start: 18,
+                                            column_end: 18
+                                        }
+                                    )),
                                     BinaryOperator::Add,
-                                    Box::new(Expression::Number("3".to_string(), Span { start: 21, end: 22 })),
-                                    Span { start: 17, end: 22 }
+                                    Box::new(Expression::Number(
+                                        "3".to_string(),
+                                        Span {
+                                            row_start: 1,
+                                            row_end: 1,
+                                            column_start: 22,
+                                            column_end: 22
+                                        }
+                                    )),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 18,
+                                        column_end: 22
+                                    }
                                 ),
-                                Expression::Bool(true, Span { start: 24, end: 28 })
+                                Expression::Bool(
+                                    true,
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 25,
+                                        column_end: 28
+                                    }
+                                )
                             ),
                             DictItemType::KeyValue(
                                 Expression::Tuple(
                                     vec![
-                                        Expression::Number("6".to_string(), Span { start: 31, end: 32 }),
-                                        Expression::Number("6".to_string(), Span { start: 34, end: 35 })
+                                        Expression::Number(
+                                            "6".to_string(),
+                                            Span {
+                                                row_start: 1,
+                                                row_end: 1,
+                                                column_start: 32,
+                                                column_end: 32
+                                            }
+                                        ),
+                                        Expression::Number(
+                                            "6".to_string(),
+                                            Span {
+                                                row_start: 1,
+                                                row_end: 1,
+                                                column_start: 35,
+                                                column_end: 35
+                                            }
+                                        )
                                     ],
-                                    Span { start: 30, end: 36 }
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 31,
+                                        column_end: 36
+                                    }
                                 ),
-                                Expression::Bool(false, Span { start: 38, end: 43 })
+                                Expression::Bool(
+                                    false,
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 39,
+                                        column_end: 43
+                                    }
+                                )
                             )
                         ],
-                        Span { start: 4, end: 45 }
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 5,
+                            column_end: 45
+                        }
                     )),
-                    span: Span { start: 0, end: 45 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 45
+                    }
                 }))]
             }
         )
@@ -1258,27 +2977,87 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
-                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    lhs: Box::new(Expression::Id(
+                        "x".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 1
+                        }
+                    )),
                     rhs: Box::new(Expression::Dict(
                         vec![
                             DictItemType::Unpack(Expression::UnaryOp(
-                                Box::new(Expression::Id("d".to_string(), Span { start: 7, end: 8 })),
+                                Box::new(Expression::Id(
+                                    "d".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 8,
+                                        column_end: 8
+                                    }
+                                )),
                                 UnaryOperator::UnpackDictionary,
-                                Span { start: 5, end: 8 }
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 6,
+                                    column_end: 8
+                                }
                             )),
                             DictItemType::KeyValue(
-                                Expression::Number("2".to_string(), Span { start: 10, end: 11 }),
-                                Expression::Number("5".to_string(), Span { start: 13, end: 14 })
+                                Expression::Number(
+                                    "2".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 11,
+                                        column_end: 11
+                                    }
+                                ),
+                                Expression::Number(
+                                    "5".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 14,
+                                        column_end: 14
+                                    }
+                                )
                             ),
                             DictItemType::Unpack(Expression::UnaryOp(
-                                Box::new(Expression::Id("x".to_string(), Span { start: 18, end: 19 })),
+                                Box::new(Expression::Id(
+                                    "x".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 19,
+                                        column_end: 19
+                                    }
+                                )),
                                 UnaryOperator::UnpackDictionary,
-                                Span { start: 16, end: 19 }
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 17,
+                                    column_end: 19
+                                }
                             ))
                         ],
-                        Span { start: 4, end: 21 }
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 5,
+                            column_end: 21
+                        }
                     )),
-                    span: Span { start: 0, end: 21 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 21
+                    }
                 }))]
             }
         )
@@ -1295,7 +3074,12 @@ else:
             vec![PythonError {
                 error: PythonErrorType::Syntax,
                 msg: "SyntaxError: can't unpack iterable inside dictionary!".to_string(),
-                span: Span { start: 10, end: 11 }
+                span: Span {
+                    row_start: 1,
+                    row_end: 1,
+                    column_start: 11,
+                    column_end: 11
+                }
             }]
         );
     }
@@ -1310,19 +3094,74 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
-                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    lhs: Box::new(Expression::Id(
+                        "x".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 1
+                        }
+                    )),
                     rhs: Box::new(Expression::IfElse(IfElseExpr {
-                        lhs: Box::new(Expression::Number("15".to_string(), Span { start: 4, end: 6 })),
-                        rhs: Box::new(Expression::Number("45".to_string(), Span { start: 21, end: 23 })),
-                        condition: Box::new(Expression::BinaryOp(
-                            Box::new(Expression::Number("5".to_string(), Span { start: 10, end: 11 })),
-                            BinaryOperator::LessThan,
-                            Box::new(Expression::Id("x".to_string(), Span { start: 14, end: 15 })),
-                            Span { start: 10, end: 15 }
+                        lhs: Box::new(Expression::Number(
+                            "15".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 5,
+                                column_end: 6
+                            }
                         )),
-                        span: Span { start: 4, end: 23 }
+                        rhs: Box::new(Expression::Number(
+                            "45".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 22,
+                                column_end: 23
+                            }
+                        )),
+                        condition: Box::new(Expression::BinaryOp(
+                            Box::new(Expression::Number(
+                                "5".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 11,
+                                    column_end: 11
+                                }
+                            )),
+                            BinaryOperator::LessThan,
+                            Box::new(Expression::Id(
+                                "x".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 15,
+                                    column_end: 15
+                                }
+                            )),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 11,
+                                column_end: 15
+                            }
+                        )),
+                        span: Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 5,
+                            column_end: 23
+                        }
                     })),
-                    span: Span { start: 0, end: 23 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 23
+                    }
                 }))]
             }
         )
@@ -1338,47 +3177,164 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
-                    lhs: Box::new(Expression::Id("x".to_string(), Span { start: 0, end: 1 })),
+                    lhs: Box::new(Expression::Id(
+                        "x".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 1
+                        }
+                    )),
                     rhs: Box::new(Expression::IfElse(IfElseExpr {
                         lhs: Box::new(Expression::Call(FunctionCall {
-                            lhs: Box::new(Expression::Id("func".to_string(), Span { start: 4, end: 8 })),
+                            lhs: Box::new(Expression::Id(
+                                "func".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 5,
+                                    column_end: 8
+                                }
+                            )),
                             args: vec![],
-                            span: Span { start: 4, end: 13 }
+                            span: Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 5,
+                                column_end: 10
+                            }
                         })),
                         rhs: Box::new(Expression::BinaryOp(
                             Box::new(Expression::Call(FunctionCall {
-                                lhs: Box::new(Expression::Id("func2".to_string(), Span { start: 47, end: 52 })),
+                                lhs: Box::new(Expression::Id(
+                                    "func2".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 48,
+                                        column_end: 52
+                                    }
+                                )),
                                 args: vec![],
-                                span: Span { start: 47, end: 56 }
+                                span: Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 48,
+                                    column_end: 54
+                                }
                             })),
                             BinaryOperator::Multiply,
-                            Box::new(Expression::Number("5".to_string(), Span { start: 57, end: 58 })),
-                            Span { start: 47, end: 58 }
+                            Box::new(Expression::Number(
+                                "5".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 58,
+                                    column_end: 58
+                                }
+                            )),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 48,
+                                column_end: 58
+                            }
                         )),
                         condition: Box::new(Expression::BinaryOp(
                             Box::new(Expression::BinaryOp(
                                 Box::new(Expression::BinaryOp(
-                                    Box::new(Expression::Number("5".to_string(), Span { start: 15, end: 16 })),
+                                    Box::new(Expression::Number(
+                                        "5".to_string(),
+                                        Span {
+                                            row_start: 1,
+                                            row_end: 1,
+                                            column_start: 16,
+                                            column_end: 16
+                                        }
+                                    )),
                                     BinaryOperator::LessThan,
-                                    Box::new(Expression::Id("x".to_string(), Span { start: 19, end: 20 })),
-                                    Span { start: 15, end: 20 }
+                                    Box::new(Expression::Id(
+                                        "x".to_string(),
+                                        Span {
+                                            row_start: 1,
+                                            row_end: 1,
+                                            column_start: 20,
+                                            column_end: 20
+                                        }
+                                    )),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 16,
+                                        column_end: 20
+                                    }
                                 )),
                                 BinaryOperator::LogicalOr,
                                 Box::new(Expression::BinaryOp(
-                                    Box::new(Expression::Id("x".to_string(), Span { start: 24, end: 25 })),
+                                    Box::new(Expression::Id(
+                                        "x".to_string(),
+                                        Span {
+                                            row_start: 1,
+                                            row_end: 1,
+                                            column_start: 25,
+                                            column_end: 25
+                                        }
+                                    )),
                                     BinaryOperator::GreaterThanOrEqual,
-                                    Box::new(Expression::Id("y".to_string(), Span { start: 29, end: 30 })),
-                                    Span { start: 24, end: 30 }
+                                    Box::new(Expression::Id(
+                                        "y".to_string(),
+                                        Span {
+                                            row_start: 1,
+                                            row_end: 1,
+                                            column_start: 30,
+                                            column_end: 30
+                                        }
+                                    )),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 25,
+                                        column_end: 30
+                                    }
                                 )),
-                                Span { start: 14, end: 31 }
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 15,
+                                    column_end: 31
+                                }
                             )),
                             BinaryOperator::LogicalAnd,
-                            Box::new(Expression::Id("is_id".to_string(), Span { start: 36, end: 41 })),
-                            Span { start: 14, end: 41 }
+                            Box::new(Expression::Id(
+                                "is_id".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 37,
+                                    column_end: 41
+                                }
+                            )),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 15,
+                                column_end: 41
+                            }
                         )),
-                        span: Span { start: 4, end: 58 }
+                        span: Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 5,
+                            column_end: 58
+                        }
                     })),
-                    span: Span { start: 0, end: 58 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 58
+                    }
                 }))]
             }
         )
@@ -1395,23 +3351,86 @@ else:
             ParsedFile {
                 stmts: vec![
                     Statement::Expression(Expression::BinaryOp(
-                        Box::new(Expression::Number("1".to_string(), Span { start: 0, end: 1 })),
+                        Box::new(Expression::Number(
+                            "1".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 1,
+                                column_end: 1
+                            }
+                        )),
                         BinaryOperator::Add,
-                        Box::new(Expression::Number("2".to_string(), Span { start: 4, end: 5 })),
-                        Span { start: 0, end: 5 }
+                        Box::new(Expression::Number(
+                            "2".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 5,
+                                column_end: 5
+                            }
+                        )),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 5
+                        }
                     ),),
                     Statement::Expression(Expression::Tuple(
                         vec![
                             Expression::BinaryOp(
-                                Box::new(Expression::Number("3".to_string(), Span { start: 7, end: 8 })),
+                                Box::new(Expression::Number(
+                                    "3".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 8,
+                                        column_end: 8
+                                    }
+                                )),
                                 BinaryOperator::Add,
-                                Box::new(Expression::Number("4".to_string(), Span { start: 11, end: 12 })),
-                                Span { start: 7, end: 12 }
+                                Box::new(Expression::Number(
+                                    "4".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 12,
+                                        column_end: 12
+                                    }
+                                )),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 8,
+                                    column_end: 12
+                                }
                             ),
-                            Expression::Number("7".to_string(), Span { start: 14, end: 15 }),
-                            Expression::Number("8".to_string(), Span { start: 17, end: 18 }),
+                            Expression::Number(
+                                "7".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 15,
+                                    column_end: 15
+                                }
+                            ),
+                            Expression::Number(
+                                "8".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 18,
+                                    column_end: 18
+                                }
+                            ),
                         ],
-                        Span { start: 7, end: 19 }
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 8,
+                            column_end: 18
+                        }
                     ),),
                 ]
             }
@@ -1429,7 +3448,12 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Id(
                     "x".to_string(),
-                    Span { start: 0, end: 1 }
+                    Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 1
+                    }
                 ),)]
             }
         )
@@ -1450,25 +3474,74 @@ else:
                 stmts: vec![Statement::If(IfStmt {
                     condition: Expression::BinaryOp(
                         Box::new(Expression::BinaryOp(
-                            Box::new(Expression::Id("x".to_string(), Span { start: 4, end: 5 })),
+                            Box::new(Expression::Id(
+                                "x".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 5,
+                                    column_end: 5
+                                }
+                            )),
                             BinaryOperator::Walrus,
-                            Box::new(Expression::Number("15".to_string(), Span { start: 9, end: 11 })),
-                            Span { start: 3, end: 12 }
+                            Box::new(Expression::Number(
+                                "15".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 10,
+                                    column_end: 11
+                                }
+                            )),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 4,
+                                column_end: 12
+                            }
                         )),
                         BinaryOperator::GreaterThan,
-                        Box::new(Expression::Number("5".to_string(), Span { start: 15, end: 16 })),
-                        Span { start: 3, end: 16 }
+                        Box::new(Expression::Number(
+                            "5".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 16,
+                                column_end: 16
+                            }
+                        )),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 4,
+                            column_end: 16
+                        }
                     ),
                     block: Block {
                         stmts: vec![Statement::Expression(Expression::Id(
                             "x".to_string(),
-                            Span { start: 22, end: 23 }
+                            Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 5,
+                                column_end: 5
+                            }
                         ),)],
-                        span: Span { start: 22, end: 23 }
+                        span: Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 5
+                        }
                     },
                     elif_stms: vec![],
                     else_stmt: None,
-                    span: Span { start: 0, end: 23 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 2,
+                        column_start: 1,
+                        column_end: 5
+                    }
                 })]
             }
         )
@@ -1486,7 +3559,12 @@ else:
             vec![PythonError {
                 error: PythonErrorType::Syntax,
                 msg: "SyntaxError: invalid assignment statement!".to_string(),
-                span: Span { start: 2, end: 4 }
+                span: Span {
+                    row_start: 1,
+                    row_end: 1,
+                    column_start: 1,
+                    column_end: 3
+                }
             }]
         );
     }
@@ -1504,25 +3582,82 @@ else:
                     Box::new(Expression::BinaryOp(
                         Box::new(Expression::UnaryOp(
                             Box::new(Expression::Call(FunctionCall {
-                                lhs: Box::new(Expression::Id("func".to_string(), Span { start: 6, end: 10 })),
+                                lhs: Box::new(Expression::Id(
+                                    "func".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 7,
+                                        column_end: 10
+                                    }
+                                )),
                                 args: vec![],
-                                span: Span { start: 6, end: 14 }
+                                span: Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 7,
+                                    column_end: 12
+                                }
                             })),
                             UnaryOperator::Await,
-                            Span { start: 0, end: 14 }
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 1,
+                                column_end: 12
+                            }
                         )),
                         BinaryOperator::Multiply,
                         Box::new(Expression::BinaryOp(
-                            Box::new(Expression::Id("x".to_string(), Span { start: 15, end: 16 })),
+                            Box::new(Expression::Id(
+                                "x".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 16,
+                                    column_end: 16
+                                }
+                            )),
                             BinaryOperator::Exponent,
-                            Box::new(Expression::Number("5".to_string(), Span { start: 20, end: 21 })),
-                            Span { start: 15, end: 21 }
+                            Box::new(Expression::Number(
+                                "5".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 21,
+                                    column_end: 21
+                                }
+                            )),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 16,
+                                column_end: 21
+                            }
                         )),
-                        Span { start: 0, end: 21 }
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 21
+                        }
                     )),
                     BinaryOperator::Divide,
-                    Box::new(Expression::Number("3".to_string(), Span { start: 24, end: 25 })),
-                    Span { start: 0, end: 25 }
+                    Box::new(Expression::Number(
+                        "3".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 25,
+                            column_end: 25
+                        }
+                    )),
+                    Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 25
+                    }
                 ),)]
             }
         )
@@ -1542,17 +3677,48 @@ else:
                         name: "x".to_string(),
                         default_value: None,
                         star_parameter_type: None,
-                        span: Span { start: 7, end: 8 },
+                        span: Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 8,
+                            column_end: 8
+                        },
                         is_kw_only: false,
                         is_pos_only: false
                     }],
                     expression: Box::new(Expression::BinaryOp(
-                        Box::new(Expression::Id("x".to_string(), Span { start: 10, end: 11 })),
+                        Box::new(Expression::Id(
+                            "x".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 11,
+                                column_end: 11
+                            }
+                        )),
                         BinaryOperator::Add,
-                        Box::new(Expression::Number("1".to_string(), Span { start: 14, end: 15 })),
-                        Span { start: 10, end: 15 }
+                        Box::new(Expression::Number(
+                            "1".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 15,
+                                column_end: 15
+                            }
+                        )),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 11,
+                            column_end: 15
+                        }
                     )),
-                    span: Span { start: 0, end: 15 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 15
+                    }
                 }),)]
             }
         )
@@ -1573,20 +3739,56 @@ else:
                             name: "x".to_string(),
                             default_value: None,
                             star_parameter_type: None,
-                            span: Span { start: 8, end: 9 },
+                            span: Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 9,
+                                column_end: 9
+                            },
                             is_kw_only: false,
                             is_pos_only: false
                         }],
                         expression: Box::new(Expression::BinaryOp(
-                            Box::new(Expression::Id("x".to_string(), Span { start: 11, end: 12 })),
+                            Box::new(Expression::Id(
+                                "x".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 12,
+                                    column_end: 12
+                                }
+                            )),
                             BinaryOperator::Add,
-                            Box::new(Expression::Number("1".to_string(), Span { start: 15, end: 16 })),
-                            Span { start: 11, end: 16 }
+                            Box::new(Expression::Number(
+                                "1".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 16,
+                                    column_end: 16
+                                }
+                            )),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 12,
+                                column_end: 16
+                            }
                         )),
-                        span: Span { start: 0, end: 17 }
+                        span: Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 17
+                        }
                     })),
                     args: vec![],
-                    span: Span { start: 0, end: 20 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 19
+                    }
                 }),)]
             }
         )
@@ -1615,20 +3817,50 @@ else:
                                 name: "self".to_string(),
                                 default_value: None,
                                 star_parameter_type: None,
-                                span: Span { start: 29, end: 33 },
+                                span: Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 18,
+                                    column_end: 21
+                                },
                                 is_kw_only: false,
                                 is_pos_only: false
                             }],
                             block: Block {
-                                stmts: vec![Statement::Pass(Span { start: 44, end: 48 })],
-                                span: Span { start: 44, end: 48 }
+                                stmts: vec![Statement::Pass(Span {
+                                    row_start: 3,
+                                    row_end: 3,
+                                    column_start: 9,
+                                    column_end: 12
+                                })],
+                                span: Span {
+                                    row_start: 3,
+                                    row_end: 3,
+                                    column_start: 9,
+                                    column_end: 12
+                                }
                             },
-                            span: Span { start: 16, end: 48 }
+                            span: Span {
+                                row_start: 2,
+                                row_end: 3,
+                                column_start: 5,
+                                column_end: 12
+                            }
                         })],
-                        span: Span { start: 16, end: 48 }
+                        span: Span {
+                            row_start: 2,
+                            row_end: 3,
+                            column_start: 5,
+                            column_end: 12
+                        }
                     },
                     base_classes: vec![],
-                    span: Span { start: 0, end: 48 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 3,
+                        column_start: 1,
+                        column_end: 12
+                    }
                 })]
             }
         )
@@ -1657,20 +3889,58 @@ else:
                                 name: "self".to_string(),
                                 default_value: None,
                                 star_parameter_type: None,
-                                span: Span { start: 36, end: 40 },
+                                span: Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 18,
+                                    column_end: 21
+                                },
                                 is_kw_only: false,
                                 is_pos_only: false
                             }],
                             block: Block {
-                                stmts: vec![Statement::Pass(Span { start: 51, end: 55 })],
-                                span: Span { start: 51, end: 55 }
+                                stmts: vec![Statement::Pass(Span {
+                                    row_start: 3,
+                                    row_end: 3,
+                                    column_start: 9,
+                                    column_end: 12
+                                })],
+                                span: Span {
+                                    row_start: 3,
+                                    row_end: 3,
+                                    column_start: 9,
+                                    column_end: 12
+                                }
                             },
-                            span: Span { start: 23, end: 55 }
+                            span: Span {
+                                row_start: 2,
+                                row_end: 3,
+                                column_start: 5,
+                                column_end: 12
+                            }
                         })],
-                        span: Span { start: 23, end: 55 }
+                        span: Span {
+                            row_start: 2,
+                            row_end: 3,
+                            column_start: 5,
+                            column_end: 12
+                        }
                     },
-                    base_classes: vec![Expression::Id("Animal".to_string(), Span { start: 10, end: 16 })],
-                    span: Span { start: 0, end: 55 }
+                    base_classes: vec![Expression::Id(
+                        "Animal".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 11,
+                            column_end: 16
+                        }
+                    )],
+                    span: Span {
+                        row_start: 1,
+                        row_end: 3,
+                        column_start: 1,
+                        column_end: 12
+                    }
                 })]
             }
         )
@@ -1690,7 +3960,12 @@ else:
                         name: vec!["os".to_string()],
                         alias: None
                     }],
-                    span: Span { start: 0, end: 9 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 9
+                    }
                 })]
             }
         )
@@ -1716,7 +3991,12 @@ else:
                             alias: Some("S".to_string())
                         }
                     ],
-                    span: Span { start: 0, end: 29 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 29
+                    }
                 })]
             }
         )
@@ -1740,7 +4020,12 @@ else:
                         name: vec!["*".to_string()],
                         alias: None
                     }],
-                    span: Span { start: 0, end: 16 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 16
+                    }
                 })]
             }
         )
@@ -1764,7 +4049,12 @@ else:
                         name: vec!["*".to_string()],
                         alias: None
                     }],
-                    span: Span { start: 0, end: 17 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 17
+                    }
                 })]
             }
         )
@@ -1794,7 +4084,12 @@ else:
                         name: vec!["func".to_string()],
                         alias: None
                     }],
-                    span: Span { start: 0, end: 36 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 36
+                    }
                 })]
             }
         )
@@ -1834,7 +4129,12 @@ else:
                             alias: None
                         }
                     ],
-                    span: Span { start: 0, end: 51 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 51
+                    }
                 })]
             }
         )
@@ -1855,18 +4155,59 @@ else:
                 stmts: vec![Statement::With(WithStmt {
                     items: vec![WithItem {
                         item: Expression::Call(FunctionCall {
-                            lhs: Box::new(Expression::Id("open".to_string(), Span { start: 5, end: 9 })),
+                            lhs: Box::new(Expression::Id(
+                                "open".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 6,
+                                    column_end: 9
+                                }
+                            )),
                             args: vec![],
-                            span: Span { start: 5, end: 14 }
+                            span: Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 6,
+                                column_end: 11
+                            }
                         }),
-                        target: Some(Expression::Id("file".to_string(), Span { start: 15, end: 19 })),
-                        span: Span { start: 5, end: 19 }
+                        target: Some(Expression::Id(
+                            "file".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 16,
+                                column_end: 19
+                            }
+                        )),
+                        span: Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 6,
+                            column_end: 19
+                        }
                     }],
                     block: Block {
-                        stmts: vec![Statement::Pass(Span { start: 25, end: 29 })],
-                        span: Span { start: 25, end: 29 }
+                        stmts: vec![Statement::Pass(Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        })],
+                        span: Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        }
                     },
-                    span: Span { start: 0, end: 29 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 2,
+                        column_start: 1,
+                        column_end: 8
+                    }
                 })]
             }
         )
@@ -1888,22 +4229,52 @@ except:
             ParsedFile {
                 stmts: vec![Statement::Try(TryStmt {
                     block: Block {
-                        stmts: vec![Statement::Pass(Span { start: 9, end: 13 })],
-                        span: Span { start: 9, end: 13 }
+                        stmts: vec![Statement::Pass(Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        })],
+                        span: Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        }
                     },
                     finally_block: None,
                     except_blocks: vec![ExceptBlock {
                         block: Block {
-                            stmts: vec![Statement::Pass(Span { start: 26, end: 30 })],
-                            span: Span { start: 26, end: 30 }
+                            stmts: vec![Statement::Pass(Span {
+                                row_start: 4,
+                                row_end: 4,
+                                column_start: 5,
+                                column_end: 8
+                            })],
+                            span: Span {
+                                row_start: 4,
+                                row_end: 4,
+                                column_start: 5,
+                                column_end: 8
+                            }
                         },
                         kind: ExceptBlockKind::Except,
                         expr: None,
                         expr_alias: None,
-                        span: Span { start: 14, end: 30 }
+                        span: Span {
+                            row_start: 3,
+                            row_end: 4,
+                            column_start: 1,
+                            column_end: 8
+                        }
                     }],
                     else_stmt: None,
-                    span: Span { start: 0, end: 30 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 4,
+                        column_start: 1,
+                        column_end: 8
+                    }
                 })]
             }
         )
@@ -1925,22 +4296,60 @@ except Except as e:
             ParsedFile {
                 stmts: vec![Statement::Try(TryStmt {
                     block: Block {
-                        stmts: vec![Statement::Pass(Span { start: 9, end: 13 })],
-                        span: Span { start: 9, end: 13 }
+                        stmts: vec![Statement::Pass(Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        })],
+                        span: Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        }
                     },
                     finally_block: None,
                     except_blocks: vec![ExceptBlock {
                         block: Block {
-                            stmts: vec![Statement::Pass(Span { start: 38, end: 42 })],
-                            span: Span { start: 38, end: 42 }
+                            stmts: vec![Statement::Pass(Span {
+                                row_start: 4,
+                                row_end: 4,
+                                column_start: 5,
+                                column_end: 8
+                            })],
+                            span: Span {
+                                row_start: 4,
+                                row_end: 4,
+                                column_start: 5,
+                                column_end: 8
+                            }
                         },
                         kind: ExceptBlockKind::Except,
-                        expr: Some(Expression::Id("Except".to_string(), Span { start: 21, end: 27 })),
+                        expr: Some(Expression::Id(
+                            "Except".to_string(),
+                            Span {
+                                row_start: 3,
+                                row_end: 3,
+                                column_start: 8,
+                                column_end: 13
+                            }
+                        )),
                         expr_alias: Some("e".to_string()),
-                        span: Span { start: 14, end: 42 }
+                        span: Span {
+                            row_start: 3,
+                            row_end: 4,
+                            column_start: 1,
+                            column_end: 8
+                        }
                     }],
                     else_stmt: None,
-                    span: Span { start: 0, end: 42 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 4,
+                        column_start: 1,
+                        column_end: 8
+                    }
                 })]
             }
         )
@@ -1962,19 +4371,49 @@ finally:
             ParsedFile {
                 stmts: vec![Statement::Try(TryStmt {
                     block: Block {
-                        stmts: vec![Statement::Pass(Span { start: 9, end: 13 })],
-                        span: Span { start: 9, end: 13 }
+                        stmts: vec![Statement::Pass(Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        })],
+                        span: Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        }
                     },
                     finally_block: Some(FinallyBlock {
                         block: Block {
-                            stmts: vec![Statement::Pass(Span { start: 27, end: 31 })],
-                            span: Span { start: 27, end: 31 }
+                            stmts: vec![Statement::Pass(Span {
+                                row_start: 4,
+                                row_end: 4,
+                                column_start: 5,
+                                column_end: 8
+                            })],
+                            span: Span {
+                                row_start: 4,
+                                row_end: 4,
+                                column_start: 5,
+                                column_end: 8
+                            }
                         },
-                        span: Span { start: 14, end: 31 }
+                        span: Span {
+                            row_start: 3,
+                            row_end: 4,
+                            column_start: 1,
+                            column_end: 8
+                        }
                     }),
                     except_blocks: vec![],
                     else_stmt: None,
-                    span: Span { start: 0, end: 31 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 4,
+                        column_start: 1,
+                        column_end: 8
+                    }
                 })]
             }
         )
@@ -1998,28 +4437,73 @@ finally:
             ParsedFile {
                 stmts: vec![Statement::Try(TryStmt {
                     block: Block {
-                        stmts: vec![Statement::Pass(Span { start: 9, end: 13 })],
-                        span: Span { start: 9, end: 13 }
+                        stmts: vec![Statement::Pass(Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        })],
+                        span: Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        }
                     },
                     finally_block: Some(FinallyBlock {
                         block: Block {
-                            stmts: vec![Statement::Pass(Span { start: 44, end: 48 })],
-                            span: Span { start: 44, end: 48 }
+                            stmts: vec![Statement::Pass(Span {
+                                row_start: 6,
+                                row_end: 6,
+                                column_start: 5,
+                                column_end: 8
+                            })],
+                            span: Span {
+                                row_start: 6,
+                                row_end: 6,
+                                column_start: 5,
+                                column_end: 8
+                            }
                         },
-                        span: Span { start: 31, end: 48 }
+                        span: Span {
+                            row_start: 5,
+                            row_end: 6,
+                            column_start: 1,
+                            column_end: 8
+                        }
                     }),
                     except_blocks: vec![ExceptBlock {
                         block: Block {
-                            stmts: vec![Statement::Pass(Span { start: 26, end: 30 })],
-                            span: Span { start: 26, end: 30 }
+                            stmts: vec![Statement::Pass(Span {
+                                row_start: 4,
+                                row_end: 4,
+                                column_start: 5,
+                                column_end: 8
+                            })],
+                            span: Span {
+                                row_start: 4,
+                                row_end: 4,
+                                column_start: 5,
+                                column_end: 8
+                            }
                         },
                         kind: ExceptBlockKind::Except,
                         expr: None,
                         expr_alias: None,
-                        span: Span { start: 14, end: 30 }
+                        span: Span {
+                            row_start: 3,
+                            row_end: 4,
+                            column_start: 1,
+                            column_end: 8
+                        }
                     }],
                     else_stmt: None,
-                    span: Span { start: 0, end: 48 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 6,
+                        column_start: 1,
+                        column_end: 8
+                    }
                 })]
             }
         )
@@ -2045,34 +4529,94 @@ finally:
             ParsedFile {
                 stmts: vec![Statement::Try(TryStmt {
                     block: Block {
-                        stmts: vec![Statement::Pass(Span { start: 9, end: 13 })],
-                        span: Span { start: 9, end: 13 }
+                        stmts: vec![Statement::Pass(Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        })],
+                        span: Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        }
                     },
                     finally_block: Some(FinallyBlock {
                         block: Block {
-                            stmts: vec![Statement::Pass(Span { start: 59, end: 63 })],
-                            span: Span { start: 59, end: 63 }
+                            stmts: vec![Statement::Pass(Span {
+                                row_start: 8,
+                                row_end: 8,
+                                column_start: 5,
+                                column_end: 8
+                            })],
+                            span: Span {
+                                row_start: 8,
+                                row_end: 8,
+                                column_start: 5,
+                                column_end: 8
+                            }
                         },
-                        span: Span { start: 46, end: 63 }
+                        span: Span {
+                            row_start: 7,
+                            row_end: 8,
+                            column_start: 1,
+                            column_end: 8
+                        }
                     }),
                     except_blocks: vec![ExceptBlock {
                         block: Block {
-                            stmts: vec![Statement::Pass(Span { start: 26, end: 30 })],
-                            span: Span { start: 26, end: 30 }
+                            stmts: vec![Statement::Pass(Span {
+                                row_start: 4,
+                                row_end: 4,
+                                column_start: 5,
+                                column_end: 8
+                            })],
+                            span: Span {
+                                row_start: 4,
+                                row_end: 4,
+                                column_start: 5,
+                                column_end: 8
+                            }
                         },
                         kind: ExceptBlockKind::Except,
                         expr: None,
                         expr_alias: None,
-                        span: Span { start: 14, end: 30 }
+                        span: Span {
+                            row_start: 3,
+                            row_end: 4,
+                            column_start: 1,
+                            column_end: 8
+                        }
                     }],
                     else_stmt: Some(ElseStmt {
                         block: Block {
-                            stmts: vec![Statement::Pass(Span { start: 41, end: 45 })],
-                            span: Span { start: 41, end: 45 }
+                            stmts: vec![Statement::Pass(Span {
+                                row_start: 6,
+                                row_end: 6,
+                                column_start: 5,
+                                column_end: 8
+                            })],
+                            span: Span {
+                                row_start: 6,
+                                row_end: 6,
+                                column_start: 5,
+                                column_end: 8
+                            }
                         },
-                        span: Span { start: 31, end: 45 }
+                        span: Span {
+                            row_start: 5,
+                            row_end: 6,
+                            column_start: 1,
+                            column_end: 8
+                        }
                     }),
-                    span: Span { start: 0, end: 63 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 8,
+                        column_start: 1,
+                        column_end: 8
+                    }
                 })]
             }
         )
@@ -2098,39 +4642,100 @@ except:
             ParsedFile {
                 stmts: vec![Statement::Try(TryStmt {
                     block: Block {
-                        stmts: vec![Statement::Pass(Span { start: 10, end: 14 })],
-                        span: Span { start: 10, end: 14 }
+                        stmts: vec![Statement::Pass(Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 5,
+                            column_end: 8
+                        })],
+                        span: Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 5,
+                            column_end: 8
+                        }
                     },
                     finally_block: None,
                     except_blocks: vec![
                         ExceptBlock {
                             block: Block {
                                 stmts: vec![Statement::Expression(Expression::BinaryOp(
-                                    Box::new(Expression::Number("1".to_string(), Span { start: 27, end: 28 })),
+                                    Box::new(Expression::Number(
+                                        "1".to_string(),
+                                        Span {
+                                            row_start: 5,
+                                            row_end: 5,
+                                            column_start: 5,
+                                            column_end: 5
+                                        }
+                                    )),
                                     BinaryOperator::Add,
-                                    Box::new(Expression::Number("1".to_string(), Span { start: 31, end: 32 })),
-                                    Span { start: 27, end: 32 }
+                                    Box::new(Expression::Number(
+                                        "1".to_string(),
+                                        Span {
+                                            row_start: 5,
+                                            row_end: 5,
+                                            column_start: 9,
+                                            column_end: 9
+                                        }
+                                    )),
+                                    Span {
+                                        row_start: 5,
+                                        row_end: 5,
+                                        column_start: 5,
+                                        column_end: 9
+                                    }
                                 ))],
-                                span: Span { start: 27, end: 32 }
+                                span: Span {
+                                    row_start: 5,
+                                    row_end: 5,
+                                    column_start: 5,
+                                    column_end: 9
+                                }
                             },
                             kind: ExceptBlockKind::Except,
                             expr: None,
                             expr_alias: None,
-                            span: Span { start: 15, end: 32 }
+                            span: Span {
+                                row_start: 4,
+                                row_end: 5,
+                                column_start: 1,
+                                column_end: 9
+                            }
                         },
                         ExceptBlock {
                             block: Block {
-                                stmts: vec![Statement::Pass(Span { start: 45, end: 49 })],
-                                span: Span { start: 45, end: 49 }
+                                stmts: vec![Statement::Pass(Span {
+                                    row_start: 7,
+                                    row_end: 7,
+                                    column_start: 5,
+                                    column_end: 8
+                                })],
+                                span: Span {
+                                    row_start: 7,
+                                    row_end: 7,
+                                    column_start: 5,
+                                    column_end: 8
+                                }
                             },
                             kind: ExceptBlockKind::Except,
                             expr: None,
                             expr_alias: None,
-                            span: Span { start: 33, end: 49 }
+                            span: Span {
+                                row_start: 6,
+                                row_end: 7,
+                                column_start: 1,
+                                column_end: 8
+                            }
                         }
                     ],
                     else_stmt: None,
-                    span: Span { start: 1, end: 49 }
+                    span: Span {
+                        row_start: 2,
+                        row_end: 7,
+                        column_start: 1,
+                        column_end: 8
+                    }
                 })]
             }
         )
@@ -2156,11 +4761,26 @@ def x():
                     block: Block {
                         stmts: vec![Statement::Return(ReturnStmt {
                             value: None,
-                            span: Span { start: 14, end: 21 }
+                            span: Span {
+                                row_start: 3,
+                                row_end: 3,
+                                column_start: 5,
+                                column_end: 11
+                            }
                         })],
-                        span: Span { start: 14, end: 21 }
+                        span: Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 5,
+                            column_end: 11
+                        }
                     },
-                    span: Span { start: 1, end: 21 }
+                    span: Span {
+                        row_start: 2,
+                        row_end: 3,
+                        column_start: 1,
+                        column_end: 11
+                    }
                 })]
             }
         )
@@ -2186,16 +4806,52 @@ def x():
                     block: Block {
                         stmts: vec![Statement::Return(ReturnStmt {
                             value: Some(Expression::BinaryOp(
-                                Box::new(Expression::Number("2".to_string(), Span { start: 21, end: 22 })),
+                                Box::new(Expression::Number(
+                                    "2".to_string(),
+                                    Span {
+                                        row_start: 3,
+                                        row_end: 3,
+                                        column_start: 12,
+                                        column_end: 12
+                                    }
+                                )),
                                 BinaryOperator::Add,
-                                Box::new(Expression::Number("2".to_string(), Span { start: 25, end: 26 })),
-                                Span { start: 21, end: 26 }
+                                Box::new(Expression::Number(
+                                    "2".to_string(),
+                                    Span {
+                                        row_start: 3,
+                                        row_end: 3,
+                                        column_start: 16,
+                                        column_end: 16
+                                    }
+                                )),
+                                Span {
+                                    row_start: 3,
+                                    row_end: 3,
+                                    column_start: 12,
+                                    column_end: 16
+                                }
                             )),
-                            span: Span { start: 14, end: 26 }
+                            span: Span {
+                                row_start: 3,
+                                row_end: 3,
+                                column_start: 5,
+                                column_end: 16
+                            }
                         })],
-                        span: Span { start: 14, end: 26 }
+                        span: Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 5,
+                            column_end: 16
+                        }
                     },
-                    span: Span { start: 1, end: 26 }
+                    span: Span {
+                        row_start: 2,
+                        row_end: 3,
+                        column_start: 1,
+                        column_end: 16
+                    }
                 })]
             }
         )
@@ -2225,30 +4881,97 @@ def test():
                             Statement::Expression(Expression::Yield(
                                 Some(Box::new(Expression::Number(
                                     "1".to_string(),
-                                    Span { start: 23, end: 24 }
+                                    Span {
+                                        row_start: 3,
+                                        row_end: 3,
+                                        column_start: 11,
+                                        column_end: 11
+                                    }
                                 ))),
-                                Span { start: 17, end: 24 }
+                                Span {
+                                    row_start: 3,
+                                    row_end: 3,
+                                    column_start: 5,
+                                    column_end: 11
+                                }
                             ),),
                             Statement::Expression(Expression::Yield(
                                 Some(Box::new(Expression::Tuple(
                                     vec![
-                                        Expression::Number("1".to_string(), Span { start: 35, end: 36 }),
-                                        Expression::BinaryOp(
-                                            Box::new(Expression::Number("2".to_string(), Span { start: 38, end: 39 })),
-                                            BinaryOperator::Add,
-                                            Box::new(Expression::Number("3".to_string(), Span { start: 42, end: 43 })),
-                                            Span { start: 38, end: 43 }
+                                        Expression::Number(
+                                            "1".to_string(),
+                                            Span {
+                                                row_start: 4,
+                                                row_end: 4,
+                                                column_start: 11,
+                                                column_end: 11
+                                            }
                                         ),
-                                        Expression::Id("abc".to_string(), Span { start: 45, end: 48 })
+                                        Expression::BinaryOp(
+                                            Box::new(Expression::Number(
+                                                "2".to_string(),
+                                                Span {
+                                                    row_start: 4,
+                                                    row_end: 4,
+                                                    column_start: 14,
+                                                    column_end: 14
+                                                }
+                                            )),
+                                            BinaryOperator::Add,
+                                            Box::new(Expression::Number(
+                                                "3".to_string(),
+                                                Span {
+                                                    row_start: 4,
+                                                    row_end: 4,
+                                                    column_start: 18,
+                                                    column_end: 18
+                                                }
+                                            )),
+                                            Span {
+                                                row_start: 4,
+                                                row_end: 4,
+                                                column_start: 14,
+                                                column_end: 18
+                                            }
+                                        ),
+                                        Expression::Id(
+                                            "abc".to_string(),
+                                            Span {
+                                                row_start: 4,
+                                                row_end: 4,
+                                                column_start: 21,
+                                                column_end: 23
+                                            }
+                                        )
                                     ],
-                                    Span { start: 35, end: 49 }
+                                    Span {
+                                        row_start: 4,
+                                        row_end: 4,
+                                        column_start: 11,
+                                        column_end: 23
+                                    }
                                 ))),
-                                Span { start: 29, end: 49 }
+                                Span {
+                                    row_start: 4,
+                                    row_end: 4,
+                                    column_start: 5,
+                                    column_end: 23
+                                }
                             ),)
                         ],
-                        span: Span { start: 17, end: 49 }
+                        span: Span {
+                            row_start: 3,
+                            row_end: 4,
+                            column_start: 5,
+                            column_end: 23
+                        }
                     },
-                    span: Span { start: 1, end: 49 }
+                    span: Span {
+                        row_start: 2,
+                        row_end: 4,
+                        column_start: 1,
+                        column_end: 23
+                    }
                 }),]
             }
         );
@@ -2275,15 +4998,43 @@ def test():
                     block: Block {
                         stmts: vec![Statement::Expression(Expression::YieldFrom(
                             Box::new(Expression::Call(FunctionCall {
-                                lhs: Box::new(Expression::Id("func".to_string(), Span { start: 28, end: 32 })),
+                                lhs: Box::new(Expression::Id(
+                                    "func".to_string(),
+                                    Span {
+                                        row_start: 3,
+                                        row_end: 3,
+                                        column_start: 16,
+                                        column_end: 19
+                                    }
+                                )),
                                 args: vec![],
-                                span: Span { start: 28, end: 35 }
+                                span: Span {
+                                    row_start: 3,
+                                    row_end: 3,
+                                    column_start: 16,
+                                    column_end: 21
+                                }
                             })),
-                            Span { start: 17, end: 35 }
+                            Span {
+                                row_start: 3,
+                                row_end: 3,
+                                column_start: 5,
+                                column_end: 21
+                            }
                         ),)],
-                        span: Span { start: 17, end: 35 }
+                        span: Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 5,
+                            column_end: 21
+                        }
                     },
-                    span: Span { start: 1, end: 35 }
+                    span: Span {
+                        row_start: 2,
+                        row_end: 3,
+                        column_start: 1,
+                        column_end: 21
+                    }
                 })]
             }
         );
@@ -2305,35 +5056,121 @@ for i in [1, 2, 3]:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::For(ForStmt {
-                    target: Expression::Id("i".to_string(), Span { start: 5, end: 6 }),
+                    target: Expression::Id(
+                        "i".to_string(),
+                        Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 5
+                        }
+                    ),
                     iter: Expression::List(
                         vec![
-                            Expression::Number("1".to_string(), Span { start: 11, end: 12 }),
-                            Expression::Number("2".to_string(), Span { start: 14, end: 15 }),
-                            Expression::Number("3".to_string(), Span { start: 17, end: 18 })
+                            Expression::Number(
+                                "1".to_string(),
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 11,
+                                    column_end: 11
+                                }
+                            ),
+                            Expression::Number(
+                                "2".to_string(),
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 14,
+                                    column_end: 14
+                                }
+                            ),
+                            Expression::Number(
+                                "3".to_string(),
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 17,
+                                    column_end: 17
+                                }
+                            )
                         ],
-                        Span { start: 10, end: 19 }
+                        Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 10,
+                            column_end: 18
+                        }
                     ),
                     block: Block {
                         stmts: vec![
                             Statement::Expression(Expression::Yield(
-                                Some(Box::new(Expression::Id("i".to_string(), Span { start: 31, end: 32 }))),
-                                Span { start: 25, end: 32 }
+                                Some(Box::new(Expression::Id(
+                                    "i".to_string(),
+                                    Span {
+                                        row_start: 3,
+                                        row_end: 3,
+                                        column_start: 11,
+                                        column_end: 11
+                                    }
+                                ))),
+                                Span {
+                                    row_start: 3,
+                                    row_end: 3,
+                                    column_start: 5,
+                                    column_end: 11
+                                }
                             ),),
                             Statement::Expression(Expression::Yield(
                                 Some(Box::new(Expression::BinaryOp(
-                                    Box::new(Expression::Id("i".to_string(), Span { start: 43, end: 44 })),
+                                    Box::new(Expression::Id(
+                                        "i".to_string(),
+                                        Span {
+                                            row_start: 4,
+                                            row_end: 4,
+                                            column_start: 11,
+                                            column_end: 11
+                                        }
+                                    )),
                                     BinaryOperator::Add,
-                                    Box::new(Expression::Number("1".to_string(), Span { start: 47, end: 48 })),
-                                    Span { start: 43, end: 48 }
+                                    Box::new(Expression::Number(
+                                        "1".to_string(),
+                                        Span {
+                                            row_start: 4,
+                                            row_end: 4,
+                                            column_start: 15,
+                                            column_end: 15
+                                        }
+                                    )),
+                                    Span {
+                                        row_start: 4,
+                                        row_end: 4,
+                                        column_start: 11,
+                                        column_end: 15
+                                    }
                                 ))),
-                                Span { start: 37, end: 48 }
+                                Span {
+                                    row_start: 4,
+                                    row_end: 4,
+                                    column_start: 5,
+                                    column_end: 15
+                                }
                             ),)
                         ],
-                        span: Span { start: 25, end: 48 }
+                        span: Span {
+                            row_start: 3,
+                            row_end: 4,
+                            column_start: 5,
+                            column_end: 15
+                        }
                     },
                     else_stmt: None,
-                    span: Span { start: 1, end: 48 }
+                    span: Span {
+                        row_start: 2,
+                        row_end: 4,
+                        column_start: 1,
+                        column_end: 15
+                    }
                 })]
             }
         );
@@ -2356,25 +5193,90 @@ for a, b in ((1, 2, 3)):
                 stmts: vec![Statement::For(ForStmt {
                     target: Expression::Tuple(
                         vec![
-                            Expression::Id("a".to_string(), Span { start: 5, end: 6 }),
-                            Expression::Id("b".to_string(), Span { start: 8, end: 9 })
+                            Expression::Id(
+                                "a".to_string(),
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 5,
+                                    column_end: 5
+                                }
+                            ),
+                            Expression::Id(
+                                "b".to_string(),
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 8,
+                                    column_end: 8
+                                }
+                            )
                         ],
-                        Span { start: 5, end: 12 }
+                        Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 8
+                        }
                     ),
                     iter: Expression::Tuple(
                         vec![
-                            Expression::Number("1".to_string(), Span { start: 15, end: 16 }),
-                            Expression::Number("2".to_string(), Span { start: 18, end: 19 }),
-                            Expression::Number("3".to_string(), Span { start: 21, end: 22 })
+                            Expression::Number(
+                                "1".to_string(),
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 15,
+                                    column_end: 15
+                                }
+                            ),
+                            Expression::Number(
+                                "2".to_string(),
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 18,
+                                    column_end: 18
+                                }
+                            ),
+                            Expression::Number(
+                                "3".to_string(),
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 21,
+                                    column_end: 21
+                                }
+                            )
                         ],
-                        Span { start: 13, end: 24 }
+                        Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 13,
+                            column_end: 23
+                        }
                     ),
                     block: Block {
-                        stmts: vec![Statement::Expression(Expression::Ellipsis(Span { start: 30, end: 33 }),)],
-                        span: Span { start: 30, end: 33 }
+                        stmts: vec![Statement::Expression(Expression::Ellipsis(Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 5,
+                            column_end: 7
+                        }),)],
+                        span: Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 5,
+                            column_end: 7
+                        }
                     },
                     else_stmt: None,
-                    span: Span { start: 1, end: 33 }
+                    span: Span {
+                        row_start: 2,
+                        row_end: 3,
+                        column_start: 1,
+                        column_end: 7
+                    }
                 })]
             }
         )
@@ -2396,24 +5298,81 @@ for *a in ((1, 2, 3)):
             ParsedFile {
                 stmts: vec![Statement::For(ForStmt {
                     target: Expression::UnaryOp(
-                        Box::new(Expression::Id("a".to_string(), Span { start: 6, end: 7 })),
+                        Box::new(Expression::Id(
+                            "a".to_string(),
+                            Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 6,
+                                column_end: 6
+                            }
+                        )),
                         UnaryOperator::UnpackIterable,
-                        Span { start: 5, end: 7 }
+                        Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 5,
+                            column_end: 6
+                        }
                     ),
                     iter: Expression::Tuple(
                         vec![
-                            Expression::Number("1".to_string(), Span { start: 13, end: 14 }),
-                            Expression::Number("2".to_string(), Span { start: 16, end: 17 }),
-                            Expression::Number("3".to_string(), Span { start: 19, end: 20 })
+                            Expression::Number(
+                                "1".to_string(),
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 13,
+                                    column_end: 13
+                                }
+                            ),
+                            Expression::Number(
+                                "2".to_string(),
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 16,
+                                    column_end: 16
+                                }
+                            ),
+                            Expression::Number(
+                                "3".to_string(),
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 19,
+                                    column_end: 19
+                                }
+                            )
                         ],
-                        Span { start: 11, end: 22 }
+                        Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 11,
+                            column_end: 21
+                        }
                     ),
                     block: Block {
-                        stmts: vec![Statement::Expression(Expression::Ellipsis(Span { start: 28, end: 31 }),)],
-                        span: Span { start: 28, end: 31 }
+                        stmts: vec![Statement::Expression(Expression::Ellipsis(Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 5,
+                            column_end: 7
+                        }),)],
+                        span: Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 5,
+                            column_end: 7
+                        }
                     },
                     else_stmt: None,
-                    span: Span { start: 1, end: 31 }
+                    span: Span {
+                        row_start: 2,
+                        row_end: 3,
+                        column_start: 1,
+                        column_end: 7
+                    }
                 })]
             }
         )
@@ -2438,17 +5397,56 @@ raise Exception from e
                     Statement::Raise(RaiseStmt {
                         exc: None,
                         from: None,
-                        span: Span { start: 1, end: 0 }
+                        span: Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 1,
+                            column_end: 5
+                        }
                     }),
                     Statement::Raise(RaiseStmt {
-                        exc: Some(Expression::Id("Exception".to_string(), Span { start: 13, end: 22 })),
+                        exc: Some(Expression::Id(
+                            "Exception".to_string(),
+                            Span {
+                                row_start: 3,
+                                row_end: 3,
+                                column_start: 7,
+                                column_end: 15
+                            }
+                        )),
                         from: None,
-                        span: Span { start: 7, end: 22 }
+                        span: Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 1,
+                            column_end: 15
+                        }
                     }),
                     Statement::Raise(RaiseStmt {
-                        exc: Some(Expression::Id("Exception".to_string(), Span { start: 29, end: 38 })),
-                        from: Some(Expression::Id("e".to_string(), Span { start: 44, end: 45 })),
-                        span: Span { start: 23, end: 45 }
+                        exc: Some(Expression::Id(
+                            "Exception".to_string(),
+                            Span {
+                                row_start: 4,
+                                row_end: 4,
+                                column_start: 7,
+                                column_end: 15
+                            }
+                        )),
+                        from: Some(Expression::Id(
+                            "e".to_string(),
+                            Span {
+                                row_start: 4,
+                                row_end: 4,
+                                column_start: 22,
+                                column_end: 22
+                            }
+                        )),
+                        span: Span {
+                            row_start: 4,
+                            row_end: 4,
+                            column_start: 1,
+                            column_end: 22
+                        }
                     })
                 ]
             }
@@ -2471,19 +5469,66 @@ del b, c, d
             ParsedFile {
                 stmts: vec![
                     Statement::Del(DelStmt {
-                        expr: Expression::Id("a".to_string(), Span { start: 5, end: 6 }),
-                        span: Span { start: 1, end: 6 }
+                        expr: Expression::Id(
+                            "a".to_string(),
+                            Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 5,
+                                column_end: 5
+                            }
+                        ),
+                        span: Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 1,
+                            column_end: 5
+                        }
                     }),
                     Statement::Del(DelStmt {
                         expr: Expression::Tuple(
                             vec![
-                                Expression::Id("b".to_string(), Span { start: 11, end: 12 }),
-                                Expression::Id("c".to_string(), Span { start: 14, end: 15 }),
-                                Expression::Id("d".to_string(), Span { start: 17, end: 18 })
+                                Expression::Id(
+                                    "b".to_string(),
+                                    Span {
+                                        row_start: 3,
+                                        row_end: 3,
+                                        column_start: 5,
+                                        column_end: 5
+                                    }
+                                ),
+                                Expression::Id(
+                                    "c".to_string(),
+                                    Span {
+                                        row_start: 3,
+                                        row_end: 3,
+                                        column_start: 8,
+                                        column_end: 8
+                                    }
+                                ),
+                                Expression::Id(
+                                    "d".to_string(),
+                                    Span {
+                                        row_start: 3,
+                                        row_end: 3,
+                                        column_start: 11,
+                                        column_end: 11
+                                    }
+                                )
                             ],
-                            Span { start: 11, end: 19 }
+                            Span {
+                                row_start: 3,
+                                row_end: 3,
+                                column_start: 5,
+                                column_end: 11
+                            }
                         ),
-                        span: Span { start: 7, end: 19 }
+                        span: Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 1,
+                            column_end: 11
+                        }
                     })
                 ]
             }
@@ -2500,22 +5545,82 @@ del b, c, d
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Call(FunctionCall {
-                    lhs: Box::new(Expression::Id("hello".to_string(), Span { start: 0, end: 5 })),
+                    lhs: Box::new(Expression::Id(
+                        "hello".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 5
+                        }
+                    )),
                     args: vec![
                         Expression::BinaryOp(
-                            Box::new(Expression::Number("1".to_string(), Span { start: 6, end: 7 })),
+                            Box::new(Expression::Number(
+                                "1".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 7,
+                                    column_end: 7
+                                }
+                            )),
                             BinaryOperator::Add,
-                            Box::new(Expression::Number("2".to_string(), Span { start: 10, end: 11 })),
-                            Span { start: 6, end: 11 }
+                            Box::new(Expression::Number(
+                                "2".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 11,
+                                    column_end: 11
+                                }
+                            )),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 7,
+                                column_end: 11
+                            }
                         ),
-                        Expression::Bool(true, Span { start: 13, end: 17 }),
+                        Expression::Bool(
+                            true,
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 14,
+                                column_end: 17
+                            }
+                        ),
                         Expression::Assign(Assign {
-                            lhs: Box::new(Expression::Id("y".to_string(), Span { start: 19, end: 20 })),
-                            rhs: Box::new(Expression::None(Span { start: 23, end: 27 })),
-                            span: Span { start: 19, end: 27 }
+                            lhs: Box::new(Expression::Id(
+                                "y".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 20,
+                                    column_end: 20
+                                }
+                            )),
+                            rhs: Box::new(Expression::None(Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 24,
+                                column_end: 27
+                            })),
+                            span: Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 20,
+                                column_end: 27
+                            }
                         })
                     ],
-                    span: Span { start: 0, end: 29 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 28
+                    }
                 }))]
             }
         )
@@ -2531,12 +5636,30 @@ del b, c, d
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Subscript(Subscript {
-                    lhs: Box::new(Expression::Id("l".to_string(), Span { start: 0, end: 1 })),
+                    lhs: Box::new(Expression::Id(
+                        "l".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 1
+                        }
+                    )),
                     slice: Box::new(SubscriptType::Subscript(Expression::String(
                         "x".to_string(),
-                        Span { start: 2, end: 5 }
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 3,
+                            column_end: 5
+                        }
                     ))),
-                    span: Span { start: 0, end: 6 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 6
+                    }
                 }))]
             }
         )
@@ -2562,58 +5685,192 @@ l[:]
             ParsedFile {
                 stmts: vec![
                     Statement::Expression(Expression::Subscript(Subscript {
-                        lhs: Box::new(Expression::Id("l".to_string(), Span { start: 1, end: 2 })),
+                        lhs: Box::new(Expression::Id(
+                            "l".to_string(),
+                            Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 1,
+                                column_end: 1
+                            }
+                        )),
                         slice: Box::new(SubscriptType::Slice {
-                            lower: Some(Expression::Number("1".to_string(), Span { start: 3, end: 4 })),
+                            lower: Some(Expression::Number(
+                                "1".to_string(),
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 3,
+                                    column_end: 3
+                                }
+                            )),
                             upper: None,
                             step: None
                         }),
-                        span: Span { start: 1, end: 6 }
+                        span: Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 1,
+                            column_end: 5
+                        }
                     })),
                     Statement::Expression(Expression::Subscript(Subscript {
-                        lhs: Box::new(Expression::Id("l".to_string(), Span { start: 7, end: 8 })),
+                        lhs: Box::new(Expression::Id(
+                            "l".to_string(),
+                            Span {
+                                row_start: 3,
+                                row_end: 3,
+                                column_start: 1,
+                                column_end: 1
+                            }
+                        )),
                         slice: Box::new(SubscriptType::Slice {
                             lower: None,
-                            upper: Some(Expression::Number("1".to_string(), Span { start: 10, end: 11 })),
+                            upper: Some(Expression::Number(
+                                "1".to_string(),
+                                Span {
+                                    row_start: 3,
+                                    row_end: 3,
+                                    column_start: 4,
+                                    column_end: 4
+                                }
+                            )),
                             step: None
                         }),
-                        span: Span { start: 7, end: 12 }
+                        span: Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 1,
+                            column_end: 5
+                        }
                     })),
                     Statement::Expression(Expression::Subscript(Subscript {
-                        lhs: Box::new(Expression::Id("l".to_string(), Span { start: 13, end: 14 })),
+                        lhs: Box::new(Expression::Id(
+                            "l".to_string(),
+                            Span {
+                                row_start: 4,
+                                row_end: 4,
+                                column_start: 1,
+                                column_end: 1
+                            }
+                        )),
                         slice: Box::new(SubscriptType::Slice {
-                            lower: Some(Expression::Number("1".to_string(), Span { start: 15, end: 16 })),
-                            upper: Some(Expression::Number("2".to_string(), Span { start: 17, end: 18 })),
+                            lower: Some(Expression::Number(
+                                "1".to_string(),
+                                Span {
+                                    row_start: 4,
+                                    row_end: 4,
+                                    column_start: 3,
+                                    column_end: 3
+                                }
+                            )),
+                            upper: Some(Expression::Number(
+                                "2".to_string(),
+                                Span {
+                                    row_start: 4,
+                                    row_end: 4,
+                                    column_start: 5,
+                                    column_end: 5
+                                }
+                            )),
                             step: None
                         }),
-                        span: Span { start: 13, end: 19 }
+                        span: Span {
+                            row_start: 4,
+                            row_end: 4,
+                            column_start: 1,
+                            column_end: 6
+                        }
                     })),
                     Statement::Expression(Expression::Subscript(Subscript {
-                        lhs: Box::new(Expression::Id("l".to_string(), Span { start: 20, end: 21 })),
+                        lhs: Box::new(Expression::Id(
+                            "l".to_string(),
+                            Span {
+                                row_start: 5,
+                                row_end: 5,
+                                column_start: 1,
+                                column_end: 1
+                            }
+                        )),
                         slice: Box::new(SubscriptType::Slice {
-                            lower: Some(Expression::Number("1".to_string(), Span { start: 22, end: 23 })),
-                            upper: Some(Expression::Number("2".to_string(), Span { start: 24, end: 25 })),
-                            step: Some(Expression::Number("3".to_string(), Span { start: 26, end: 27 }))
+                            lower: Some(Expression::Number(
+                                "1".to_string(),
+                                Span {
+                                    row_start: 5,
+                                    row_end: 5,
+                                    column_start: 3,
+                                    column_end: 3
+                                }
+                            )),
+                            upper: Some(Expression::Number(
+                                "2".to_string(),
+                                Span {
+                                    row_start: 5,
+                                    row_end: 5,
+                                    column_start: 5,
+                                    column_end: 5
+                                }
+                            )),
+                            step: Some(Expression::Number(
+                                "3".to_string(),
+                                Span {
+                                    row_start: 5,
+                                    row_end: 5,
+                                    column_start: 7,
+                                    column_end: 7
+                                }
+                            ))
                         }),
-                        span: Span { start: 20, end: 28 }
+                        span: Span {
+                            row_start: 5,
+                            row_end: 5,
+                            column_start: 1,
+                            column_end: 8
+                        }
                     })),
                     Statement::Expression(Expression::Subscript(Subscript {
-                        lhs: Box::new(Expression::Id("l".to_string(), Span { start: 29, end: 30 })),
+                        lhs: Box::new(Expression::Id(
+                            "l".to_string(),
+                            Span {
+                                row_start: 6,
+                                row_end: 6,
+                                column_start: 1,
+                                column_end: 1
+                            }
+                        )),
                         slice: Box::new(SubscriptType::Slice {
                             lower: None,
                             upper: None,
                             step: None
                         }),
-                        span: Span { start: 29, end: 34 }
+                        span: Span {
+                            row_start: 6,
+                            row_end: 6,
+                            column_start: 1,
+                            column_end: 5
+                        }
                     })),
                     Statement::Expression(Expression::Subscript(Subscript {
-                        lhs: Box::new(Expression::Id("l".to_string(), Span { start: 35, end: 36 })),
+                        lhs: Box::new(Expression::Id(
+                            "l".to_string(),
+                            Span {
+                                row_start: 7,
+                                row_end: 7,
+                                column_start: 1,
+                                column_end: 1
+                            }
+                        )),
                         slice: Box::new(SubscriptType::Slice {
                             lower: None,
                             upper: None,
                             step: None
                         }),
-                        span: Span { start: 35, end: 39 }
+                        span: Span {
+                            row_start: 7,
+                            row_end: 7,
+                            column_start: 1,
+                            column_end: 4
+                        }
                     }))
                 ]
             }
@@ -2640,19 +5897,63 @@ def test():
                     name: "test".to_string(),
                     parameters: vec![],
                     block: Block {
-                        stmts: vec![Statement::Expression(Expression::Ellipsis(Span { start: 30, end: 33 }))],
-                        span: Span { start: 30, end: 33 }
+                        stmts: vec![Statement::Expression(Expression::Ellipsis(Span {
+                            row_start: 5,
+                            row_end: 5,
+                            column_start: 4,
+                            column_end: 6
+                        }))],
+                        span: Span {
+                            row_start: 5,
+                            row_end: 5,
+                            column_start: 4,
+                            column_end: 6
+                        }
                     },
                     decorators: vec![
-                        Expression::Id("abc".to_string(), Span { start: 2, end: 5 }),
+                        Expression::Id(
+                            "abc".to_string(),
+                            Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 2,
+                                column_end: 4
+                            }
+                        ),
                         Expression::BinaryOp(
-                            Box::new(Expression::Id("abc".to_string(), Span { start: 7, end: 10 })),
+                            Box::new(Expression::Id(
+                                "abc".to_string(),
+                                Span {
+                                    row_start: 3,
+                                    row_end: 3,
+                                    column_start: 2,
+                                    column_end: 4
+                                }
+                            )),
                             BinaryOperator::AttributeRef,
-                            Box::new(Expression::Id("cde".to_string(), Span { start: 11, end: 14 })),
-                            Span { start: 7, end: 14 }
+                            Box::new(Expression::Id(
+                                "cde".to_string(),
+                                Span {
+                                    row_start: 3,
+                                    row_end: 3,
+                                    column_start: 6,
+                                    column_end: 8
+                                }
+                            )),
+                            Span {
+                                row_start: 3,
+                                row_end: 3,
+                                column_start: 2,
+                                column_end: 8
+                            }
                         )
                     ],
-                    span: Span { start: 1, end: 33 }
+                    span: Span {
+                        row_start: 2,
+                        row_end: 5,
+                        column_start: 1,
+                        column_end: 6
+                    }
                 })]
             }
         )
@@ -2668,33 +5969,116 @@ def test():
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::ListComp(ListComp {
-                    target: Box::new(Expression::Id("n".to_string(), Span { start: 1, end: 2 })),
+                    target: Box::new(Expression::Id(
+                        "n".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 2,
+                            column_end: 2
+                        }
+                    )),
                     ifs: vec![IfComp {
                         cond: Expression::BinaryOp(
                             Box::new(Expression::Subscript(Subscript {
-                                lhs: Box::new(Expression::Id("n".to_string(), Span { start: 27, end: 28 })),
+                                lhs: Box::new(Expression::Id(
+                                    "n".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 28,
+                                        column_end: 28
+                                    }
+                                )),
                                 slice: Box::new(SubscriptType::Subscript(Expression::Number(
                                     "0".to_string(),
-                                    Span { start: 29, end: 30 }
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 30,
+                                        column_end: 30
+                                    }
                                 ))),
-                                span: Span { start: 27, end: 32 }
+                                span: Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 28,
+                                    column_end: 31
+                                }
                             })),
                             BinaryOperator::NotEqual,
-                            Box::new(Expression::String("_".to_string(), Span { start: 35, end: 38 })),
-                            Span { start: 27, end: 38 }
+                            Box::new(Expression::String(
+                                "_".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 36,
+                                    column_end: 38
+                                }
+                            )),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 28,
+                                column_end: 38
+                            }
                         ),
-                        span: Span { start: 24, end: 38 }
+                        span: Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 25,
+                            column_end: 38
+                        }
                     }],
                     fors: vec![ForComp {
-                        target: Expression::Id("n".to_string(), Span { start: 7, end: 8 }),
+                        target: Expression::Id(
+                            "n".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 8,
+                                column_end: 8
+                            }
+                        ),
                         iter: Expression::Call(FunctionCall {
-                            lhs: Box::new(Expression::Id("dir".to_string(), Span { start: 12, end: 15 })),
-                            args: vec![Expression::Id("module".to_string(), Span { start: 16, end: 22 })],
-                            span: Span { start: 12, end: 26 }
+                            lhs: Box::new(Expression::Id(
+                                "dir".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 13,
+                                    column_end: 15
+                                }
+                            )),
+                            args: vec![Expression::Id(
+                                "module".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 17,
+                                    column_end: 22
+                                }
+                            )],
+                            span: Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 13,
+                                column_end: 23
+                            }
                         }),
-                        span: Span { start: 3, end: 26 }
+                        span: Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 4,
+                            column_end: 23
+                        }
                     }],
-                    span: Span { start: 0, end: 39 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 39
+                    }
                 }))]
             }
         );
@@ -2710,45 +6094,173 @@ def test():
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::ListComp(ListComp {
-                    target: Box::new(Expression::Id("i".to_string(), Span { start: 1, end: 2 })),
+                    target: Box::new(Expression::Id(
+                        "i".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 2,
+                            column_end: 2
+                        }
+                    )),
                     ifs: vec![
                         IfComp {
                             cond: Expression::BinaryOp(
-                                Box::new(Expression::Id("i".to_string(), Span { start: 28, end: 29 })),
+                                Box::new(Expression::Id(
+                                    "i".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 29,
+                                        column_end: 29
+                                    }
+                                )),
                                 BinaryOperator::GreaterThan,
-                                Box::new(Expression::Number("0".to_string(), Span { start: 32, end: 33 })),
-                                Span { start: 28, end: 33 }
+                                Box::new(Expression::Number(
+                                    "0".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 33,
+                                        column_end: 33
+                                    }
+                                )),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 29,
+                                    column_end: 33
+                                }
                             ),
-                            span: Span { start: 25, end: 33 }
+                            span: Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 26,
+                                column_end: 33
+                            }
                         },
                         IfComp {
                             cond: Expression::BinaryOp(
-                                Box::new(Expression::Id("j".to_string(), Span { start: 37, end: 38 })),
+                                Box::new(Expression::Id(
+                                    "j".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 38,
+                                        column_end: 38
+                                    }
+                                )),
                                 BinaryOperator::GreaterThan,
-                                Box::new(Expression::Number("1".to_string(), Span { start: 41, end: 42 })),
-                                Span { start: 37, end: 42 }
+                                Box::new(Expression::Number(
+                                    "1".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 42,
+                                        column_end: 42
+                                    }
+                                )),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 38,
+                                    column_end: 42
+                                }
                             ),
-                            span: Span { start: 34, end: 42 }
+                            span: Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 35,
+                                column_end: 42
+                            }
                         }
                     ],
                     fors: vec![
                         ForComp {
-                            target: Expression::Id("i".to_string(), Span { start: 7, end: 8 }),
-                            iter: Expression::Id("l".to_string(), Span { start: 12, end: 13 }),
-                            span: Span { start: 3, end: 13 }
+                            target: Expression::Id(
+                                "i".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 8,
+                                    column_end: 8
+                                }
+                            ),
+                            iter: Expression::Id(
+                                "l".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 13,
+                                    column_end: 13
+                                }
+                            ),
+                            span: Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 4,
+                                column_end: 13
+                            }
                         },
                         ForComp {
-                            target: Expression::Id("j".to_string(), Span { start: 18, end: 19 }),
-                            iter: Expression::Id("l".to_string(), Span { start: 23, end: 24 }),
-                            span: Span { start: 14, end: 24 }
+                            target: Expression::Id(
+                                "j".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 19,
+                                    column_end: 19
+                                }
+                            ),
+                            iter: Expression::Id(
+                                "l".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 24,
+                                    column_end: 24
+                                }
+                            ),
+                            span: Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 15,
+                                column_end: 24
+                            }
                         },
                         ForComp {
-                            target: Expression::Id("x".to_string(), Span { start: 47, end: 48 }),
-                            iter: Expression::Id("l".to_string(), Span { start: 52, end: 53 }),
-                            span: Span { start: 43, end: 53 }
+                            target: Expression::Id(
+                                "x".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 48,
+                                    column_end: 48
+                                }
+                            ),
+                            iter: Expression::Id(
+                                "l".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 53,
+                                    column_end: 53
+                                }
+                            ),
+                            span: Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 44,
+                                column_end: 53
+                            }
                         }
                     ],
-                    span: Span { start: 0, end: 54 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 54
+                    }
                 }))]
             }
         );
@@ -2772,27 +6284,68 @@ def test(x=0, *, y=0):
                     parameters: vec![
                         FuncParameter {
                             name: "x".to_string(),
-                            default_value: Some(Expression::Number("0".to_string(), Span { start: 12, end: 13 })),
+                            default_value: Some(Expression::Number(
+                                "0".to_string(),
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 12,
+                                    column_end: 12
+                                }
+                            )),
                             star_parameter_type: None,
                             is_kw_only: false,
                             is_pos_only: false,
-                            span: Span { start: 10, end: 13 }
+                            span: Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 10,
+                                column_end: 12
+                            }
                         },
                         FuncParameter {
                             name: "y".to_string(),
-                            default_value: Some(Expression::Number("0".to_string(), Span { start: 20, end: 21 })),
+                            default_value: Some(Expression::Number(
+                                "0".to_string(),
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 20,
+                                    column_end: 20
+                                }
+                            )),
                             star_parameter_type: None,
                             is_kw_only: true,
                             is_pos_only: false,
-                            span: Span { start: 18, end: 21 }
+                            span: Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 18,
+                                column_end: 20
+                            }
                         }
                     ],
                     block: Block {
-                        stmts: vec![Statement::Expression(Expression::Ellipsis(Span { start: 28, end: 31 }))],
-                        span: Span { start: 28, end: 31 }
+                        stmts: vec![Statement::Expression(Expression::Ellipsis(Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 5,
+                            column_end: 7
+                        }))],
+                        span: Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 5,
+                            column_end: 7
+                        }
                     },
                     decorators: vec![],
-                    span: Span { start: 1, end: 31 }
+                    span: Span {
+                        row_start: 2,
+                        row_end: 3,
+                        column_start: 1,
+                        column_end: 7
+                    }
                 })]
             }
         )
@@ -2820,7 +6373,12 @@ def test(x, /, *, y):
                             star_parameter_type: None,
                             is_kw_only: false,
                             is_pos_only: true,
-                            span: Span { start: 10, end: 11 }
+                            span: Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 10,
+                                column_end: 10
+                            }
                         },
                         FuncParameter {
                             name: "y".to_string(),
@@ -2828,15 +6386,35 @@ def test(x, /, *, y):
                             star_parameter_type: None,
                             is_kw_only: true,
                             is_pos_only: false,
-                            span: Span { start: 19, end: 20 }
+                            span: Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 19,
+                                column_end: 19
+                            }
                         }
                     ],
                     block: Block {
-                        stmts: vec![Statement::Expression(Expression::Ellipsis(Span { start: 27, end: 30 }))],
-                        span: Span { start: 27, end: 30 }
+                        stmts: vec![Statement::Expression(Expression::Ellipsis(Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 5,
+                            column_end: 7
+                        }))],
+                        span: Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 5,
+                            column_end: 7
+                        }
                     },
                     decorators: vec![],
-                    span: Span { start: 1, end: 30 }
+                    span: Span {
+                        row_start: 2,
+                        row_end: 3,
+                        column_start: 1,
+                        column_end: 7
+                    }
                 })]
             }
         )
@@ -2853,12 +6431,38 @@ def test(x, /, *, y):
             ParsedFile {
                 stmts: vec![Statement::Assert(AssertStmt {
                     expr: Expression::BinaryOp(
-                        Box::new(Expression::Number("1".to_string(), Span { start: 7, end: 8 })),
+                        Box::new(Expression::Number(
+                            "1".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 8,
+                                column_end: 8
+                            }
+                        )),
                         BinaryOperator::GreaterThan,
-                        Box::new(Expression::Id("x".to_string(), Span { start: 11, end: 12 })),
-                        Span { start: 7, end: 12 }
+                        Box::new(Expression::Id(
+                            "x".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 12,
+                                column_end: 12
+                            }
+                        )),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 8,
+                            column_end: 12
+                        }
                     ),
-                    span: Span { start: 0, end: 12 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 12
+                    }
                 })]
             }
         )
@@ -2874,27 +6478,100 @@ def test(x, /, *, y):
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::GeneratorComp(GeneratorComp {
-                    target: Box::new(Expression::Id("i".to_string(), Span { start: 1, end: 2 })),
+                    target: Box::new(Expression::Id(
+                        "i".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 2,
+                            column_end: 2
+                        }
+                    )),
                     ifs: vec![IfComp {
                         cond: Expression::BinaryOp(
                             Box::new(Expression::BinaryOp(
-                                Box::new(Expression::Id("i".to_string(), Span { start: 17, end: 18 })),
+                                Box::new(Expression::Id(
+                                    "i".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 18,
+                                        column_end: 18
+                                    }
+                                )),
                                 BinaryOperator::Modulo,
-                                Box::new(Expression::Number("2".to_string(), Span { start: 21, end: 22 })),
-                                Span { start: 17, end: 22 }
+                                Box::new(Expression::Number(
+                                    "2".to_string(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 22,
+                                        column_end: 22
+                                    }
+                                )),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 18,
+                                    column_end: 22
+                                }
                             )),
                             BinaryOperator::Equals,
-                            Box::new(Expression::Number("0".to_string(), Span { start: 26, end: 27 })),
-                            Span { start: 17, end: 27 }
+                            Box::new(Expression::Number(
+                                "0".to_string(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 27,
+                                    column_end: 27
+                                }
+                            )),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 18,
+                                column_end: 27
+                            }
                         ),
-                        span: Span { start: 14, end: 27 }
+                        span: Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 15,
+                            column_end: 27
+                        }
                     }],
                     fors: vec![ForComp {
-                        target: Expression::Id("i".to_string(), Span { start: 7, end: 8 }),
-                        iter: Expression::Id("l".to_string(), Span { start: 12, end: 13 }),
-                        span: Span { start: 3, end: 13 }
+                        target: Expression::Id(
+                            "i".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 8,
+                                column_end: 8
+                            }
+                        ),
+                        iter: Expression::Id(
+                            "l".to_string(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 13,
+                                column_end: 13
+                            }
+                        ),
+                        span: Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 4,
+                            column_end: 13
+                        }
                     }],
-                    span: Span { start: 0, end: 28 }
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 28
+                    }
                 }))]
             }
         )

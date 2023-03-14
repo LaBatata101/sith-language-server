@@ -1,19 +1,22 @@
 mod char_codepoints;
 mod char_stream;
+pub mod span;
 pub mod token;
 
 use std::borrow::Cow;
 
-use char_stream::CharStream;
+pub use char_stream::CharStream;
 use token::Token;
 
 use crate::{
     error::{PythonError, PythonErrorType},
-    lexer::token::Span,
     valid_id_initial_chars, valid_id_noninitial_chars,
 };
 
-use self::token::types::{IntegerType, KeywordType, NumberType, OperatorType, SoftKeywordType, TokenType};
+use self::{
+    span::{Position, Span},
+    token::types::{IntegerType, KeywordType, NumberType, OperatorType, SoftKeywordType, TokenType},
+};
 
 pub struct Lexer<'a> {
     cs: CharStream<'a>,
@@ -115,13 +118,16 @@ impl<'a> Lexer<'a> {
                     }
 
                     if matches!(
-                        (self.cs.next_char(), self.cs.peek_char(self.cs.pos() + 2)),
+                        (self.cs.next_char(), self.cs.peek_char(self.cs.pos().index + 2)),
                         (Some('.'), Some('.'))
                     ) {
                         let start = self.cs.pos();
                         self.cs.advance_by(3);
                         let end = self.cs.pos();
-                        self.tokens.push(Token::new(TokenType::Ellipsis, start, end))
+                        self.tokens.push(Token {
+                            kind: TokenType::Ellipsis,
+                            span: self.make_span(start, end),
+                        })
                     } else {
                         self.lex_single_char(TokenType::Dot)
                     }
@@ -133,8 +139,10 @@ impl<'a> Lexer<'a> {
                         let start = self.cs.pos();
                         self.cs.advance_by(2);
                         let end = self.cs.pos();
-                        self.tokens
-                            .push(Token::new(TokenType::Operator(OperatorType::ColonEqual), start, end))
+                        self.tokens.push(Token {
+                            kind: TokenType::Operator(OperatorType::ColonEqual),
+                            span: self.make_span(start, end),
+                        })
                     } else {
                         self.lex_single_char(TokenType::Colon)
                     }
@@ -144,7 +152,10 @@ impl<'a> Lexer<'a> {
                         let start = self.cs.pos();
                         self.cs.advance_by(2);
                         let end = self.cs.pos();
-                        self.tokens.push(Token::new(TokenType::RightArrow, start, end));
+                        self.tokens.push(Token {
+                            kind: TokenType::RightArrow,
+                            span: self.make_span(start, end),
+                        });
                     } else {
                         self.lex_operator();
                     }
@@ -154,44 +165,39 @@ impl<'a> Lexer<'a> {
                 }
                 '\n' | '\r' => {
                     is_beginning_of_line = true;
-                    let mut advance_offset = 1;
+                    let eol_size = self.cs.is_eol().unwrap();
 
                     let start = self.cs.pos();
 
-                    if self.cs.current_char().map_or(false, |char| char == '\n') {
-                        self.cs.advance_by(advance_offset);
-                    }
-
-                    let mut end = self.cs.pos();
-
-                    if self.cs.current_char().map_or(false, |char| char == '\r') {
-                        if self.cs.next_char().map_or(false, |char| char == '\n') {
-                            advance_offset = 2;
-                        }
-                        self.cs.advance_by(advance_offset);
-
-                        end = self.cs.pos();
-                    }
+                    self.cs.advance_by(eol_size);
 
                     if implicit_line_joining > 0 {
                         continue;
                     }
 
-                    self.tokens.push(Token::new(TokenType::NewLine, start, end));
+                    let end = Position {
+                        column: start.column + 1,
+                        ..start
+                    };
+
+                    self.tokens.push(Token {
+                        kind: TokenType::NewLine,
+                        span: self.make_span(start, end),
+                    });
                 }
                 '\\' => {
-                    if self.cs.next_char().map_or(false, |char| char == '\n') {
-                        self.cs.advance_by(2);
-                    } else {
-                        let start = self.cs.pos();
-                        // consume \
-                        self.cs.advance_by(1);
-                        let end = self.cs.pos();
+                    let start = self.cs.pos();
+                    // consume \
+                    self.cs.advance_by(1);
+                    let end = self.cs.pos();
 
+                    if self.cs.current_char().map_or(false, |char| char == '\n') {
+                        self.cs.advance_by(1);
+                    } else {
                         errors.push(PythonError {
                             msg: String::from("SyntaxError: unexpected characters after line continuation character"),
                             error: PythonErrorType::Syntax,
-                            span: Span { start, end },
+                            span: self.make_span(start, end),
                         });
                     }
                 }
@@ -206,19 +212,32 @@ impl<'a> Lexer<'a> {
                     errors.push(PythonError {
                         error: PythonErrorType::Syntax,
                         msg: String::from("SyntaxError: invalid syntax, character only allowed inside string literals"),
-                        span: Span { start, end },
+                        span: self.make_span(start, end),
                     })
                 }
             }
         }
 
         while self.indent_stack.last().copied().unwrap() > 0 {
-            self.tokens.push(Token::new(TokenType::Dedent, 0, 0));
+            self.tokens.push(Token {
+                kind: TokenType::Dedent,
+                span: Span {
+                    column_start: 1,
+                    column_end: 1,
+                    ..self.make_span(self.cs.pos(), self.cs.pos())
+                },
+            });
             self.indent_stack.pop();
         }
 
-        self.tokens
-            .push(Token::new(TokenType::Eof, self.cs.pos(), self.cs.pos() + 1));
+        let eof_span = self.make_span(self.cs.pos(), self.cs.pos());
+        self.tokens.push(Token {
+            kind: TokenType::Eof,
+            span: Span {
+                column_end: eof_span.column_end + 1,
+                ..eof_span
+            },
+        });
 
         if errors.is_empty() {
             None
@@ -243,7 +262,14 @@ impl<'a> Lexer<'a> {
                     .map_or(false, |&top_of_stack| whitespace_total < top_of_stack)
                 {
                     self.indent_stack.pop();
-                    self.tokens.push(Token::new(TokenType::Dedent, 0, 0));
+                    self.tokens.push(Token {
+                        kind: TokenType::Dedent,
+                        span: Span {
+                            column_start: 1,
+                            column_end: 1,
+                            ..self.make_span(self.cs.pos(), self.cs.pos())
+                        },
+                    });
                 }
 
                 if self
@@ -254,13 +280,24 @@ impl<'a> Lexer<'a> {
                     return Err(PythonError {
                         error: PythonErrorType::Indentation,
                         msg: "IndentError: indent amount does not match previous indent".to_string(),
-                        span: Span { start: 0, end: 0 }, // FIXME: set the span position
+                        span: Span {
+                            column_start: 1,
+                            column_end: 1,
+                            ..self.make_span(self.cs.pos(), self.cs.pos())
+                        },
                     });
                 }
             }
             std::cmp::Ordering::Greater => {
                 self.indent_stack.push(whitespace_total);
-                self.tokens.push(Token::new(TokenType::Indent, 0, 0));
+                self.tokens.push(Token {
+                    kind: TokenType::Indent,
+                    span: Span {
+                        column_start: 1,
+                        column_end: 1,
+                        ..self.make_span(self.cs.pos(), self.cs.pos())
+                    },
+                });
             }
             std::cmp::Ordering::Equal => (), // Do nothing!
         }
@@ -273,7 +310,10 @@ impl<'a> Lexer<'a> {
         self.cs.advance_by(1);
         let end = self.cs.pos();
 
-        self.tokens.push(Token::new(token, start, end));
+        self.tokens.push(Token {
+            kind: token,
+            span: self.make_span(start, end),
+        });
     }
 
     fn lex_identifier_or_keyword(&mut self) {
@@ -287,7 +327,7 @@ impl<'a> Lexer<'a> {
         }
         let end = self.cs.pos();
 
-        let str = self.cs.get_slice(start..end).unwrap();
+        let str = self.cs.get_slice(start.index, end.index).unwrap();
 
         // FIXME: check if the string is within a parenthesis and use `lex_string_within_parens`
         if self.is_str_prefix(str) && self.cs.current_char().map_or(false, |char| matches!(char, '"' | '\'')) {
@@ -337,7 +377,10 @@ impl<'a> Lexer<'a> {
             _ => TokenType::Id(String::from_utf8_lossy(str).into()),
         };
 
-        self.tokens.push(Token::new(token_type, start, end));
+        self.tokens.push(Token {
+            kind: token_type,
+            span: self.make_span(start, end),
+        });
     }
 
     fn is_str_prefix(&self, str: &[u8]) -> bool {
@@ -368,15 +411,11 @@ impl<'a> Lexer<'a> {
     fn lex_string_within_parens(&mut self) -> Option<Vec<PythonError>> {
         let mut errors = Vec::new();
         let mut out_string = String::new();
-        let mut str_span = Span {
-            start: self.cs.pos(),
-            ..Default::default()
-        };
 
+        let start = self.cs.pos();
         while self.cs.current_char().map_or(false, |char| matches!(char, '"' | '\'')) {
-            let (string, span, str_errors) = self.process_string();
+            let (string, _, str_errors) = self.process_string();
             out_string.push_str(&string);
-            str_span.end = span.end;
 
             if let Some(str_errors) = str_errors {
                 errors.extend(str_errors);
@@ -389,10 +428,11 @@ impl<'a> Lexer<'a> {
             }
             self.cs.skip_whitespace();
         }
+        let end = self.cs.pos();
 
         self.tokens.push(Token {
             kind: TokenType::String(out_string),
-            span: str_span,
+            span: self.make_span(start, end),
         });
 
         if errors.is_empty() {
@@ -428,9 +468,9 @@ impl<'a> Lexer<'a> {
                     let quote_pos = self.cs.pos();
                     if matches!(
                         (
-                            self.cs.peek_char(quote_pos),
-                            self.cs.peek_char(quote_pos + 1),
-                            self.cs.peek_char(quote_pos + 2)
+                            self.cs.peek_char(quote_pos.index),
+                            self.cs.peek_char(quote_pos.index + 1),
+                            self.cs.peek_char(quote_pos.index + 2)
                         ),
                         (Some('"'), Some('"'), Some('"')) | (Some('\''), Some('\''), Some('\''))
                     ) {
@@ -442,23 +482,27 @@ impl<'a> Lexer<'a> {
             while self
                 .cs
                 .current_char()
-                .map_or(false, |char| char != quote_char && char != '\n')
+                .map_or(false, |char| char != quote_char /* && char != '\n' */)
             {
-                if self.cs.current_char().map_or(false, |char| char == '\\') {
-                    // store the backslashes positions
-                    if self.cs.next_char().map_or(false, |char| char == '\n') {
+                match (self.cs.current_char(), self.cs.next_char()) {
+                    // FIXME: support \r, \r\n
+                    (Some('\\'), Some('\n')) => {
                         has_explicit_line_join = true;
                         backslash_positions.push(self.cs.pos());
-                        self.cs.advance_by(2);
+                        self.cs.advance_by(1);
                     }
-
-                    // Skip escaped `quote_char`
-                    if self.cs.next_char().map_or(false, |char| char == quote_char) {
-                        self.cs.advance_by(2);
-                        continue;
+                    (Some('\\'), Some('\'' | '"')) => self.cs.advance_by(2),
+                    (Some('\\'), _)
+                        if self
+                            .cs
+                            .peek_char(self.cs.pos().index + 2)
+                            .map_or(false, |char| char == '\n') =>
+                    {
+                        self.cs.advance_by(1);
+                        break;
                     }
+                    _ => self.cs.advance_by(1),
                 }
-                self.cs.advance_by(1);
             }
         }
 
@@ -473,7 +517,7 @@ impl<'a> Lexer<'a> {
             errors.push(PythonError {
                 error: PythonErrorType::Syntax,
                 msg: String::from("SyntaxError: unterminated string literal"),
-                span: Span { start, end },
+                span: self.make_span(start, end),
             });
         }
 
@@ -485,14 +529,17 @@ impl<'a> Lexer<'a> {
             for backslash_position in &backslash_positions {
                 str.to_mut().push_str(&String::from_utf8_lossy(
                     self.cs
-                        .get_slice(start + start_quote_total..*backslash_position)
+                        .get_slice(start.index + start_quote_total, backslash_position.index)
                         .unwrap(),
                 ));
             }
             // Here we join the last string line that doesn't have the backslash.
             str.to_mut().push_str(&String::from_utf8_lossy(
                 self.cs
-                    .get_slice(*backslash_positions.last().unwrap() + 2..end - end_quote_total)
+                    .get_slice(
+                        backslash_positions.last().unwrap().index + 2, // 2 is the size of the \ + \n
+                        end.index - end_quote_total,
+                    )
                     .unwrap(),
             ));
 
@@ -500,14 +547,14 @@ impl<'a> Lexer<'a> {
         } else {
             String::from_utf8_lossy(
                 self.cs
-                    .get_slice(start + start_quote_total..end - end_quote_total)
+                    .get_slice(start.index + start_quote_total, end.index - end_quote_total)
                     .unwrap(),
             )
         };
 
         (
             out_string,
-            Span { start, end },
+            self.make_span(start, end),
             if errors.is_empty() { None } else { Some(errors) },
         )
     }
@@ -531,21 +578,33 @@ impl<'a> Lexer<'a> {
             ('@', Some('=')) => (TokenType::Operator(OperatorType::AtEqual), 2),
             ('/', Some('=')) => (TokenType::Operator(OperatorType::DivideEqual), 2),
             ('/', Some('/')) => {
-                if self.cs.peek_char(self.cs.pos() + 2).map_or(false, |char| char == '=') {
+                if self
+                    .cs
+                    .peek_char(self.cs.pos().index + 2)
+                    .map_or(false, |char| char == '=')
+                {
                     (TokenType::Operator(OperatorType::FloorDivisionEqual), 3)
                 } else {
                     (TokenType::Operator(OperatorType::FloorDivision), 2)
                 }
             }
             ('<', Some('<')) => {
-                if self.cs.peek_char(self.cs.pos() + 2).map_or(false, |char| char == '=') {
+                if self
+                    .cs
+                    .peek_char(self.cs.pos().index + 2)
+                    .map_or(false, |char| char == '=')
+                {
                     (TokenType::Operator(OperatorType::BitwiseLeftShiftEqual), 3)
                 } else {
                     (TokenType::Operator(OperatorType::BitwiseLeftShift), 2)
                 }
             }
             ('>', Some('>')) => {
-                if self.cs.peek_char(self.cs.pos() + 2).map_or(false, |char| char == '=') {
+                if self
+                    .cs
+                    .peek_char(self.cs.pos().index + 2)
+                    .map_or(false, |char| char == '=')
+                {
                     (TokenType::Operator(OperatorType::BitwiseRightShiftEqual), 3)
                 } else {
                     (TokenType::Operator(OperatorType::BitwiseRightShift), 2)
@@ -571,7 +630,10 @@ impl<'a> Lexer<'a> {
 
         self.cs.advance_by(advance_offset);
         let end = self.cs.pos();
-        self.tokens.push(Token::new(token_type, start, end));
+        self.tokens.push(Token {
+            kind: token_type,
+            span: self.make_span(start, end),
+        });
     }
 
     // TODO: handle invalid numbers
@@ -631,12 +693,11 @@ impl<'a> Lexer<'a> {
 
         let end = self.cs.pos();
 
-        let number = self.cs.get_slice(start..end).unwrap();
-        self.tokens.push(Token::new(
-            TokenType::Number(number_type, String::from_utf8_lossy(number).into()),
-            start,
-            end,
-        ));
+        let number = self.cs.get_slice(start.index, end.index).unwrap();
+        self.tokens.push(Token {
+            kind: TokenType::Number(number_type, String::from_utf8_lossy(number).into()),
+            span: self.make_span(start, end),
+        });
 
         if errors.is_empty() {
             None
@@ -646,7 +707,7 @@ impl<'a> Lexer<'a> {
     }
 
     // Handle the fraction part of the float number
-    fn handle_float_or_imaginary_number(&mut self, float_start: usize) -> (NumberType, Vec<PythonError>) {
+    fn handle_float_or_imaginary_number(&mut self, float_start: Position) -> (NumberType, Vec<PythonError>) {
         let mut errors = vec![];
 
         // Here we are consuming all the valid characters that a float string can have, we don't care
@@ -693,7 +754,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn handle_decimal_number(&mut self) -> Option<(usize, usize)> {
+    fn handle_decimal_number(&mut self) -> Option<(Position, Position)> {
         let start = self.cs.pos();
         if matches!(self.cs.current_char(), Some('+' | '-')) {
             // Consumer + or -
@@ -712,13 +773,13 @@ impl<'a> Lexer<'a> {
 
     /// check if is a valid decimal e.g.: 123, 1_2_3, 1_2344, +1, -1
     /// invalid decimals: 1_2_, 1__2_3, 1234abc, --42
-    fn check_if_decimal_is_valid_in_pos(&self, start: usize, end: usize) -> Result<(), PythonError> {
+    fn check_if_decimal_is_valid_in_pos(&self, start: Position, end: Position) -> Result<(), PythonError> {
         const VALID_STATE: i8 = 2;
         const INVALID_STATE: i8 = 0;
 
         let mut curr_state: i8 = -1;
 
-        for &char in self.cs.get_slice(start..end).unwrap() {
+        for &char in self.cs.get_slice(start.index, end.index).unwrap() {
             if curr_state == INVALID_STATE && char == b'_' {
                 break;
             }
@@ -734,7 +795,7 @@ impl<'a> Lexer<'a> {
             return Err(PythonError {
                 error: PythonErrorType::Syntax,
                 msg: "SyntaxError: invalid decimal literal".to_string(),
-                span: Span { start, end },
+                span: self.make_span(start, end),
             });
         }
 
@@ -743,11 +804,11 @@ impl<'a> Lexer<'a> {
 
     /// Check if is a valid float syntax e.g.: .2, 1.3, 1_000e+40, 24., 3.14E-2, 1e5J
     /// https://docs.python.org/3/reference/lexical_analysis.html#floating-point-literals
-    fn check_if_float_number_is_valid_in_pos(&self, start: usize, end: usize) -> Result<(), PythonError> {
+    fn check_if_float_number_is_valid_in_pos(&self, start: Position, end: Position) -> Result<(), PythonError> {
         let mut state: u8 = 1;
 
         // This is a state machine that validates a float number string
-        for &char in self.cs.get_slice(start..end).unwrap() {
+        for &char in self.cs.get_slice(start.index, end.index).unwrap() {
             if (state == 4 || state == 1) && char == b'.'
                 || state == 7 && matches!(char, b'j' | b'J')
                 || state >= 5 && matches!(char, b'e' | b'E')
@@ -785,8 +846,18 @@ impl<'a> Lexer<'a> {
             Err(PythonError {
                 error: PythonErrorType::Syntax,
                 msg: "SyntaxError: invalid float literal".to_string(),
-                span: Span { start, end },
+                span: self.make_span(start, end),
             })
+        }
+    }
+
+    fn make_span(&self, start: Position, end: Position) -> Span {
+        Span {
+            row_start: start.row,
+            row_end: end.row,
+            // Due to the column value starting at 0, we need to add 1 to get the correct column position
+            column_start: start.column + 1,
+            column_end: end.column,
         }
     }
 }

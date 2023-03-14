@@ -1,4 +1,4 @@
-use crate::lexer::token::Span;
+use crate::lexer::span::Span;
 
 #[derive(Debug, PartialEq, Eq, Default)]
 pub enum Statement {
@@ -47,7 +47,7 @@ impl Statement {
             Statement::Raise(raise) => raise.span,
             Statement::Del(del) => del.span,
             Statement::Assert(assert) => assert.span,
-            Statement::None => Span { start: 0, end: 0 },
+            Statement::None => Span::default(),
         }
     }
 }
@@ -110,7 +110,7 @@ impl Expression {
             | Expression::Yield(_, span)
             | Expression::YieldFrom(_, span)
             | Expression::None(span) => *span,
-            Expression::Empty => Span { start: 0, end: 0 },
+            Expression::Empty => Span::default(),
         }
     }
 
@@ -361,7 +361,7 @@ impl Block {
     pub fn new() -> Self {
         Self {
             stmts: Vec::new(),
-            span: Span { start: 0, end: 0 },
+            span: Span::default(),
         }
     }
 }

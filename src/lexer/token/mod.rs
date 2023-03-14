@@ -4,12 +4,7 @@ use crate::parser::ast::AugAssignType;
 
 use self::types::{OperatorType, TokenType};
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
-pub struct Span {
-    // TODO: add field to know which file the Span belongs to
-    pub start: usize,
-    pub end: usize,
-}
+use super::span::Span;
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct Token {
@@ -18,13 +13,6 @@ pub struct Token {
 }
 
 impl Token {
-    pub fn new(kind: TokenType, start: usize, end: usize) -> Self {
-        Self {
-            kind,
-            span: Span { start, end },
-        }
-    }
-
     pub fn is_augassign(&self) -> bool {
         matches!(
             self.kind,
