@@ -22,8 +22,8 @@ use helpers::{infix_binding_power, postfix_binding_power, prefix_binding_power};
 use self::{
     ast::{
         AnnAssign, AssertStmt, Assign, AugAssign, ClassStmt, DelStmt, ForComp, ForStmt, FromImportStmt, FuncParameter,
-        FunctionCall, GeneratorComp, IfComp, ImportModule, ImportStmt, LambdaExpr, ListComp, RaiseStmt, ReturnStmt,
-        StarParameterType, Subscript, SubscriptType, TryStmt, WithItem, WithStmt,
+        FunctionCall, GeneratorComp, GlobalStmt, IfComp, ImportModule, ImportStmt, LambdaExpr, ListComp, RaiseStmt,
+        ReturnStmt, StarParameterType, Subscript, SubscriptType, TryStmt, WithItem, WithStmt,
     },
     helpers::{BinaryOperationsBitflag, ExprBitflag, ParseExprBitflags, UnaryOperationsBitflag},
 };
@@ -622,6 +622,13 @@ impl Parser {
             TokenType::Keyword(KeywordType::Pass) => (Statement::Pass(token.span), None),
             TokenType::Keyword(KeywordType::Continue) => (Statement::Continue(token.span), None),
             TokenType::Keyword(KeywordType::Break) => (Statement::Break(token.span), None),
+            TokenType::Keyword(KeywordType::Global) => {
+                let (mut global_stmt, global_stmt_errors) = self.parse_global_stmt(index);
+                global_stmt.span.row_start = token.span.row_start;
+                global_stmt.span.column_start = token.span.column_start;
+
+                (Statement::Global(global_stmt), global_stmt_errors)
+            }
             TokenType::Operator(OperatorType::ColonEqual) => {
                 self.skip_line(index);
                 (
@@ -2922,6 +2929,18 @@ impl Parser {
                 span: Span::default(),
             }),
             if errors.is_empty() { None } else { Some(errors) },
+        )
+    }
+
+    fn parse_global_stmt(&self, index: &mut usize) -> (GlobalStmt, Option<Vec<PythonError>>) {
+        let (expr, expr_errors) =
+            self.parse_expression(index, ParseExprBitflags::empty().set_expressions(ExprBitflag::ID));
+        (
+            GlobalStmt {
+                span: expr.span(),
+                name: expr,
+            },
+            expr_errors,
         )
     }
 }

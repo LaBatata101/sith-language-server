@@ -8,8 +8,8 @@ mod tests_parser {
             ast::{
                 AnnAssign, AssertStmt, Assign, AugAssign, AugAssignType, BinaryOperator, Block, ClassStmt, DelStmt,
                 DictItemType, ElIfStmt, ElseStmt, ExceptBlock, ExceptBlockKind, Expression, FinallyBlock, ForComp,
-                ForStmt, FromImportStmt, FuncParameter, Function, FunctionCall, GeneratorComp, IfComp, IfElseExpr,
-                IfStmt, ImportModule, ImportStmt, LambdaExpr, ListComp, ParsedFile, RaiseStmt, ReturnStmt,
+                ForStmt, FromImportStmt, FuncParameter, Function, FunctionCall, GeneratorComp, GlobalStmt, IfComp,
+                IfElseExpr, IfStmt, ImportModule, ImportStmt, LambdaExpr, ListComp, ParsedFile, RaiseStmt, ReturnStmt,
                 StarParameterType, Statement, Subscript, SubscriptType, TryStmt, UnaryOperator, While, WithItem,
                 WithStmt,
             },
@@ -6573,6 +6573,57 @@ def test(x, /, *, y):
                         column_end: 28
                     }
                 }))]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_invalid_global_statement() {
+        let parser = Parser::new("global 1 + 1");
+        let (_, errors) = parser.parse();
+
+        assert!(errors.is_some());
+        assert_eq!(
+            errors,
+            Some(vec![PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: unexpected token Number(Integer(Decimal), \"1\")".to_string(),
+                span: Span {
+                    row_start: 1,
+                    row_end: 1,
+                    column_start: 8,
+                    column_end: 8,
+                },
+            },])
+        )
+    }
+
+    #[test]
+    fn parse_global_statement() {
+        let parser = Parser::new("global x");
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Global(GlobalStmt {
+                    name: Expression::Id(
+                        "x".to_string(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 8,
+                            column_end: 8,
+                        },
+                    ),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 8,
+                    },
+                },),]
             }
         )
     }

@@ -20,6 +20,7 @@ pub enum Statement {
     Raise(RaiseStmt),
     For(ForStmt),
     Del(DelStmt),
+    Global(GlobalStmt),
     Invalid(Span),
 
     #[default]
@@ -47,6 +48,7 @@ impl Statement {
             Statement::Raise(raise) => raise.span,
             Statement::Del(del) => del.span,
             Statement::Assert(assert) => assert.span,
+            Statement::Global(global) => global.span,
             Statement::None => Span::default(),
         }
     }
@@ -531,5 +533,11 @@ pub struct ForComp {
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct AssertStmt {
     pub expr: Expression,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct GlobalStmt {
+    pub name: Expression,
     pub span: Span,
 }
