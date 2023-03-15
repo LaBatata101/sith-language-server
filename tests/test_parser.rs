@@ -3570,7 +3570,7 @@ else:
     }
 
     #[test]
-    fn parse_await_operator() {
+    fn parse_await_expr() {
         let parser = Parser::new("await func() * x ** 5 / 3");
         let (parsed_file, errors) = parser.parse();
 
@@ -3580,7 +3580,7 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::BinaryOp(
                     Box::new(Expression::BinaryOp(
-                        Box::new(Expression::UnaryOp(
+                        Box::new(Expression::Await(
                             Box::new(Expression::Call(FunctionCall {
                                 lhs: Box::new(Expression::Id(
                                     "func".to_string(),
@@ -3599,7 +3599,6 @@ else:
                                     column_end: 12
                                 }
                             })),
-                            UnaryOperator::Await,
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -6789,5 +6788,25 @@ def t(): ;
                 },
             },])
         )
+    }
+
+    #[test]
+    fn parse_invalid_await_expr() {
+        let parser = Parser::new("await");
+        let (_, errors) = parser.parse();
+
+        assert_eq!(
+            errors,
+            Some(vec![PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: invalid syntax, expecting expression".to_string(),
+                span: Span {
+                    row_start: 1,
+                    row_end: 1,
+                    column_start: 1,
+                    column_end: 5,
+                },
+            }])
+        );
     }
 }

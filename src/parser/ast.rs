@@ -60,6 +60,7 @@ impl Statement {
 pub enum Expression {
     Assign(Assign),
     AugAssing(AugAssign),
+    Await(Box<Expression>, Span),
     String(String, Span),
     Number(String, Span),
     Bool(bool, Span),
@@ -113,6 +114,7 @@ impl Expression {
             | Expression::Invalid(span)
             | Expression::Yield(_, span)
             | Expression::YieldFrom(_, span)
+            | Expression::Await(_, span)
             | Expression::None(span) => *span,
             Expression::Empty => Span::default(),
         }
@@ -143,6 +145,7 @@ impl Expression {
             | Expression::Invalid(span)
             | Expression::Yield(_, span)
             | Expression::YieldFrom(_, span)
+            | Expression::Await(_, span)
             | Expression::None(span) => *span = new_span,
             Expression::Empty => (),
         }

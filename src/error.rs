@@ -1,5 +1,7 @@
 use crate::lexer::span::Span;
 
+pub type PythonErrors = Option<Vec<PythonError>>;
+
 #[derive(Debug, PartialEq)]
 pub struct PythonError {
     pub error: PythonErrorType,

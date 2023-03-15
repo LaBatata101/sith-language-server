@@ -1,6 +1,6 @@
 pub mod types;
 
-use crate::parser::ast::AugAssignType;
+use crate::parser::ast::{AugAssignType, Operation, UnaryOperator};
 
 use self::types::{KeywordType, OperatorType, TokenType};
 
@@ -128,5 +128,21 @@ impl Token {
                 // Then, in `parse_simple_stmts` we can generate a appropriate error message.
                 | TokenType::SemiColon
             )
+    }
+
+    pub fn to_unary_operation(&self) -> Result<Operation, String> {
+        Ok(match &self.kind {
+            TokenType::Operator(OperatorType::BitwiseNot) => Operation::Unary(UnaryOperator::BitwiseNot),
+            TokenType::Operator(OperatorType::Plus) => Operation::Unary(UnaryOperator::Plus),
+            TokenType::Operator(OperatorType::Minus) => Operation::Unary(UnaryOperator::Minus),
+            TokenType::Operator(OperatorType::Asterisk) => Operation::Unary(UnaryOperator::UnpackIterable),
+            TokenType::Operator(OperatorType::Exponent) => Operation::Unary(UnaryOperator::UnpackDictionary),
+            TokenType::Keyword(KeywordType::Not) => Operation::Unary(UnaryOperator::LogicalNot),
+            TokenType::Keyword(KeywordType::Await) => Operation::Unary(UnaryOperator::Await),
+            TokenType::Keyword(KeywordType::Lambda) => Operation::Unary(UnaryOperator::Lambda),
+            // NOTE: this message probably shouldn't be here
+            kind => return Err(format!("SyntaxError: unexpected operator {:?}", kind))
+            }
+        )
     }
 }
