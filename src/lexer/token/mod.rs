@@ -2,7 +2,7 @@ pub mod types;
 
 use crate::parser::ast::AugAssignType;
 
-use self::types::{OperatorType, TokenType};
+use self::types::{KeywordType, OperatorType, TokenType};
 
 use super::span::Span;
 
@@ -57,5 +57,76 @@ impl Token {
             TokenType::Operator(OperatorType::PlusEqual) => AugAssignType::Plus,
             t => return Err(format!("Invalid conversion of token {:?} to augassign type!", t)),
         })
+    }
+
+    pub fn is_start_of_expr(&self) -> bool {
+        matches!(
+            self.kind,
+            TokenType::Number(_, _)
+                | TokenType::Id(_)
+                | TokenType::String(_)
+                | TokenType::OpenParenthesis
+                | TokenType::OpenBrackets
+                | TokenType::OpenBrace
+                | TokenType::Operator(
+                    OperatorType::Plus
+                        | OperatorType::Minus
+                        | OperatorType::Asterisk
+                        | OperatorType::BitwiseNot
+                        | OperatorType::Exponent
+                )
+                | TokenType::Keyword(
+                    KeywordType::Not
+                        | KeywordType::None
+                        | KeywordType::True
+                        | KeywordType::False
+                        | KeywordType::Await
+                        | KeywordType::Lambda
+                )
+        )
+    }
+
+    pub fn is_end_of_expr(&self) -> bool {
+        matches!(
+            self.kind,
+            TokenType::NewLine
+                | TokenType::SemiColon
+                | TokenType::Colon
+                | TokenType::Eof
+                | TokenType::CloseBrace
+                | TokenType::CloseBrackets
+                | TokenType::CloseParenthesis
+                | TokenType::Comma
+                | TokenType::Dedent
+                | TokenType::Keyword(KeywordType::Else)
+                | TokenType::Keyword(KeywordType::As)
+                | TokenType::Keyword(KeywordType::From)
+                | TokenType::Keyword(KeywordType::For)
+        )
+    }
+
+    pub fn is_simple_stmt(&self) -> bool {
+        self.is_start_of_expr()
+            || matches!(
+                self.kind,
+                TokenType::Keyword(
+                    KeywordType::Del
+                        | KeywordType::Pass
+                        | KeywordType::Import
+                        | KeywordType::Global
+                        | KeywordType::NonLocal
+                        | KeywordType::Assert
+                        | KeywordType::Break
+                        | KeywordType::Continue
+                        | KeywordType::Return
+                        | KeywordType::Raise
+                        | KeywordType::Yield
+                ) 
+                // Here we treat SemiColon as simple statement just in case we encounter something
+                // like this while parsing:
+                // def t(): ;
+                // Then, in `parse_simple_stmts` we can generate a appropriate error message.
+                | TokenType::SemiColon
+            )
     }
 }

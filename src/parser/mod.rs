@@ -221,7 +221,7 @@ impl Parser {
         }
 
         while self.tokens.get(*index).map_or(false, |token| {
-            !(helpers::is_token_end_of_expr(token) || token.is_assign() || token.is_augassign())
+            !(token.is_end_of_expr() || token.is_assign() || token.is_augassign())
         }) {
             token = self.tokens.get(*index).unwrap();
 
@@ -277,7 +277,7 @@ impl Parser {
 
                 let next_token = self.tokens.get(*index).unwrap();
                 // This wont work if the rhs is another expression
-                if !helpers::is_token_start_of_expr(next_token) {
+                if !next_token.is_start_of_expr() {
                     errors.push(PythonError {
                         error: PythonErrorType::Syntax,
                         msg: format!("SyntaxError: missing rhs in {:?} operation", op),
@@ -461,28 +461,42 @@ impl Parser {
         (func, if errors.is_empty() { None } else { Some(errors) })
     }
 
-    // TODO: add suport for simple stmts
     fn parse_block(&self, index: &mut usize) -> (Block, Option<Vec<PythonError>>) {
         let mut errors = Vec::new();
 
-        let mut token = self.tokens.get(*index).unwrap();
-        if !matches!(token.kind, TokenType::NewLine) {
-            errors.push(PythonError {
-                error: PythonErrorType::Indentation,
-                msg: format!("SyntaxError: expecting 'NEWLINE' got {:?}", token.kind),
-                span: token.span,
-            });
+        let token = self.tokens.get(*index).unwrap();
+
+        if token.is_simple_stmt() {
+            let (simple_stmts, span, simple_stmts_errors) = self.parse_simple_stmts(index);
+            return (
+                Block {
+                    stmts: simple_stmts,
+                    span: Span {
+                        row_start: token.span.row_start,
+                        column_start: token.span.column_start,
+                        ..span
+                    },
+                },
+                simple_stmts_errors,
+            );
         }
-        *index += 1;
-        token = self.tokens.get(*index).unwrap();
-        if !matches!(token.kind, TokenType::Indent) {
+
+        if !matches!(
+            (
+                self.tokens.get(*index).map(|token| &token.kind),
+                self.tokens.get(*index + 1).map(|token| &token.kind)
+            ),
+            (Some(TokenType::NewLine), Some(TokenType::Indent))
+        ) {
             errors.push(PythonError {
                 error: PythonErrorType::Indentation,
                 msg: "Expected an indented block after function definition".to_string(),
                 span: token.span,
             });
+        } else {
+            // consume "NewLine" and "Indent" token
+            *index += 2;
         }
-        *index += 1;
 
         let mut block = Block::new();
         (block.span.column_start, block.span.row_start) = self
@@ -1011,7 +1025,7 @@ impl Parser {
         loop {
             let mut token = self.tokens.get(*index).unwrap();
 
-            let expr_span = if helpers::is_token_start_of_expr(token) {
+            let expr_span = if token.is_start_of_expr() {
                 let (expr, expr_errors) = self.pratt_parsing(index, 0, allowed_expr);
                 if let Some(expr_errors) = expr_errors {
                     errors.extend(expr_errors);
@@ -1032,7 +1046,7 @@ impl Parser {
                 // Consume ,
                 *index += 1;
                 tuple_span.column_end = token.span.column_end;
-            } else if !helpers::is_token_start_of_expr(token) {
+            } else if !token.is_start_of_expr() {
                 break;
             } else {
                 errors.push(PythonError {
@@ -1647,7 +1661,7 @@ impl Parser {
         if token.kind == TokenType::OpenParenthesis {
             // Consume (
             *index += 1;
-            if self.tokens.get(*index).map_or(false, helpers::is_token_start_of_expr) {
+            if self.tokens.get(*index).map_or(false, |token| token.is_start_of_expr()) {
                 let (base_classes, base_classes_errors) = self.parse_base_classes(index);
                 class.base_classes = base_classes;
 
@@ -2256,7 +2270,7 @@ impl Parser {
         return_stmt.span.column_end = token.span.column_end;
         return_stmt.span.row_end = token.span.row_end;
 
-        if self.tokens.get(*index).map_or(false, helpers::is_token_start_of_expr) {
+        if self.tokens.get(*index).map_or(false, |token| token.is_start_of_expr()) {
             let (expr, expr_errors) = self.parse_expression(index, ParseExprBitflags::all());
             if let Some(expr_errors) = expr_errors {
                 errors.extend(expr_errors);
@@ -2289,7 +2303,7 @@ impl Parser {
             return (Expression::YieldFrom(Box::new(rhs), yield_span), rhs_errors);
         }
 
-        if helpers::is_token_start_of_expr(token) {
+        if token.is_start_of_expr() {
             let (rhs, rhs_errors) = self.parse_expression(index, ParseExprBitflags::all());
             yield_span = Span {
                 row_start: yield_span.row_start,
@@ -2460,7 +2474,7 @@ impl Parser {
                 );
             }
 
-            let rhs = if !helpers::is_token_end_of_expr(token) {
+            let rhs = if !token.is_end_of_expr() {
                 // consume assign token
                 *index += 1;
                 let (rhs, rhs_errors) = self.parse_expression(index, allowed_expr_in_rhs);
@@ -2532,7 +2546,7 @@ impl Parser {
         let mut span = Span::default();
 
         let token = self.tokens.get(*index).unwrap();
-        let exc = if helpers::is_token_start_of_expr(token) {
+        let exc = if token.is_start_of_expr() {
             let (expr, expr_errors) = self.parse_expression(index, ParseExprBitflags::all());
 
             if let Some(expr_errors) = expr_errors {
@@ -2619,7 +2633,7 @@ impl Parser {
         loop {
             let mut token = self.tokens.get(*index).unwrap();
 
-            let expr_span = if helpers::is_token_start_of_expr(token) {
+            let expr_span = if token.is_start_of_expr() {
                 let (expr, expr_errors) = self.parse_expression(index, allowed_expr_in_args);
                 if let Some(expr_errors) = expr_errors {
                     errors.extend(expr_errors);
@@ -2636,7 +2650,7 @@ impl Parser {
             if token.kind == TokenType::Comma {
                 // Consume ,
                 *index += 1;
-            } else if helpers::is_token_end_of_expr(token) {
+            } else if token.is_end_of_expr() {
                 break;
             } else {
                 errors.push(PythonError {
@@ -2691,7 +2705,7 @@ impl Parser {
         let allowed_expr_in_slice = ParseExprBitflags::all().remove_expression(ExprBitflag::ASSIGN);
 
         let token = self.tokens.get(*index).unwrap();
-        let lower = if helpers::is_token_start_of_expr(token) {
+        let lower = if token.is_start_of_expr() {
             let (expr, expr_errors) = self.parse_expression(index, allowed_expr_in_slice);
 
             if let Some(expr_errors) = expr_errors {
@@ -2716,7 +2730,7 @@ impl Parser {
             is_slice = true;
 
             let token = self.tokens.get(*index).unwrap();
-            if helpers::is_token_start_of_expr(token) {
+            if token.is_start_of_expr() {
                 let (upper_expr, upper_errors) = self.parse_expression(index, allowed_expr_in_slice);
                 column_end_span = upper_expr.span().column_end;
                 upper = Some(upper_expr);
@@ -2735,7 +2749,7 @@ impl Parser {
                 *index += 1;
 
                 let token = self.tokens.get(*index).unwrap();
-                if helpers::is_token_start_of_expr(token) {
+                if token.is_start_of_expr() {
                     let (step_expr, step_errors) = self.parse_expression(index, allowed_expr_in_slice);
                     column_end_span = step_expr.span().column_end;
                     step = Some(step_expr);
@@ -2963,5 +2977,63 @@ impl Parser {
             },
             expr_errors,
         )
+    }
+
+    fn parse_simple_stmts(&self, index: &mut usize) -> (Vec<Statement>, Span, Option<Vec<PythonError>>) {
+        let mut errors = vec![];
+        let mut stmts = vec![];
+        let mut span = Span::default();
+
+        while !matches!(
+            self.tokens.get(*index).unwrap().kind,
+            TokenType::NewLine | TokenType::Eof
+        ) {
+            let mut token = self.tokens.get(*index).unwrap();
+
+            if !token.is_simple_stmt() {
+                errors.push(PythonError {
+                    error: PythonErrorType::Syntax,
+                    msg: "SyntaxError: invalid syntax".to_string(),
+                    span: token.span,
+                });
+                break;
+            }
+
+            // if we encounter a ";" before parsing any simple statement that's an invalid syntax.
+            if token.kind == TokenType::SemiColon {
+                *index += 1;
+
+                errors.push(PythonError {
+                    error: PythonErrorType::Syntax,
+                    msg: "SyntaxError: invalid syntax, expecting an simple statement before the ';'".to_string(),
+                    span: token.span,
+                });
+
+                stmts.push(Statement::Invalid(token.span));
+
+                // in case a NewLine token is found, skip it, to avoid generating an useless error
+                // message.
+                if self.tokens.get(*index).unwrap().kind == TokenType::NewLine {
+                    *index += 1;
+                }
+
+                break;
+            }
+
+            let (stmt, stmt_errors) = self.parse_statements(index);
+            if let Some(stmt_errors) = stmt_errors {
+                errors.extend(stmt_errors);
+            }
+
+            span = stmt.span();
+            stmts.push(stmt);
+
+            token = self.tokens.get(*index).unwrap();
+            if token.kind == TokenType::SemiColon {
+                *index += 1;
+            }
+        }
+
+        (stmts, span, if errors.is_empty() { None } else { Some(errors) })
     }
 }

@@ -6657,4 +6657,137 @@ def test(x, /, *, y):
             }
         )
     }
+
+    #[test]
+    fn parse_function_with_simple_stmts() {
+        let parser = Parser::new(
+            "
+def t(): x = 1; return x
+",
+        );
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::FunctionDef(Function {
+                    name: "t".to_string(),
+                    parameters: vec![],
+                    block: Block {
+                        stmts: vec![
+                            Statement::Expression(Expression::Assign(Assign {
+                                lhs: Box::new(Expression::Id(
+                                    "x".to_string(),
+                                    Span {
+                                        row_start: 2,
+                                        row_end: 2,
+                                        column_start: 10,
+                                        column_end: 10,
+                                    },
+                                )),
+                                rhs: Box::new(Expression::Number(
+                                    "1".to_string(),
+                                    Span {
+                                        row_start: 2,
+                                        row_end: 2,
+                                        column_start: 14,
+                                        column_end: 14,
+                                    },
+                                )),
+                                span: Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 10,
+                                    column_end: 14,
+                                },
+                            })),
+                            Statement::Return(ReturnStmt {
+                                value: Some(Expression::Id(
+                                    "x".to_string(),
+                                    Span {
+                                        row_start: 2,
+                                        row_end: 2,
+                                        column_start: 24,
+                                        column_end: 24,
+                                    },
+                                ),),
+                                span: Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 17,
+                                    column_end: 24,
+                                },
+                            })
+                        ],
+                        span: Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 10,
+                            column_end: 24,
+                        },
+                    },
+                    decorators: vec![],
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 1,
+                        column_end: 24,
+                    },
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_invalid_function_with_simple_stmts() {
+        // FIXME: the `parse_simple_stmts` function is creating the AST for the "while" statement,
+        // when it should be creating an invalid AST node
+        let parser = Parser::new(
+            "
+def t(): x = 1; while x > 1: x -= 1
+",
+        );
+        let (_, errors) = parser.parse();
+
+        assert!(errors.is_some());
+        assert_eq!(
+            errors,
+            Some(vec![PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: invalid syntax".to_string(),
+                span: Span {
+                    row_start: 2,
+                    row_end: 2,
+                    column_start: 17,
+                    column_end: 21,
+                },
+            },])
+        )
+    }
+
+    #[test]
+    fn parse_invalid_function_with_simple_stmts2() {
+        let parser = Parser::new(
+            "
+def t(): ;
+",
+        );
+        let (_, errors) = parser.parse();
+
+        assert!(errors.is_some());
+        assert_eq!(
+            errors,
+            Some(vec![PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: invalid syntax, expecting an simple statement before the ';'".to_string(),
+                span: Span {
+                    row_start: 2,
+                    row_end: 2,
+                    column_start: 10,
+                    column_end: 10,
+                },
+            },])
+        )
+    }
 }
