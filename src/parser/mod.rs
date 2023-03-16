@@ -413,9 +413,13 @@ impl Parser {
         (function, if errors.is_empty() { None } else { Some(errors) })
     }
 
-    fn parse_function_with_decorator(&self, index: &mut usize) -> (Function, PythonErrors) {
-        let mut decorators = vec![];
+    fn parse_class_or_function_with_decorator(
+        &self,
+        index: &mut usize,
+        initital_span: Span,
+    ) -> (Statement, PythonErrors) {
         let mut errors = vec![];
+        let mut decorators = vec![];
 
         loop {
             // FIXME: specify correct expression allowed in decorators
@@ -436,25 +440,44 @@ impl Parser {
         }
 
         let token = self.tokens.get(*index).unwrap();
-        if token.kind != TokenType::Keyword(KeywordType::Def) {
+        if !matches!(token.kind, TokenType::Keyword(KeywordType::Def | KeywordType::Class)) {
             errors.push(PythonError {
                 error: PythonErrorType::Syntax,
-                msg: "SyntaxError: expected function declaration after decorator".to_string(),
+                msg: "SyntaxError: expecting a function or class declaration after decorator".to_string(),
                 span: token.span,
             });
         } else {
-            // consume "def"
+            // consume "def" or "class"
             *index += 1;
         }
 
-        let (mut func, func_errors) = self.parse_function(index);
-        func.decorators = decorators;
+        let class_or_func = if token.kind == TokenType::Keyword(KeywordType::Def) {
+            let (mut func, func_errors) = self.parse_function(index);
+            func.decorators = decorators;
+            func.span.row_start = initital_span.row_start;
+            func.span.column_start = initital_span.column_start;
 
-        if let Some(func_errors) = func_errors {
-            errors.extend(func_errors);
-        }
+            if let Some(func_errors) = func_errors {
+                errors.extend(func_errors);
+            }
 
-        (func, if errors.is_empty() { None } else { Some(errors) })
+            Statement::FunctionDef(func)
+        } else if token.kind == TokenType::Keyword(KeywordType::Class) {
+            let (mut class, func_errors) = self.parse_class(index);
+            class.decorators = decorators;
+            class.span.row_start = initital_span.row_start;
+            class.span.column_start = initital_span.column_start;
+
+            if let Some(func_errors) = func_errors {
+                errors.extend(func_errors);
+            }
+
+            Statement::Class(class)
+        } else {
+            Statement::Invalid(token.span)
+        };
+
+        (class_or_func, if errors.is_empty() { None } else { Some(errors) })
     }
 
     fn parse_block(&self, index: &mut usize) -> (Block, PythonErrors) {
@@ -538,13 +561,7 @@ impl Parser {
 
                 (Statement::FunctionDef(func), func_errors)
             }
-            TokenType::Operator(OperatorType::At) => {
-                let (mut func, func_errors) = self.parse_function_with_decorator(index);
-                func.span.row_start = token.span.row_start;
-                func.span.column_start = token.span.column_start;
-
-                (Statement::FunctionDef(func), func_errors)
-            }
+            TokenType::Operator(OperatorType::At) => self.parse_class_or_function_with_decorator(index, token.span),
             TokenType::Keyword(KeywordType::If) => {
                 let (mut if_stmt, if_stmt_errors) = self.parse_if(index);
                 if_stmt.span.row_start = token.span.row_start;

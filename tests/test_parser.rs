@@ -3859,7 +3859,8 @@ else:
                         row_end: 3,
                         column_start: 1,
                         column_end: 12
-                    }
+                    },
+                    decorators: vec![]
                 })]
             }
         )
@@ -3939,7 +3940,8 @@ else:
                         row_end: 3,
                         column_start: 1,
                         column_end: 12
-                    }
+                    },
+                    decorators: vec![]
                 })]
             }
         )
@@ -6808,5 +6810,87 @@ def t(): ;
                 },
             }])
         );
+    }
+
+    #[test]
+    fn parse_class_with_decorators() {
+        let parser = Parser::new(
+            "
+@abc
+@abc.cde
+class Test:
+   ...
+",
+        );
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(dbg!(errors).is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Class(ClassStmt {
+                    name: "Test".to_string(),
+                    block: Block {
+                        stmts: vec![Statement::Expression(Expression::Ellipsis(Span {
+                            row_start: 5,
+                            row_end: 5,
+                            column_start: 4,
+                            column_end: 6,
+                        },),),],
+                        span: Span {
+                            row_start: 5,
+                            row_end: 5,
+                            column_start: 4,
+                            column_end: 6,
+                        },
+                    },
+                    base_classes: vec![],
+                    decorators: vec![
+                        Expression::Id(
+                            "abc".to_string(),
+                            Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 2,
+                                column_end: 4,
+                            },
+                        ),
+                        Expression::BinaryOp(
+                            Box::new(Expression::Id(
+                                "abc".to_string(),
+                                Span {
+                                    row_start: 3,
+                                    row_end: 3,
+                                    column_start: 2,
+                                    column_end: 4,
+                                },
+                            )),
+                            BinaryOperator::AttributeRef,
+                            Box::new(Expression::Id(
+                                "cde".to_string(),
+                                Span {
+                                    row_start: 3,
+                                    row_end: 3,
+                                    column_start: 6,
+                                    column_end: 8,
+                                },
+                            )),
+                            Span {
+                                row_start: 3,
+                                row_end: 3,
+                                column_start: 2,
+                                column_end: 8,
+                            },
+                        ),
+                    ],
+                    span: Span {
+                        row_start: 2,
+                        row_end: 5,
+                        column_start: 1,
+                        column_end: 6,
+                    },
+                })]
+            }
+        )
     }
 }

@@ -274,6 +274,7 @@ pub struct ClassStmt {
     pub name: String,
     pub block: Block,
     pub base_classes: Vec<Expression>,
+    pub decorators: Vec<Expression>,
     pub span: Span,
 }
 
