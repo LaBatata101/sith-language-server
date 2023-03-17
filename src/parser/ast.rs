@@ -22,6 +22,9 @@ pub enum Statement {
     Del(DelStmt),
     Global(GlobalStmt),
     NonLocal(NonLocalStmt),
+    AsyncFunctionDef(Function),
+    AsyncWith(WithStmt),
+    AsyncFor(ForStmt),
     Invalid(Span),
 
     #[default]
@@ -51,6 +54,9 @@ impl Statement {
             Statement::Assert(assert) => assert.span,
             Statement::Global(global) => global.span,
             Statement::NonLocal(nonlocal) => nonlocal.span,
+            Statement::AsyncFunctionDef(async_func) => async_func.span,
+            Statement::AsyncWith(async_with) => async_with.span,
+            Statement::AsyncFor(async_for) => async_for.span,
             Statement::None => Span::default(),
         }
     }

@@ -6824,7 +6824,7 @@ class Test:
         );
         let (parsed_file, errors) = parser.parse();
 
-        assert!(dbg!(errors).is_none());
+        assert!(errors.is_none());
         assert_eq!(
             parsed_file,
             ParsedFile {
@@ -6891,6 +6891,201 @@ class Test:
                     },
                 })]
             }
+        )
+    }
+
+    #[test]
+    fn parse_async_function() {
+        let parser = Parser::new(
+            "
+async def t():
+   ...
+",
+        );
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::AsyncFunctionDef(Function {
+                    name: "t".to_string(),
+                    parameters: vec![],
+                    block: Block {
+                        stmts: vec![Statement::Expression(Expression::Ellipsis(Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 4,
+                            column_end: 6,
+                        }))],
+                        span: Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 4,
+                            column_end: 6,
+                        },
+                    },
+                    decorators: vec![],
+                    span: Span {
+                        row_start: 2,
+                        row_end: 3,
+                        column_start: 1,
+                        column_end: 6,
+                    },
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_async_with() {
+        let parser = Parser::new(
+            "
+async with T():
+   ...
+",
+        );
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::AsyncWith(WithStmt {
+                    items: vec![WithItem {
+                        item: Expression::Call(FunctionCall {
+                            lhs: Box::new(Expression::Id(
+                                "T".to_string(),
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 12,
+                                    column_end: 12,
+                                },
+                            )),
+                            args: vec![],
+                            span: Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 12,
+                                column_end: 14,
+                            },
+                        }),
+                        target: None,
+                        span: Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 12,
+                            column_end: 14,
+                        },
+                    },],
+                    block: Block {
+                        stmts: vec![Statement::Expression(Expression::Ellipsis(Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 4,
+                            column_end: 6,
+                        }))],
+                        span: Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 4,
+                            column_end: 6,
+                        },
+                    },
+                    span: Span {
+                        row_start: 2,
+                        row_end: 3,
+                        column_start: 1,
+                        column_end: 6,
+                    },
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_async_for() {
+        let parser = Parser::new(
+            "
+async for i in l:
+   ...
+",
+        );
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::AsyncFor(ForStmt {
+                    target: Expression::Id(
+                        "i".to_string(),
+                        Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 11,
+                            column_end: 11,
+                        },
+                    ),
+                    iter: Expression::Id(
+                        "l".to_string(),
+                        Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 16,
+                            column_end: 16,
+                        },
+                    ),
+                    block: Block {
+                        stmts: vec![Statement::Expression(Expression::Ellipsis(Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 4,
+                            column_end: 6,
+                        }))],
+                        span: Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 4,
+                            column_end: 6,
+                        },
+                    },
+                    else_stmt: None,
+                    span: Span {
+                        row_start: 2,
+                        row_end: 3,
+                        column_start: 1,
+                        column_end: 6,
+                    },
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_invalid_async() {
+        let parser = Parser::new(
+            "
+async class Test:
+   ...
+",
+        );
+        let (_, errors) = parser.parse();
+
+        assert!(errors.is_some());
+        assert_eq!(
+            errors,
+            Some(vec![PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: Expected \"def\", \"with\" or \"for\" to follow \"async\"".to_string(),
+                span: Span {
+                    row_start: 2,
+                    row_end: 2,
+                    column_start: 1,
+                    column_end: 11,
+                },
+            }])
         )
     }
 }

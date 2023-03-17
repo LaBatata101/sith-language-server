@@ -663,6 +663,7 @@ impl Parser {
 
                 (Statement::NonLocal(nonlocal_stmt), nonlocal_stmt_errors)
             }
+            TokenType::Keyword(KeywordType::Async) => self.parse_async_stms(index, token.span),
             TokenType::Operator(OperatorType::ColonEqual) => {
                 self.skip_line(index);
                 (
@@ -3020,5 +3021,51 @@ impl Parser {
             },
             if errors.is_empty() { None } else { Some(errors) },
         )
+    }
+
+    fn parse_async_stms(&self, index: &mut usize, initital_span: Span) -> (Statement, PythonErrors) {
+        // FIXME: show error message when async is used with "with" or "for" outside of a function
+        let token = self.tokens.get(*index).unwrap();
+        match token.kind {
+            TokenType::Keyword(KeywordType::Def) => {
+                *index += 1;
+                let (mut func, errors) = self.parse_function(index);
+                func.span.row_start = initital_span.row_start;
+                func.span.column_start = initital_span.column_start;
+
+                (Statement::AsyncFunctionDef(func), errors)
+            }
+            TokenType::Keyword(KeywordType::With) => {
+                *index += 1;
+                let (mut with, errors) = self.parse_with(index);
+                with.span.row_start = initital_span.row_start;
+                with.span.column_start = initital_span.column_start;
+
+                (Statement::AsyncWith(with), errors)
+            }
+            TokenType::Keyword(KeywordType::For) => {
+                *index += 1;
+                let (mut for_stmt, errors) = self.parse_for_stmt(index);
+                for_stmt.span.row_start = initital_span.row_start;
+                for_stmt.span.column_start = initital_span.column_start;
+
+                (Statement::AsyncFor(for_stmt), errors)
+            }
+            _ => {
+                let span = Span {
+                    row_start: initital_span.row_start,
+                    column_start: initital_span.column_start,
+                    ..token.span
+                };
+                (
+                    Statement::Invalid(span),
+                    Some(vec![PythonError {
+                        error: PythonErrorType::Syntax,
+                        msg: "SyntaxError: Expected \"def\", \"with\" or \"for\" to follow \"async\"".to_string(),
+                        span,
+                    }]),
+                )
+            }
+        }
     }
 }
