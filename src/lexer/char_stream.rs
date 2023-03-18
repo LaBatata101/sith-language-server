@@ -31,7 +31,7 @@ impl<'a> CharStream<'a> {
         self.text.get(offset as usize).map(|&byte| byte as char)
     }
 
-    pub fn get_slice(&self, start: u32, end: u32) -> Option<&[u8]> {
+    pub fn get_slice(&self, start: u32, end: u32) -> Option<&'a [u8]> {
         self.text.get(start as usize..end as usize)
     }
 

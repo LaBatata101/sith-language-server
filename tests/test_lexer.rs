@@ -21,7 +21,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Id("test".to_string()),
+                    kind: TokenType::Id("test".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -39,7 +39,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "12".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "12".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -68,7 +68,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Id("test".to_string()),
+                    kind: TokenType::Id("test".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -95,7 +95,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "12".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "12".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -124,7 +124,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Id("test".to_string()),
+                    kind: TokenType::Id("test".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -142,7 +142,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "12".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "12".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -171,7 +171,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Id("test".to_string()),
+                    kind: TokenType::Id("test".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -189,7 +189,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -218,7 +218,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Id("test".to_string()),
+                    kind: TokenType::Id("test".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -236,7 +236,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -265,7 +265,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Id("test".to_string()),
+                    kind: TokenType::Id("test".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -283,7 +283,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -312,7 +312,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Id("test".to_string()),
+                    kind: TokenType::Id("test".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -330,7 +330,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -359,7 +359,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Id("test".to_string()),
+                    kind: TokenType::Id("test".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -377,7 +377,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -406,7 +406,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Id("test".to_string()),
+                    kind: TokenType::Id("test".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -424,7 +424,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -453,7 +453,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Id("test".to_string()),
+                    kind: TokenType::Id("test".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -471,7 +471,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -500,7 +500,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Id("test".to_string()),
+                    kind: TokenType::Id("test".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -518,7 +518,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -547,7 +547,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Id("test".to_string()),
+                    kind: TokenType::Id("test".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -565,7 +565,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -594,7 +594,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Id("test".to_string()),
+                    kind: TokenType::Id("test".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -612,7 +612,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -641,7 +641,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Id("test".to_string()),
+                    kind: TokenType::Id("test".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -659,7 +659,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -688,7 +688,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Id("test".to_string()),
+                    kind: TokenType::Id("test".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -706,7 +706,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -735,7 +735,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Id("test".to_string()),
+                    kind: TokenType::Id("test".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -753,7 +753,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -782,7 +782,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Id("test".to_string()),
+                    kind: TokenType::Id("test".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -800,7 +800,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -829,7 +829,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Id("test".to_string()),
+                    kind: TokenType::Id("test".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -847,7 +847,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -876,7 +876,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Id("test".to_string()),
+                    kind: TokenType::Id("test".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -894,7 +894,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -923,7 +923,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Id("test".to_string()),
+                    kind: TokenType::Id("test".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -941,7 +941,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -970,7 +970,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Id("test".to_string()),
+                    kind: TokenType::Id("test".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -988,7 +988,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -1017,7 +1017,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Id("test".to_string()),
+                    kind: TokenType::Id("test".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -1035,7 +1035,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -1073,7 +1073,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::Id("test".to_string()),
+                    kind: TokenType::Id("test".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -1102,7 +1102,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Id("test".to_string()),
+                    kind: TokenType::Id("test".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -1120,7 +1120,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -1150,7 +1150,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Id("matrix1".to_string()),
+                    kind: TokenType::Id("matrix1".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -1168,7 +1168,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::Id("matrix2".to_string()),
+                    kind: TokenType::Id("matrix2".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -1198,7 +1198,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Id("matrix1".to_string()),
+                    kind: TokenType::Id("matrix1".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -1216,7 +1216,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::Id("matrix2".to_string()),
+                    kind: TokenType::Id("matrix2".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -1246,7 +1246,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::String("Hello World!".to_string()),
+                    kind: TokenType::String("Hello World!".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -1276,7 +1276,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::String("\\\"Hello World❤️\\\"".to_string()),
+                    kind: TokenType::String("\\\"Hello World❤️\\\"".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -1307,7 +1307,7 @@ mod tests_lexer {
             errors.unwrap(),
             vec![PythonError {
                 error: PythonErrorType::Syntax,
-                msg: "SyntaxError: unterminated string literal".to_string(),
+                msg: "SyntaxError: unterminated string literal".into(),
                 span: Span {
                     row_start: 1,
                     row_end: 1,
@@ -1327,7 +1327,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::String("Hello World!".to_string()),
+                    kind: TokenType::String("Hello World!".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -1357,7 +1357,7 @@ mod tests_lexer {
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Id("s".to_string()),
+                    kind: TokenType::Id("s".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -1375,7 +1375,7 @@ mod tests_lexer {
                     }
                 },
                 Token {
-                    kind: TokenType::String("Hello World!".to_string()),
+                    kind: TokenType::String("Hello World!".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -1456,7 +1456,7 @@ else:
                     }
                 },
                 Token {
-                    kind: TokenType::Id("print".to_string()),
+                    kind: TokenType::Id("print".into()),
                     span: Span {
                         row_start: 2,
                         row_end: 2,
@@ -1594,7 +1594,7 @@ for i in range(len(l)):             # error: not indented
             errors.unwrap(),
             vec![PythonError {
                 error: PythonErrorType::Indentation,
-                msg: "IndentError: indent amount does not match previous indent".to_string(),
+                msg: "IndentError: indent amount does not match previous indent".into(),
                 span: Span {
                     row_start: 7,
                     row_end: 7,
@@ -1628,7 +1628,7 @@ for i in range(len(l)):             # error: not indented
                     }
                 },
                 Token {
-                    kind: TokenType::Id("test".to_string()),
+                    kind: TokenType::Id("test".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -1646,7 +1646,7 @@ for i in range(len(l)):             # error: not indented
                     }
                 },
                 Token {
-                    kind: TokenType::Id("x".to_string()),
+                    kind: TokenType::Id("x".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -1700,7 +1700,7 @@ for i in range(len(l)):             # error: not indented
                     }
                 },
                 Token {
-                    kind: TokenType::Id("x".to_string()),
+                    kind: TokenType::Id("x".into()),
                     span: Span {
                         row_start: 2,
                         row_end: 2,
@@ -2021,7 +2021,7 @@ World!\"",
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::String("Hello World!".to_string()),
+                    kind: TokenType::String("Hello World!".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 2,
@@ -2053,7 +2053,7 @@ World!\\\"\"",
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::String("\\\"Hello World!\\\"".to_string()),
+                    kind: TokenType::String("\\\"Hello World!\\\"".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 2,
@@ -2088,7 +2088,7 @@ World!\"",
             vec![
                 PythonError {
                     error: PythonErrorType::Syntax,
-                    msg: "SyntaxError: unterminated string literal".to_string(),
+                    msg: "SyntaxError: unterminated string literal".into(),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -2098,7 +2098,7 @@ World!\"",
                 },
                 PythonError {
                     error: PythonErrorType::Syntax,
-                    msg: "SyntaxError: unterminated string literal".to_string(),
+                    msg: "SyntaxError: unterminated string literal".into(),
                     span: Span {
                         row_start: 2,
                         row_end: 2,
@@ -2120,7 +2120,7 @@ World!\"",
             errors.unwrap(),
             vec![PythonError {
                 error: PythonErrorType::Syntax,
-                msg: "SyntaxError: unexpected characters after line continuation character".to_string(),
+                msg: "SyntaxError: unexpected characters after line continuation character".into(),
                 span: Span {
                     row_start: 1,
                     row_end: 1,
@@ -2139,7 +2139,7 @@ World!\"",
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Binary), "0b_1_1_0".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Binary), "0b_1_1_0".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -2168,7 +2168,7 @@ World!\"",
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Hex), "0xdeadbeef".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Hex), "0xdeadbeef".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -2197,7 +2197,7 @@ World!\"",
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Octal), "0o177".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Octal), "0o177".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -2226,7 +2226,7 @@ World!\"",
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Number(NumberType::Float, "3.14".to_string()),
+                    kind: TokenType::Number(NumberType::Float, "3.14".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -2255,7 +2255,7 @@ World!\"",
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Number(NumberType::Float, "3.".to_string()),
+                    kind: TokenType::Number(NumberType::Float, "3.".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -2284,7 +2284,7 @@ World!\"",
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Number(NumberType::Float, "1.001".to_string()),
+                    kind: TokenType::Number(NumberType::Float, "1.001".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -2314,7 +2314,7 @@ World!\"",
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Number(NumberType::Float, "1.001E-10".to_string()),
+                    kind: TokenType::Number(NumberType::Float, "1.001E-10".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -2343,7 +2343,7 @@ World!\"",
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Number(NumberType::Imaginary, ".001E-10j".to_string()),
+                    kind: TokenType::Number(NumberType::Imaginary, ".001E-10j".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -2374,7 +2374,7 @@ World!\"",
             errors.unwrap(),
             vec![PythonError {
                 error: PythonErrorType::Syntax,
-                msg: "SyntaxError: invalid float literal".to_string(),
+                msg: "SyntaxError: invalid float literal".into(),
                 span: Span {
                     row_start: 1,
                     row_end: 1,
@@ -2395,7 +2395,7 @@ World!\"",
             errors.unwrap(),
             vec![PythonError {
                 error: PythonErrorType::Syntax,
-                msg: "SyntaxError: invalid float literal".to_string(),
+                msg: "SyntaxError: invalid float literal".into(),
                 span: Span {
                     row_start: 1,
                     row_end: 1,
@@ -2416,7 +2416,7 @@ World!\"",
             errors.unwrap(),
             vec![PythonError {
                 error: PythonErrorType::Syntax,
-                msg: "SyntaxError: invalid imaginary literal".to_string(),
+                msg: "SyntaxError: invalid imaginary literal".into(),
                 span: Span {
                     row_start: 1,
                     row_end: 1,
@@ -2435,7 +2435,7 @@ World!\"",
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "10_000_000".to_string()),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "10_000_000".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -2465,7 +2465,7 @@ World!\"",
             errors.unwrap(),
             vec![PythonError {
                 error: PythonErrorType::Syntax,
-                msg: "SyntaxError: invalid decimal literal".to_string(),
+                msg: "SyntaxError: invalid decimal literal".into(),
                 span: Span {
                     row_start: 1,
                     row_end: 1,
@@ -2485,7 +2485,7 @@ World!\"",
             errors.unwrap(),
             vec![PythonError {
                 error: PythonErrorType::Syntax,
-                msg: "SyntaxError: invalid decimal literal".to_string(),
+                msg: "SyntaxError: invalid decimal literal".into(),
                 span: Span {
                     row_start: 1,
                     row_end: 1,
@@ -2505,7 +2505,7 @@ World!\"",
             errors.unwrap(),
             vec![PythonError {
                 error: PythonErrorType::Syntax,
-                msg: "SyntaxError: invalid decimal literal".to_string(),
+                msg: "SyntaxError: invalid decimal literal".into(),
                 span: Span {
                     row_start: 1,
                     row_end: 1,
@@ -2534,7 +2534,7 @@ Multiline text
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::String("Multiline text\n\\\nMultiline text\nMultiline text\n".to_string()),
+                    kind: TokenType::String("Multiline text\n\\\nMultiline text\nMultiline text\n".into()),
                     span: Span {
                         row_start: 2,
                         row_end: 6,
@@ -2587,7 +2587,7 @@ Multiline text
                     }
                 },
                 Token {
-                    kind: TokenType::String("Hello World".to_string()),
+                    kind: TokenType::String("Hello World".into()),
                     span: Span {
                         row_start: 2,
                         row_end: 3,
@@ -2636,7 +2636,7 @@ Multiline text
                     }
                 },
                 Token {
-                    kind: TokenType::String("Hello".to_string()),
+                    kind: TokenType::String("Hello".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -2654,7 +2654,7 @@ Multiline text
                     }
                 },
                 Token {
-                    kind: TokenType::Id("world".to_string()),
+                    kind: TokenType::Id("world".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 1,

@@ -1,6 +1,8 @@
 pub mod ast;
 mod helpers;
 
+use std::borrow::Cow;
+
 use crate::{
     error::{PythonError, PythonErrorType, PythonErrors},
     lexer::{
@@ -28,18 +30,14 @@ use self::{
     helpers::{BinaryOperationsBitflag, ExprBitflag, ParseExprBitflags, UnaryOperationsBitflag},
 };
 
-pub struct Parser {
-    tokens: Vec<Token>,
+pub struct Parser<'a> {
+    tokens: &'a [Token<'a>],
 }
 
-impl Parser {
-    pub fn new(text: &str) -> Self {
-        let mut lexer = Lexer::new(text);
+impl<'a> Parser<'a> {
+    pub fn new(lexer: &'a mut Lexer) -> Self {
         lexer.tokenize();
-
-        Self {
-            tokens: lexer.tokens().to_vec(),
-        }
+        Self { tokens: lexer.tokens() }
     }
 
     pub fn parse(&self) -> (ParsedFile, PythonErrors) {
@@ -144,15 +142,15 @@ impl Parser {
         let (mut lhs, lhs_errors) = match &token.kind {
             TokenType::Id(name) if allowed_expr.expressions.contains(ExprBitflag::ID) => {
                 *index += 1;
-                (Expression::Id(name.to_string(), token.span), None)
+                (Expression::Id(Cow::Borrowed(name), token.span), None)
             }
             TokenType::String(str) if allowed_expr.expressions.contains(ExprBitflag::STRING) => {
                 *index += 1;
-                (Expression::String(str.to_string(), token.span), None)
+                (Expression::String(Cow::Borrowed(str), token.span), None)
             }
             TokenType::Number(_, num) if allowed_expr.expressions.contains(ExprBitflag::NUMBER) => {
                 *index += 1;
-                (Expression::Number(num.to_string(), token.span), None)
+                (Expression::Number(Cow::Borrowed(num), token.span), None)
             }
             TokenType::Keyword(KeywordType::True) if allowed_expr.expressions.contains(ExprBitflag::BOOL) => {
                 *index += 1;
@@ -307,7 +305,7 @@ impl Parser {
         &self,
         index: &mut usize,
         operation: Operation,
-        lhs: Expression,
+        lhs: Expression<'a>,
     ) -> (Expression, PythonErrors) {
         *index += 1;
 
@@ -331,34 +329,24 @@ impl Parser {
 
     fn parse_function(&self, index: &mut usize) -> (Function, PythonErrors) {
         let mut errors = vec![];
+        let mut function = Function::default();
 
         let token = self.tokens.get(*index).unwrap();
-        let name = if let Token {
-            kind: TokenType::Id(name),
-            ..
-        } = token
-        {
-            name.to_string()
-        } else {
-            errors.push(PythonError {
-                error: PythonErrorType::Syntax,
-                msg: "SyntaxError: invalid function name".to_string(),
-                span: token.span,
-            });
+        match &token.kind {
+            TokenType::Id(name) => {
+                // Consume function identifier
+                *index += 1;
+                function.name = Cow::Borrowed(name);
+            }
+            _ => {
+                errors.push(PythonError {
+                    error: PythonErrorType::Syntax,
+                    msg: "SyntaxError: invalid function name".to_string(),
+                    span: token.span,
+                });
+            }
+        }
 
-            String::from("")
-        };
-
-        let mut function = Function {
-            name,
-            span: Span::default(),
-            block: Block::default(),
-            parameters: vec![],
-            decorators: vec![],
-        };
-
-        // Consume function identifier keyword
-        *index += 1;
         let mut token = self.tokens.get(*index).unwrap();
         if token.kind != TokenType::OpenParenthesis {
             errors.push(PythonError {
@@ -1137,7 +1125,7 @@ impl Parser {
     fn parse_dict_expression(
         &self,
         index: &mut usize,
-        lhs: DictItemType,
+        lhs: DictItemType<'a>,
         brace_span: Span,
     ) -> (Expression, PythonErrors) {
         let mut errors = Vec::new();
@@ -1343,7 +1331,7 @@ impl Parser {
     }
 
     /// This function assumes that `lhs` is already parsed.
-    fn parse_if_else_expr(&self, index: &mut usize, lhs: Expression) -> (Expression, PythonErrors) {
+    fn parse_if_else_expr(&self, index: &mut usize, lhs: Expression<'a>) -> (Expression, PythonErrors) {
         let mut errors = Vec::new();
         // consume "if"
         *index += 1;
@@ -1399,7 +1387,7 @@ impl Parser {
             // FIXME: "/" cannot be the first parameter
             match &token.kind {
                 TokenType::Id(name) => {
-                    func_parameter.name = name.to_string();
+                    func_parameter.name = Cow::Borrowed(name);
                     func_parameter.span = token.span;
 
                     // Consume Id
@@ -1431,7 +1419,7 @@ impl Parser {
                         TokenType::Id(name) => {
                             // Consume Id
                             *index += 1;
-                            func_parameter.name = name.to_string();
+                            func_parameter.name = Cow::Borrowed(name);
                             func_parameter.star_parameter_type = Some(StarParameterType::Kargs);
                             func_parameter.span = next_token.span;
                             func_parameter.is_kw_only = is_kw_only;
@@ -1456,7 +1444,7 @@ impl Parser {
                         TokenType::Id(name) => {
                             // Consume Id
                             *index += 1;
-                            func_parameter.name = name.to_string();
+                            func_parameter.name = Cow::Borrowed(name);
                             func_parameter.star_parameter_type = Some(StarParameterType::KWargs);
                             func_parameter.span = next_token.span;
                             func_parameter.is_kw_only = is_kw_only;
@@ -1585,7 +1573,7 @@ impl Parser {
         match &token.kind {
             TokenType::Id(name) => {
                 *index += 1;
-                class.name = name.to_string();
+                class.name = Cow::Borrowed(name);
             }
             _ => errors.push(PythonError {
                 error: PythonErrorType::Syntax,
@@ -1734,7 +1722,7 @@ impl Parser {
         let mut has_dots = false;
         if let TokenType::Dot | TokenType::Ellipsis = token.kind {
             has_dots = true;
-            let mut dots = vec![];
+            let mut dots: Cow<str> = Cow::default();
 
             while let Token {
                 kind: TokenType::Dot | TokenType::Ellipsis,
@@ -1742,9 +1730,9 @@ impl Parser {
             } = token
             {
                 if token.kind == TokenType::Dot {
-                    dots.push(".".to_string());
+                    dots.to_mut().push('.');
                 } else {
-                    dots.extend_from_slice(&[".".to_string(), ".".to_string(), ".".to_string()]);
+                    dots.to_mut().push_str("...");
                 }
 
                 *index += 1;
@@ -1752,7 +1740,7 @@ impl Parser {
             }
 
             from_import_stmt.module.push(ImportModule {
-                name: dots,
+                name: vec![dots],
                 alias: None,
             });
         }
@@ -1790,7 +1778,7 @@ impl Parser {
             // Consume *
             *index += 1;
             from_import_stmt.targets.push(ImportModule {
-                name: vec!["*".to_string()],
+                name: vec![Cow::Borrowed("*")],
                 alias: None,
             });
             from_import_stmt.span.column_end = token.span.column_end;
@@ -1815,7 +1803,7 @@ impl Parser {
 
                 from_import_stmt.span.row_end = token.span.row_end;
                 from_import_stmt.span.column_end = token.span.column_end;
-                target.name = vec![target_name.to_string()];
+                target.name = vec![Cow::Borrowed(target_name)];
             } else {
                 errors.push(PythonError {
                     error: PythonErrorType::Syntax,
@@ -1880,9 +1868,9 @@ impl Parser {
     }
 
     // TODO: refactor this
-    fn parse_import_module_name(&self, index: &mut usize) -> (Vec<String>, Span, PythonErrors) {
+    fn parse_import_module_name(&self, index: &mut usize) -> (Vec<Cow<str>>, Span, PythonErrors) {
         let mut errors = Vec::new();
-        let mut module_name = vec![];
+        let mut module_name: Vec<Cow<str>> = vec![];
         let mut span_end = Span::default();
 
         loop {
@@ -1893,7 +1881,7 @@ impl Parser {
 
                 span_end.row_end = token.span.row_end;
                 span_end.column_end = token.span.column_end;
-                module_name.push(target.to_string());
+                module_name.push(Cow::Borrowed(target));
             } else {
                 errors.push(PythonError {
                     error: PythonErrorType::Syntax,
@@ -2309,7 +2297,7 @@ impl Parser {
         &self,
         index: &mut usize,
         token: &Token,
-        lhs: Expression,
+        lhs: Expression<'a>,
         allowed_expr_in_rhs: ParseExprBitflags,
     ) -> (Expression, PythonErrors) {
         let mut errors = Vec::new();
@@ -2517,7 +2505,7 @@ impl Parser {
         )
     }
 
-    fn parse_function_call(&self, index: &mut usize, lhs: Expression) -> (Expression, PythonErrors) {
+    fn parse_function_call(&self, index: &mut usize, lhs: Expression<'a>) -> (Expression, PythonErrors) {
         let mut errors = Vec::new();
         let mut args = Vec::new();
         let allowed_expr_in_args = ParseExprBitflags::all().remove_expression(ExprBitflag::TUPLE_NO_PARENS);
@@ -2589,7 +2577,7 @@ impl Parser {
         )
     }
 
-    fn parse_subscript(&self, index: &mut usize, lhs: Expression) -> (Expression, PythonErrors) {
+    fn parse_subscript(&self, index: &mut usize, lhs: Expression<'a>) -> (Expression, PythonErrors) {
         // FIXME: handle more syntax errors
         let mut errors = Vec::new();
         let mut is_slice = false;
@@ -2775,7 +2763,7 @@ impl Parser {
     fn parse_list_comprehension(
         &self,
         index: &mut usize,
-        comprehension_target: Expression,
+        comprehension_target: Expression<'a>,
     ) -> (Expression, PythonErrors) {
         let mut errors = Vec::new();
 
@@ -2818,7 +2806,7 @@ impl Parser {
     fn parse_generator_comprehension(
         &self,
         index: &mut usize,
-        comprehension_target: Expression,
+        comprehension_target: Expression<'a>,
     ) -> (Expression, PythonErrors) {
         let mut errors = Vec::new();
 

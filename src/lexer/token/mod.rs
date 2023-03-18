@@ -7,12 +7,12 @@ use self::types::{KeywordType, OperatorType, TokenType};
 use super::span::Span;
 
 #[derive(Debug, Eq, PartialEq, Clone)]
-pub struct Token {
-    pub kind: TokenType,
+pub struct Token<'a> {
+    pub kind: TokenType<'a>,
     pub span: Span,
 }
 
-impl Token {
+impl<'a> Token<'a> {
     pub fn is_augassign(&self) -> bool {
         matches!(
             self.kind,

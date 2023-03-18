@@ -1,5 +1,7 @@
+use std::borrow::Cow;
+
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum TokenType {
+pub enum TokenType<'a> {
     CloseBrace,
     CloseBrackets,
     CloseParenthesis,
@@ -9,7 +11,7 @@ pub enum TokenType {
     Dot,
     Eof,
     Ellipsis,
-    Id(String),
+    Id(Cow<'a, str>),
     Indent,
     Invalid(char),
     Keyword(KeywordType),
@@ -22,7 +24,7 @@ pub enum TokenType {
     SemiColon,
     /// These are only keywords under specific contexts
     SoftKeyword(SoftKeywordType),
-    String(String),
+    String(Cow<'a, str>),
     RightArrow,
 }
 

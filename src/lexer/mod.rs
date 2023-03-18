@@ -20,7 +20,7 @@ use self::{
 
 pub struct Lexer<'a> {
     cs: CharStream<'a>,
-    tokens: Vec<Token>,
+    tokens: Vec<Token<'a>>,
     indent_stack: Vec<usize>,
 }
 
@@ -305,7 +305,7 @@ impl<'a> Lexer<'a> {
         Ok(())
     }
 
-    fn lex_single_char(&mut self, token: TokenType) {
+    fn lex_single_char(&mut self, token: TokenType<'a>) {
         let start = self.cs.pos();
         self.cs.advance_by(1);
         let end = self.cs.pos();
@@ -374,7 +374,7 @@ impl<'a> Lexer<'a> {
             b"with" => TokenType::Keyword(KeywordType::With),
             b"yield" => TokenType::Keyword(KeywordType::Yield),
             b"_" => TokenType::SoftKeyword(SoftKeywordType::Underscore),
-            _ => TokenType::Id(String::from_utf8_lossy(str).into()),
+            _ => TokenType::Id(String::from_utf8_lossy(str)),
         };
 
         self.tokens.push(Token {
@@ -398,7 +398,6 @@ impl<'a> Lexer<'a> {
     //https://docs.python.org/3/reference/lexical_analysis.html#string-and-bytes-literals
     fn lex_string(&mut self) -> Option<Vec<PythonError>> {
         let (string, str_span, errors) = self.process_string();
-        let string = string.into();
 
         self.tokens.push(Token {
             kind: TokenType::String(string),
@@ -410,12 +409,12 @@ impl<'a> Lexer<'a> {
 
     fn lex_string_within_parens(&mut self) -> Option<Vec<PythonError>> {
         let mut errors = Vec::new();
-        let mut out_string = String::new();
+        let mut out_string: Cow<str> = Cow::default();
 
         let start = self.cs.pos();
         while self.cs.current_char().map_or(false, |char| matches!(char, '"' | '\'')) {
             let (string, _, str_errors) = self.process_string();
-            out_string.push_str(&string);
+            out_string.to_mut().push_str(&string);
 
             if let Some(str_errors) = str_errors {
                 errors.extend(str_errors);
@@ -442,7 +441,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn process_string(&mut self) -> (Cow<str>, Span, Option<Vec<PythonError>>) {
+    fn process_string(&mut self) -> (Cow<'a, str>, Span, Option<Vec<PythonError>>) {
         let mut errors: Vec<PythonError> = vec![];
 
         let mut has_explicit_line_join = false;

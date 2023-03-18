@@ -1,37 +1,39 @@
+use std::borrow::Cow;
+
 use crate::lexer::span::Span;
 
 #[derive(Debug, PartialEq, Eq, Default)]
-pub enum Statement {
-    Assert(AssertStmt),
-    Expression(Expression),
-    Block(Block),
-    FunctionDef(Function),
-    If(IfStmt),
+pub enum Statement<'a> {
+    Assert(AssertStmt<'a>),
+    Expression(Expression<'a>),
+    Block(Block<'a>),
+    FunctionDef(Function<'a>),
+    If(IfStmt<'a>),
     Pass(Span),
-    While(While),
+    While(While<'a>),
     Break(Span),
     Continue(Span),
-    Class(ClassStmt),
-    Import(ImportStmt),
-    FromImport(FromImportStmt),
-    With(WithStmt),
-    Try(TryStmt),
-    Return(ReturnStmt),
-    Raise(RaiseStmt),
-    For(ForStmt),
-    Del(DelStmt),
-    Global(GlobalStmt),
-    NonLocal(NonLocalStmt),
-    AsyncFunctionDef(Function),
-    AsyncWith(WithStmt),
-    AsyncFor(ForStmt),
+    Class(ClassStmt<'a>),
+    Import(ImportStmt<'a>),
+    FromImport(FromImportStmt<'a>),
+    With(WithStmt<'a>),
+    Try(TryStmt<'a>),
+    Return(ReturnStmt<'a>),
+    Raise(RaiseStmt<'a>),
+    For(ForStmt<'a>),
+    Del(DelStmt<'a>),
+    Global(GlobalStmt<'a>),
+    NonLocal(NonLocalStmt<'a>),
+    AsyncFunctionDef(Function<'a>),
+    AsyncWith(WithStmt<'a>),
+    AsyncFor(ForStmt<'a>),
     Invalid(Span),
 
     #[default]
     None,
 }
 
-impl Statement {
+impl<'a> Statement<'a> {
     pub fn span(&self) -> Span {
         match self {
             Statement::Pass(span) | Statement::Break(span) | Statement::Continue(span) | Statement::Invalid(span) => {
@@ -63,38 +65,38 @@ impl Statement {
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
-pub enum Expression {
-    Assign(Assign),
-    AugAssing(AugAssign),
-    Await(Box<Expression>, Span),
-    String(String, Span),
-    Number(String, Span),
+pub enum Expression<'a> {
+    Assign(Assign<'a>),
+    AugAssing(AugAssign<'a>),
+    Await(Box<Expression<'a>>, Span),
+    String(Cow<'a, str>, Span),
+    Number(Cow<'a, str>, Span),
     Bool(bool, Span),
-    BinaryOp(Box<Expression>, BinaryOperator, Box<Expression>, Span),
-    UnaryOp(Box<Expression>, UnaryOperator, Span),
-    Id(String, Span),
-    Call(FunctionCall),
-    Subscript(Subscript),
-    List(Vec<Expression>, Span),
-    ListComp(ListComp),
-    GeneratorComp(GeneratorComp),
-    Dict(Vec<DictItemType>, Span),
-    Set(Vec<Expression>, Span),
-    Tuple(Vec<Expression>, Span),
-    IfElse(IfElseExpr),
-    Lambda(LambdaExpr),
+    BinaryOp(Box<Expression<'a>>, BinaryOperator, Box<Expression<'a>>, Span),
+    UnaryOp(Box<Expression<'a>>, UnaryOperator, Span),
+    Id(Cow<'a, str>, Span),
+    Call(FunctionCall<'a>),
+    Subscript(Subscript<'a>),
+    List(Vec<Expression<'a>>, Span),
+    ListComp(ListComp<'a>),
+    GeneratorComp(GeneratorComp<'a>),
+    Dict(Vec<DictItemType<'a>>, Span),
+    Set(Vec<Expression<'a>>, Span),
+    Tuple(Vec<Expression<'a>>, Span),
+    IfElse(IfElseExpr<'a>),
+    Lambda(LambdaExpr<'a>),
     Ellipsis(Span),
     Invalid(Span),
-    Yield(Option<Box<Expression>>, Span),
-    YieldFrom(Box<Expression>, Span),
+    Yield(Option<Box<Expression<'a>>>, Span),
+    YieldFrom(Box<Expression<'a>>, Span),
+    AnnAssign(AnnAssign<'a>),
     None(Span),
 
     #[default]
     Empty,
-    AnnAssign(AnnAssign),
 }
 
-impl Expression {
+impl<'a> Expression<'a> {
     pub fn span(&self) -> Span {
         match self {
             Expression::Assign(assign) => assign.span,
@@ -235,9 +237,9 @@ impl Operation {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum DictItemType {
-    KeyValue(Expression, Expression),
-    Unpack(Expression),
+pub enum DictItemType<'a> {
+    KeyValue(Expression<'a>, Expression<'a>),
+    Unpack(Expression<'a>),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -254,77 +256,72 @@ pub enum ExceptBlockKind {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct LambdaExpr {
-    pub parameters: Vec<FuncParameter>,
-    pub expression: Box<Expression>,
+pub struct LambdaExpr<'a> {
+    pub parameters: Vec<FuncParameter<'a>>,
+    pub expression: Box<Expression<'a>>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
-pub struct FuncParameter {
-    pub name: String,
-    pub default_value: Option<Expression>,
+pub struct FuncParameter<'a> {
+    pub name: Cow<'a, str>,
+    pub default_value: Option<Expression<'a>>,
     pub star_parameter_type: Option<StarParameterType>,
     pub is_kw_only: bool,
     pub is_pos_only: bool,
     pub span: Span,
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct CallExpr {
-    pub name: String,
-}
-
 #[derive(Debug, PartialEq, Eq, Default)]
-pub struct ClassStmt {
-    pub name: String,
-    pub block: Block,
-    pub base_classes: Vec<Expression>,
-    pub decorators: Vec<Expression>,
+pub struct ClassStmt<'a> {
+    pub name: Cow<'a, str>,
+    pub block: Block<'a>,
+    pub base_classes: Vec<Expression<'a>>,
+    pub decorators: Vec<Expression<'a>>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct IfStmt {
-    pub condition: Expression,
-    pub block: Block,
-    pub elif_stms: Vec<ElIfStmt>,
-    pub else_stmt: Option<ElseStmt>,
+pub struct IfStmt<'a> {
+    pub condition: Expression<'a>,
+    pub block: Block<'a>,
+    pub elif_stms: Vec<ElIfStmt<'a>>,
+    pub else_stmt: Option<ElseStmt<'a>>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct ElIfStmt {
-    pub condition: Expression,
-    pub block: Block,
+pub struct ElIfStmt<'a> {
+    pub condition: Expression<'a>,
+    pub block: Block<'a>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct ElseStmt {
-    pub block: Block,
+pub struct ElseStmt<'a> {
+    pub block: Block<'a>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct While {
-    pub condition: Expression,
-    pub else_stmt: Option<ElseStmt>,
-    pub block: Block,
+pub struct While<'a> {
+    pub condition: Expression<'a>,
+    pub else_stmt: Option<ElseStmt<'a>>,
+    pub block: Block<'a>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct Assign {
-    pub lhs: Box<Expression>,
-    pub rhs: Box<Expression>,
+pub struct Assign<'a> {
+    pub lhs: Box<Expression<'a>>,
+    pub rhs: Box<Expression<'a>>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct AugAssign {
-    pub lhs: Box<Expression>,
-    pub rhs: Box<Expression>,
+pub struct AugAssign<'a> {
+    pub lhs: Box<Expression<'a>>,
+    pub rhs: Box<Expression<'a>>,
     pub kind: AugAssignType,
     pub span: Span,
 }
@@ -348,29 +345,29 @@ pub enum AugAssignType {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct AnnAssign {
-    pub lhs: Box<Expression>,
-    pub rhs: Option<Box<Expression>>,
-    pub typehint: Box<Expression>,
-    pub span: Span,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct Function {
-    pub name: String,
-    pub parameters: Vec<FuncParameter>,
-    pub block: Block,
-    pub decorators: Vec<Expression>,
+pub struct AnnAssign<'a> {
+    pub lhs: Box<Expression<'a>>,
+    pub rhs: Option<Box<Expression<'a>>>,
+    pub typehint: Box<Expression<'a>>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
-pub struct Block {
-    pub stmts: Vec<Statement>,
+pub struct Function<'a> {
+    pub name: Cow<'a, str>,
+    pub parameters: Vec<FuncParameter<'a>>,
+    pub block: Block<'a>,
+    pub decorators: Vec<Expression<'a>>,
     pub span: Span,
 }
 
-impl Block {
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct Block<'a> {
+    pub stmts: Vec<Statement<'a>>,
+    pub span: Span,
+}
+
+impl<'a> Block<'a> {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
@@ -381,11 +378,11 @@ impl Block {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct ParsedFile {
-    pub stmts: Vec<Statement>,
+pub struct ParsedFile<'a> {
+    pub stmts: Vec<Statement<'a>>,
 }
 
-impl ParsedFile {
+impl<'a> ParsedFile<'a> {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self { stmts: Vec::new() }
@@ -393,169 +390,169 @@ impl ParsedFile {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct IfElseExpr {
-    pub lhs: Box<Expression>,
-    pub rhs: Box<Expression>,
-    pub condition: Box<Expression>,
+pub struct IfElseExpr<'a> {
+    pub lhs: Box<Expression<'a>>,
+    pub rhs: Box<Expression<'a>>,
+    pub condition: Box<Expression<'a>>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
-pub struct ImportStmt {
-    pub modules: Vec<ImportModule>,
+pub struct ImportStmt<'a> {
+    pub modules: Vec<ImportModule<'a>>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
-pub struct ImportModule {
+pub struct ImportModule<'a> {
     /// Store the module name and it's parents, e.g., "module1.module2.class.function" will become
     /// vec!["module1", "module2", "class", "function"]
-    pub name: Vec<String>,
+    pub name: Vec<Cow<'a, str>>,
     pub alias: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
-pub struct FromImportStmt {
-    pub module: Vec<ImportModule>,
-    pub targets: Vec<ImportModule>,
+pub struct FromImportStmt<'a> {
+    pub module: Vec<ImportModule<'a>>,
+    pub targets: Vec<ImportModule<'a>>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
-pub struct WithStmt {
-    pub items: Vec<WithItem>,
-    pub block: Block,
+pub struct WithStmt<'a> {
+    pub items: Vec<WithItem<'a>>,
+    pub block: Block<'a>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct WithItem {
-    pub item: Expression,
-    pub target: Option<Expression>,
+pub struct WithItem<'a> {
+    pub item: Expression<'a>,
+    pub target: Option<Expression<'a>>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
-pub struct TryStmt {
-    pub block: Block,
-    pub finally_block: Option<FinallyBlock>,
-    pub except_blocks: Vec<ExceptBlock>,
-    pub else_stmt: Option<ElseStmt>,
+pub struct TryStmt<'a> {
+    pub block: Block<'a>,
+    pub finally_block: Option<FinallyBlock<'a>>,
+    pub except_blocks: Vec<ExceptBlock<'a>>,
+    pub else_stmt: Option<ElseStmt<'a>>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
-pub struct ExceptBlock {
-    pub block: Block,
+pub struct ExceptBlock<'a> {
+    pub block: Block<'a>,
     pub kind: ExceptBlockKind,
-    pub expr: Option<Expression>,
+    pub expr: Option<Expression<'a>>,
     pub expr_alias: Option<String>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
-pub struct FinallyBlock {
-    pub block: Block,
+pub struct FinallyBlock<'a> {
+    pub block: Block<'a>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
-pub struct ReturnStmt {
-    pub value: Option<Expression>,
+pub struct ReturnStmt<'a> {
+    pub value: Option<Expression<'a>>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
-pub struct ForStmt {
-    pub target: Expression,
-    pub iter: Expression,
-    pub block: Block,
-    pub else_stmt: Option<ElseStmt>,
+pub struct ForStmt<'a> {
+    pub target: Expression<'a>,
+    pub iter: Expression<'a>,
+    pub block: Block<'a>,
+    pub else_stmt: Option<ElseStmt<'a>>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
-pub struct RaiseStmt {
-    pub exc: Option<Expression>,
-    pub from: Option<Expression>,
+pub struct RaiseStmt<'a> {
+    pub exc: Option<Expression<'a>>,
+    pub from: Option<Expression<'a>>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
-pub struct DelStmt {
-    pub expr: Expression,
+pub struct DelStmt<'a> {
+    pub expr: Expression<'a>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
-pub struct FunctionCall {
-    pub lhs: Box<Expression>,
-    pub args: Vec<Expression>,
+pub struct FunctionCall<'a> {
+    pub lhs: Box<Expression<'a>>,
+    pub args: Vec<Expression<'a>>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct Subscript {
-    pub lhs: Box<Expression>,
-    pub slice: Box<SubscriptType>,
+pub struct Subscript<'a> {
+    pub lhs: Box<Expression<'a>>,
+    pub slice: Box<SubscriptType<'a>>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum SubscriptType {
+pub enum SubscriptType<'a> {
     Slice {
-        lower: Option<Expression>,
-        upper: Option<Expression>,
-        step: Option<Expression>,
+        lower: Option<Expression<'a>>,
+        upper: Option<Expression<'a>>,
+        step: Option<Expression<'a>>,
     },
-    Subscript(Expression),
+    Subscript(Expression<'a>),
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct ListComp {
-    pub target: Box<Expression>,
-    pub ifs: Vec<IfComp>,
-    pub fors: Vec<ForComp>,
+pub struct ListComp<'a> {
+    pub target: Box<Expression<'a>>,
+    pub ifs: Vec<IfComp<'a>>,
+    pub fors: Vec<ForComp<'a>>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct GeneratorComp {
-    pub target: Box<Expression>,
-    pub ifs: Vec<IfComp>,
-    pub fors: Vec<ForComp>,
+pub struct GeneratorComp<'a> {
+    pub target: Box<Expression<'a>>,
+    pub ifs: Vec<IfComp<'a>>,
+    pub fors: Vec<ForComp<'a>>,
     pub span: Span,
 }
 
 /// The "if" that goes inside a comprehension e.g.: [i for i in range(10) if i % 2 == 0]
 #[derive(Debug, PartialEq, Eq)]
-pub struct IfComp {
-    pub cond: Expression,
+pub struct IfComp<'a> {
+    pub cond: Expression<'a>,
     pub span: Span,
 }
 
 /// The "for" that goes inside a comprehension e.g.: [i for i in range(10)]
 #[derive(Debug, PartialEq, Eq)]
-pub struct ForComp {
-    pub target: Expression,
-    pub iter: Expression,
+pub struct ForComp<'a> {
+    pub target: Expression<'a>,
+    pub iter: Expression<'a>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
-pub struct AssertStmt {
-    pub expr: Expression,
+pub struct AssertStmt<'a> {
+    pub expr: Expression<'a>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
-pub struct GlobalStmt {
-    pub name: Expression,
+pub struct GlobalStmt<'a> {
+    pub name: Expression<'a>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
-pub struct NonLocalStmt {
-    pub name: Expression,
+pub struct NonLocalStmt<'a> {
+    pub name: Expression<'a>,
     pub span: Span,
 }

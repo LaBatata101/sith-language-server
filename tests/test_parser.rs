@@ -3,7 +3,7 @@ mod tests_parser {
     use pretty_assertions::assert_eq;
     use python_parser::{
         error::{PythonError, PythonErrorType},
-        lexer::span::Span,
+        lexer::{span::Span, Lexer},
         parser::{
             ast::{
                 AnnAssign, AssertStmt, Assign, AugAssign, AugAssignType, BinaryOperator, Block, ClassStmt, DelStmt,
@@ -19,7 +19,8 @@ mod tests_parser {
 
     #[test]
     fn parse_string_assignment() {
-        let parser = Parser::new("test = \"Hello World!\"");
+        let mut lexer = Lexer::new("test = \"Hello World!\"");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -28,7 +29,7 @@ mod tests_parser {
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
                     lhs: Box::new(Expression::Id(
-                        "test".to_string(),
+                        "test".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -37,7 +38,7 @@ mod tests_parser {
                         }
                     )),
                     rhs: Box::new(Expression::String(
-                        "Hello World!".to_string(),
+                        "Hello World!".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -58,7 +59,8 @@ mod tests_parser {
 
     #[test]
     fn parse_multiple_numbers_assignment() {
-        let parser = Parser::new("test = 42; x = 12");
+        let mut lexer = Lexer::new("test = 42; x = 12");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -68,7 +70,7 @@ mod tests_parser {
                 stmts: vec![
                     Statement::Expression(Expression::Assign(Assign {
                         lhs: Box::new(Expression::Id(
-                            "test".to_string(),
+                            "test".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -77,7 +79,7 @@ mod tests_parser {
                             }
                         )),
                         rhs: Box::new(Expression::Number(
-                            "42".to_string(),
+                            "42".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -94,7 +96,7 @@ mod tests_parser {
                     },)),
                     Statement::Expression(Expression::Assign(Assign {
                         lhs: Box::new(Expression::Id(
-                            "x".to_string(),
+                            "x".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -103,7 +105,7 @@ mod tests_parser {
                             }
                         )),
                         rhs: Box::new(Expression::Number(
-                            "12".to_string(),
+                            "12".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -125,7 +127,8 @@ mod tests_parser {
 
     #[test]
     fn parse_boolean_assignment() {
-        let parser = Parser::new("x = True\ny = False");
+        let mut lexer = Lexer::new("x = True\ny = False");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -135,7 +138,7 @@ mod tests_parser {
                 stmts: vec![
                     Statement::Expression(Expression::Assign(Assign {
                         lhs: Box::new(Expression::Id(
-                            "x".to_string(),
+                            "x".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -161,7 +164,7 @@ mod tests_parser {
                     },)),
                     Statement::Expression(Expression::Assign(Assign {
                         lhs: Box::new(Expression::Id(
-                            "y".to_string(),
+                            "y".into(),
                             Span {
                                 row_start: 2,
                                 row_end: 2,
@@ -192,7 +195,8 @@ mod tests_parser {
 
     #[test]
     fn parse_incorrect_assignment() {
-        let parser = Parser::new("test =");
+        let mut lexer = Lexer::new("test =");
+        let parser = Parser::new(&mut lexer);
         let (_, errors) = parser.parse();
 
         assert!(errors.is_some());
@@ -200,7 +204,7 @@ mod tests_parser {
             errors.unwrap(),
             vec![PythonError {
                 error: PythonErrorType::Syntax,
-                msg: "SyntaxError: unexpected token Eof".to_string(),
+                msg: "SyntaxError: unexpected token Eof".into(),
                 span: Span {
                     row_start: 1,
                     row_end: 1,
@@ -213,7 +217,8 @@ mod tests_parser {
 
     #[test]
     fn parse_assignment_with_typehint() {
-        let parser = Parser::new("x: int = 0");
+        let mut lexer = Lexer::new("x: int = 0");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -222,7 +227,7 @@ mod tests_parser {
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::AnnAssign(AnnAssign {
                     lhs: Box::new(Expression::Id(
-                        "x".to_string(),
+                        "x".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -231,7 +236,7 @@ mod tests_parser {
                         }
                     )),
                     rhs: Some(Box::new(Expression::Number(
-                        "0".to_string(),
+                        "0".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -240,7 +245,7 @@ mod tests_parser {
                         }
                     ))),
                     typehint: Box::new(Expression::Id(
-                        "int".to_string(),
+                        "int".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -261,7 +266,8 @@ mod tests_parser {
 
     #[test]
     fn parse_tuple_unpacking_assignment() {
-        let parser = Parser::new("a, b, c = 1, 2, 3");
+        let mut lexer = Lexer::new("a, b, c = 1, 2, 3");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -272,7 +278,7 @@ mod tests_parser {
                     lhs: Box::new(Expression::Tuple(
                         vec![
                             Expression::Id(
-                                "a".to_string(),
+                                "a".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -281,7 +287,7 @@ mod tests_parser {
                                 }
                             ),
                             Expression::Id(
-                                "b".to_string(),
+                                "b".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -290,7 +296,7 @@ mod tests_parser {
                                 }
                             ),
                             Expression::Id(
-                                "c".to_string(),
+                                "c".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -309,7 +315,7 @@ mod tests_parser {
                     rhs: Box::new(Expression::Tuple(
                         vec![
                             Expression::Number(
-                                "1".to_string(),
+                                "1".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -318,7 +324,7 @@ mod tests_parser {
                                 }
                             ),
                             Expression::Number(
-                                "2".to_string(),
+                                "2".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -327,7 +333,7 @@ mod tests_parser {
                                 }
                             ),
                             Expression::Number(
-                                "3".to_string(),
+                                "3".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -356,7 +362,8 @@ mod tests_parser {
 
     #[test]
     fn parse_invalid_tuple_assignment_with_typehint() {
-        let parser = Parser::new("a, b, c: tuple[int, int, int] = 1, 2, 3");
+        let mut lexer = Lexer::new("a, b, c: tuple[int, int, int] = 1, 2, 3");
+        let parser = Parser::new(&mut lexer);
         let (_, errors) = parser.parse();
 
         assert!(errors.is_some());
@@ -364,7 +371,7 @@ mod tests_parser {
             errors.unwrap(),
             vec![PythonError {
                 error: PythonErrorType::Syntax,
-                msg: "SyntaxError: only single target (not tuple) can be annotated".to_string(),
+                msg: "SyntaxError: only single target (not tuple) can be annotated".into(),
                 span: Span {
                     row_start: 1,
                     row_end: 1,
@@ -377,7 +384,8 @@ mod tests_parser {
 
     #[test]
     fn parse_list_unpacking_assignment() {
-        let parser = Parser::new("[a, b, c] = 1, 2, 3");
+        let mut lexer = Lexer::new("[a, b, c] = 1, 2, 3");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -388,7 +396,7 @@ mod tests_parser {
                     lhs: Box::new(Expression::List(
                         vec![
                             Expression::Id(
-                                "a".to_string(),
+                                "a".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -397,7 +405,7 @@ mod tests_parser {
                                 }
                             ),
                             Expression::Id(
-                                "b".to_string(),
+                                "b".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -406,7 +414,7 @@ mod tests_parser {
                                 }
                             ),
                             Expression::Id(
-                                "c".to_string(),
+                                "c".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -425,7 +433,7 @@ mod tests_parser {
                     rhs: Box::new(Expression::Tuple(
                         vec![
                             Expression::Number(
-                                "1".to_string(),
+                                "1".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -434,7 +442,7 @@ mod tests_parser {
                                 }
                             ),
                             Expression::Number(
-                                "2".to_string(),
+                                "2".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -443,7 +451,7 @@ mod tests_parser {
                                 }
                             ),
                             Expression::Number(
-                                "3".to_string(),
+                                "3".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -472,7 +480,8 @@ mod tests_parser {
 
     #[test]
     fn parse_assignment_wiht_only_typehint() {
-        let parser = Parser::new("x: int");
+        let mut lexer = Lexer::new("x: int");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -481,7 +490,7 @@ mod tests_parser {
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::AnnAssign(AnnAssign {
                     lhs: Box::new(Expression::Id(
-                        "x".to_string(),
+                        "x".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -491,7 +500,7 @@ mod tests_parser {
                     )),
                     rhs: None,
                     typehint: Box::new(Expression::Id(
-                        "int".to_string(),
+                        "int".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -512,7 +521,8 @@ mod tests_parser {
 
     #[test]
     fn parse_aug_assignment() {
-        let parser = Parser::new("x += 1");
+        let mut lexer = Lexer::new("x += 1");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -521,7 +531,7 @@ mod tests_parser {
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::AugAssing(AugAssign {
                     lhs: Box::new(Expression::Id(
-                        "x".to_string(),
+                        "x".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -530,7 +540,7 @@ mod tests_parser {
                         }
                     )),
                     rhs: Box::new(Expression::Number(
-                        "1".to_string(),
+                        "1".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -552,7 +562,8 @@ mod tests_parser {
 
     #[test]
     fn parse_invalid_aug_assignment() {
-        let parser = Parser::new("x: int += 1");
+        let mut lexer = Lexer::new("x: int += 1");
+        let parser = Parser::new(&mut lexer);
         let (_, errors) = parser.parse();
 
         assert!(errors.is_some());
@@ -560,7 +571,7 @@ mod tests_parser {
             errors.unwrap(),
             vec![PythonError {
                 error: PythonErrorType::Syntax,
-                msg: "SyntaxError: invalid syntax, typehint not allowed in this kind of expression".to_string(),
+                msg: "SyntaxError: invalid syntax, typehint not allowed in this kind of expression".into(),
                 span: Span {
                     row_start: 1,
                     row_end: 1,
@@ -573,10 +584,11 @@ mod tests_parser {
 
     #[test]
     fn parse_function() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "def x():
     pass",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, parser_errors) = parser.parse();
 
         assert!(parser_errors.is_none());
@@ -584,7 +596,7 @@ mod tests_parser {
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::FunctionDef(Function {
-                    name: "x".to_string(),
+                    name: "x".into(),
                     decorators: vec![],
                     block: Block {
                         stmts: vec![Statement::Pass(Span {
@@ -614,12 +626,13 @@ mod tests_parser {
 
     #[test]
     fn parse_function2() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "def x():
     pass
     pass
     pass",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -627,7 +640,7 @@ mod tests_parser {
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::FunctionDef(Function {
-                    name: "x".to_string(),
+                    name: "x".into(),
                     parameters: vec![],
                     decorators: vec![],
                     block: Block {
@@ -671,10 +684,11 @@ mod tests_parser {
 
     #[test]
     fn parse_function3() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "def test(x, y = 42):
     pass",
         );
+        let parser = Parser::new(&mut lexer);
 
         let (parsed_file, errors) = parser.parse();
 
@@ -683,11 +697,11 @@ mod tests_parser {
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::FunctionDef(Function {
-                    name: "test".to_string(),
+                    name: "test".into(),
                     decorators: vec![],
                     parameters: vec![
                         FuncParameter {
-                            name: "x".to_string(),
+                            name: "x".into(),
                             default_value: None,
                             span: Span {
                                 row_start: 1,
@@ -700,9 +714,9 @@ mod tests_parser {
                             is_pos_only: false
                         },
                         FuncParameter {
-                            name: "y".to_string(),
+                            name: "y".into(),
                             default_value: Some(Expression::Number(
-                                "42".to_string(),
+                                "42".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -748,10 +762,11 @@ mod tests_parser {
 
     #[test]
     fn parse_function4() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "def test(*kargs, **kwargs):
     pass",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -759,11 +774,11 @@ mod tests_parser {
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::FunctionDef(Function {
-                    name: "test".to_string(),
+                    name: "test".into(),
                     decorators: vec![],
                     parameters: vec![
                         FuncParameter {
-                            name: "kargs".to_string(),
+                            name: "kargs".into(),
                             default_value: None,
                             span: Span {
                                 row_start: 1,
@@ -776,7 +791,7 @@ mod tests_parser {
                             is_pos_only: false
                         },
                         FuncParameter {
-                            name: "kwargs".to_string(),
+                            name: "kwargs".into(),
                             default_value: None,
                             span: Span {
                                 row_start: 1,
@@ -816,11 +831,12 @@ mod tests_parser {
 
     #[test]
     fn parse_if() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "if True:
     pass
     ",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -866,12 +882,13 @@ mod tests_parser {
 
     #[test]
     fn parse_if_else() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "if True:
     pass
 else:
     pass",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -938,7 +955,7 @@ else:
 
     #[test]
     fn parse_if_elif() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "if True:
     pass
 elif True:
@@ -946,6 +963,7 @@ elif True:
 elif True:
     pass",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -1054,7 +1072,7 @@ elif True:
 
     #[test]
     fn parse_if_elif_else() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "if True:
     pass
 elif True:
@@ -1064,6 +1082,7 @@ elif True:
 else:
     pass",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -1193,11 +1212,12 @@ else:
 
     #[test]
     fn parse_while() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "while True:
     pass
 ",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -1242,12 +1262,13 @@ else:
 
     #[test]
     fn parse_while_else() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "while True:
     pass
 else:
     pass",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -1313,7 +1334,8 @@ else:
 
     #[test]
     fn parse_expression() {
-        let parser = Parser::new("x = 1 + 2 + 3");
+        let mut lexer = Lexer::new("x = 1 + 2 + 3");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -1322,7 +1344,7 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
                     lhs: Box::new(Expression::Id(
-                        "x".to_string(),
+                        "x".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -1333,7 +1355,7 @@ else:
                     rhs: Box::new(Expression::BinaryOp(
                         Box::new(Expression::BinaryOp(
                             Box::new(Expression::Number(
-                                "1".to_string(),
+                                "1".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -1343,7 +1365,7 @@ else:
                             )),
                             BinaryOperator::Add,
                             Box::new(Expression::Number(
-                                "2".to_string(),
+                                "2".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -1360,7 +1382,7 @@ else:
                         )),
                         BinaryOperator::Add,
                         Box::new(Expression::Number(
-                            "3".to_string(),
+                            "3".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -1388,7 +1410,8 @@ else:
 
     #[test]
     fn parse_expression2() {
-        let parser = Parser::new("x = 1 + 2 * 3 / 2");
+        let mut lexer = Lexer::new("x = 1 + 2 * 3 / 2");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -1397,7 +1420,7 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
                     lhs: Box::new(Expression::Id(
-                        "x".to_string(),
+                        "x".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -1407,7 +1430,7 @@ else:
                     )),
                     rhs: Box::new(Expression::BinaryOp(
                         Box::new(Expression::Number(
-                            "1".to_string(),
+                            "1".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -1419,7 +1442,7 @@ else:
                         Box::new(Expression::BinaryOp(
                             Box::new(Expression::BinaryOp(
                                 Box::new(Expression::Number(
-                                    "2".to_string(),
+                                    "2".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -1429,7 +1452,7 @@ else:
                                 )),
                                 BinaryOperator::Multiply,
                                 Box::new(Expression::Number(
-                                    "3".to_string(),
+                                    "3".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -1446,7 +1469,7 @@ else:
                             )),
                             BinaryOperator::Divide,
                             Box::new(Expression::Number(
-                                "2".to_string(),
+                                "2".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -1481,7 +1504,8 @@ else:
 
     #[test]
     fn parse_expression3() {
-        let parser = Parser::new("x = 3 + -5");
+        let mut lexer = Lexer::new("x = 3 + -5");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -1490,7 +1514,7 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
                     lhs: Box::new(Expression::Id(
-                        "x".to_string(),
+                        "x".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -1500,7 +1524,7 @@ else:
                     )),
                     rhs: Box::new(Expression::BinaryOp(
                         Box::new(Expression::Number(
-                            "3".to_string(),
+                            "3".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -1511,7 +1535,7 @@ else:
                         BinaryOperator::Add,
                         Box::new(Expression::UnaryOp(
                             Box::new(Expression::Number(
-                                "5".to_string(),
+                                "5".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -1547,7 +1571,8 @@ else:
 
     #[test]
     fn parse_expression4() {
-        let parser = Parser::new("x = not 3 + -5");
+        let mut lexer = Lexer::new("x = not 3 + -5");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -1556,7 +1581,7 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
                     lhs: Box::new(Expression::Id(
-                        "x".to_string(),
+                        "x".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -1567,7 +1592,7 @@ else:
                     rhs: Box::new(Expression::UnaryOp(
                         Box::new(Expression::BinaryOp(
                             Box::new(Expression::Number(
-                                "3".to_string(),
+                                "3".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -1578,7 +1603,7 @@ else:
                             BinaryOperator::Add,
                             Box::new(Expression::UnaryOp(
                                 Box::new(Expression::Number(
-                                    "5".to_string(),
+                                    "5".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -1622,7 +1647,8 @@ else:
 
     #[test]
     fn parse_expression5() {
-        let parser = Parser::new("x = x + +5");
+        let mut lexer = Lexer::new("x = x + +5");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -1631,7 +1657,7 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
                     lhs: Box::new(Expression::Id(
-                        "x".to_string(),
+                        "x".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -1641,7 +1667,7 @@ else:
                     )),
                     rhs: Box::new(Expression::BinaryOp(
                         Box::new(Expression::Id(
-                            "x".to_string(),
+                            "x".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -1652,7 +1678,7 @@ else:
                         BinaryOperator::Add,
                         Box::new(Expression::UnaryOp(
                             Box::new(Expression::Number(
-                                "5".to_string(),
+                                "5".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -1688,7 +1714,8 @@ else:
 
     #[test]
     fn parse_expression6() {
-        let parser = Parser::new("a = x < y or 69 > 9 and not 101 >> 666");
+        let mut lexer = Lexer::new("a = x < y or 69 > 9 and not 101 >> 666");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -1697,7 +1724,7 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
                     lhs: Box::new(Expression::Id(
-                        "a".to_string(),
+                        "a".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -1708,7 +1735,7 @@ else:
                     rhs: Box::new(Expression::BinaryOp(
                         Box::new(Expression::BinaryOp(
                             Box::new(Expression::Id(
-                                "x".to_string(),
+                                "x".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -1718,7 +1745,7 @@ else:
                             )),
                             BinaryOperator::LessThan,
                             Box::new(Expression::Id(
-                                "y".to_string(),
+                                "y".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -1737,7 +1764,7 @@ else:
                         Box::new(Expression::BinaryOp(
                             Box::new(Expression::BinaryOp(
                                 Box::new(Expression::Number(
-                                    "69".to_string(),
+                                    "69".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -1747,7 +1774,7 @@ else:
                                 )),
                                 BinaryOperator::GreaterThan,
                                 Box::new(Expression::Number(
-                                    "9".to_string(),
+                                    "9".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -1766,7 +1793,7 @@ else:
                             Box::new(Expression::UnaryOp(
                                 Box::new(Expression::BinaryOp(
                                     Box::new(Expression::Number(
-                                        "101".to_string(),
+                                        "101".into(),
                                         Span {
                                             row_start: 1,
                                             row_end: 1,
@@ -1776,7 +1803,7 @@ else:
                                     )),
                                     BinaryOperator::BitwiseRightShift,
                                     Box::new(Expression::Number(
-                                        "666".to_string(),
+                                        "666".into(),
                                         Span {
                                             row_start: 1,
                                             row_end: 1,
@@ -1826,7 +1853,8 @@ else:
 
     #[test]
     fn parse_expression7() {
-        let parser = Parser::new("x = a.b.c");
+        let mut lexer = Lexer::new("x = a.b.c");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -1835,7 +1863,7 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
                     lhs: Box::new(Expression::Id(
-                        "x".to_string(),
+                        "x".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -1845,7 +1873,7 @@ else:
                     )),
                     rhs: Box::new(Expression::BinaryOp(
                         Box::new(Expression::Id(
-                            "a".to_string(),
+                            "a".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -1856,7 +1884,7 @@ else:
                         BinaryOperator::AttributeRef,
                         Box::new(Expression::BinaryOp(
                             Box::new(Expression::Id(
-                                "b".to_string(),
+                                "b".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -1866,7 +1894,7 @@ else:
                             )),
                             BinaryOperator::AttributeRef,
                             Box::new(Expression::Id(
-                                "c".to_string(),
+                                "c".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -1901,7 +1929,8 @@ else:
 
     #[test]
     fn parse_expression8() {
-        let parser = Parser::new("x = hello()");
+        let mut lexer = Lexer::new("x = hello();");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -1910,7 +1939,7 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
                     lhs: Box::new(Expression::Id(
-                        "x".to_string(),
+                        "x".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -1920,7 +1949,7 @@ else:
                     )),
                     rhs: Box::new(Expression::Call(FunctionCall {
                         lhs: Box::new(Expression::Id(
-                            "hello".to_string(),
+                            "hello".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -1949,7 +1978,8 @@ else:
 
     #[test]
     fn parse_expression9() {
-        let parser = Parser::new("x = l[1 + 2]");
+        let mut lexer = Lexer::new("x = l[1 + 2]");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -1958,7 +1988,7 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
                     lhs: Box::new(Expression::Id(
-                        "x".to_string(),
+                        "x".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -1968,7 +1998,7 @@ else:
                     )),
                     rhs: Box::new(Expression::Subscript(Subscript {
                         lhs: Box::new(Expression::Id(
-                            "l".to_string(),
+                            "l".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -1978,7 +2008,7 @@ else:
                         )),
                         slice: Box::new(SubscriptType::Subscript(Expression::BinaryOp(
                             Box::new(Expression::Number(
-                                "1".to_string(),
+                                "1".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -1988,7 +2018,7 @@ else:
                             )),
                             BinaryOperator::Add,
                             Box::new(Expression::Number(
-                                "2".to_string(),
+                                "2".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -2023,7 +2053,8 @@ else:
 
     #[test]
     fn parse_expression10() {
-        let parser = Parser::new("x = a not in b");
+        let mut lexer = Lexer::new("x = a not in b");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -2032,7 +2063,7 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
                     lhs: Box::new(Expression::Id(
-                        "x".to_string(),
+                        "x".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -2042,7 +2073,7 @@ else:
                     )),
                     rhs: Box::new(Expression::BinaryOp(
                         Box::new(Expression::Id(
-                            "a".to_string(),
+                            "a".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -2052,7 +2083,7 @@ else:
                         )),
                         BinaryOperator::NotIn,
                         Box::new(Expression::Id(
-                            "b".to_string(),
+                            "b".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -2080,7 +2111,8 @@ else:
 
     #[test]
     fn parse_expression11() {
-        let parser = Parser::new("x = ((1 + 2) * 54) / 3");
+        let mut lexer = Lexer::new("x = ((1 + 2) * 54) / 3");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -2089,7 +2121,7 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
                     lhs: Box::new(Expression::Id(
-                        "x".to_string(),
+                        "x".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -2101,7 +2133,7 @@ else:
                         Box::new(Expression::BinaryOp(
                             Box::new(Expression::BinaryOp(
                                 Box::new(Expression::Number(
-                                    "1".to_string(),
+                                    "1".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -2111,7 +2143,7 @@ else:
                                 )),
                                 BinaryOperator::Add,
                                 Box::new(Expression::Number(
-                                    "2".to_string(),
+                                    "2".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -2128,7 +2160,7 @@ else:
                             )),
                             BinaryOperator::Multiply,
                             Box::new(Expression::Number(
-                                "54".to_string(),
+                                "54".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -2145,7 +2177,7 @@ else:
                         )),
                         BinaryOperator::Divide,
                         Box::new(Expression::Number(
-                            "3".to_string(),
+                            "3".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -2173,7 +2205,8 @@ else:
 
     #[test]
     fn parse_tuple_expression() {
-        let parser = Parser::new("x = (1 + 2, True, y(), \"Hello\", l[i],)");
+        let mut lexer = Lexer::new("x = (1 + 2, True, y(), \"Hello\", l[i],)");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -2182,7 +2215,7 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
                     lhs: Box::new(Expression::Id(
-                        "x".to_string(),
+                        "x".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -2194,7 +2227,7 @@ else:
                         vec![
                             Expression::BinaryOp(
                                 Box::new(Expression::Number(
-                                    "1".to_string(),
+                                    "1".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -2204,7 +2237,7 @@ else:
                                 )),
                                 BinaryOperator::Add,
                                 Box::new(Expression::Number(
-                                    "2".to_string(),
+                                    "2".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -2230,7 +2263,7 @@ else:
                             ),
                             Expression::Call(FunctionCall {
                                 lhs: Box::new(Expression::Id(
-                                    "y".to_string(),
+                                    "y".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -2247,7 +2280,7 @@ else:
                                 }
                             }),
                             Expression::String(
-                                "Hello".to_string(),
+                                "Hello".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -2257,7 +2290,7 @@ else:
                             ),
                             Expression::Subscript(Subscript {
                                 lhs: Box::new(Expression::Id(
-                                    "l".to_string(),
+                                    "l".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -2266,7 +2299,7 @@ else:
                                     }
                                 )),
                                 slice: Box::new(SubscriptType::Subscript(Expression::Id(
-                                    "i".to_string(),
+                                    "i".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -2302,7 +2335,8 @@ else:
 
     #[test]
     fn parse_tuple_expression_with_no_parens() {
-        let parser = Parser::new("1 + 2, True, y(), \"Hello\", l[i],");
+        let mut lexer = Lexer::new("1 + 2, True, y(), \"Hello\", l[i],");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -2313,7 +2347,7 @@ else:
                     vec![
                         Expression::BinaryOp(
                             Box::new(Expression::Number(
-                                "1".to_string(),
+                                "1".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -2323,7 +2357,7 @@ else:
                             )),
                             BinaryOperator::Add,
                             Box::new(Expression::Number(
-                                "2".to_string(),
+                                "2".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -2349,7 +2383,7 @@ else:
                         ),
                         Expression::Call(FunctionCall {
                             lhs: Box::new(Expression::Id(
-                                "y".to_string(),
+                                "y".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -2366,7 +2400,7 @@ else:
                             }
                         }),
                         Expression::String(
-                            "Hello".to_string(),
+                            "Hello".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -2376,7 +2410,7 @@ else:
                         ),
                         Expression::Subscript(Subscript {
                             lhs: Box::new(Expression::Id(
-                                "l".to_string(),
+                                "l".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -2385,7 +2419,7 @@ else:
                                 }
                             )),
                             slice: Box::new(SubscriptType::Subscript(Expression::Id(
-                                "i".to_string(),
+                                "i".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -2414,7 +2448,8 @@ else:
 
     #[test]
     fn parse_list_expression() {
-        let parser = Parser::new("x = [1 + 2, True, y(), \"Hello\", l[i],]");
+        let mut lexer = Lexer::new("x = [1 + 2, True, y(), \"Hello\", l[i],]");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -2423,7 +2458,7 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
                     lhs: Box::new(Expression::Id(
-                        "x".to_string(),
+                        "x".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -2435,7 +2470,7 @@ else:
                         vec![
                             Expression::BinaryOp(
                                 Box::new(Expression::Number(
-                                    "1".to_string(),
+                                    "1".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -2445,7 +2480,7 @@ else:
                                 )),
                                 BinaryOperator::Add,
                                 Box::new(Expression::Number(
-                                    "2".to_string(),
+                                    "2".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -2471,7 +2506,7 @@ else:
                             ),
                             Expression::Call(FunctionCall {
                                 lhs: Box::new(Expression::Id(
-                                    "y".to_string(),
+                                    "y".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -2488,7 +2523,7 @@ else:
                                 }
                             }),
                             Expression::String(
-                                "Hello".to_string(),
+                                "Hello".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -2498,7 +2533,7 @@ else:
                             ),
                             Expression::Subscript(Subscript {
                                 lhs: Box::new(Expression::Id(
-                                    "l".to_string(),
+                                    "l".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -2507,7 +2542,7 @@ else:
                                     }
                                 )),
                                 slice: Box::new(SubscriptType::Subscript(Expression::Id(
-                                    "i".to_string(),
+                                    "i".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -2543,7 +2578,8 @@ else:
 
     #[test]
     fn parse_list_expression2() {
-        let parser = Parser::new("x = [*l, *[1,2,3], True]");
+        let mut lexer = Lexer::new("x = [*l, *[1,2,3], True]");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -2552,7 +2588,7 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
                     lhs: Box::new(Expression::Id(
-                        "x".to_string(),
+                        "x".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -2564,7 +2600,7 @@ else:
                         vec![
                             Expression::UnaryOp(
                                 Box::new(Expression::Id(
-                                    "l".to_string(),
+                                    "l".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -2584,7 +2620,7 @@ else:
                                 Box::new(Expression::List(
                                     vec![
                                         Expression::Number(
-                                            "1".to_string(),
+                                            "1".into(),
                                             Span {
                                                 row_start: 1,
                                                 row_end: 1,
@@ -2593,7 +2629,7 @@ else:
                                             }
                                         ),
                                         Expression::Number(
-                                            "2".to_string(),
+                                            "2".into(),
                                             Span {
                                                 row_start: 1,
                                                 row_end: 1,
@@ -2602,7 +2638,7 @@ else:
                                             }
                                         ),
                                         Expression::Number(
-                                            "3".to_string(),
+                                            "3".into(),
                                             Span {
                                                 row_start: 1,
                                                 row_end: 1,
@@ -2656,7 +2692,8 @@ else:
 
     #[test]
     fn parse_invalid_list_expression() {
-        let parser = Parser::new("[**d, x]");
+        let mut lexer = Lexer::new("[**d, x]");
+        let parser = Parser::new(&mut lexer);
         let (_, errors) = parser.parse();
 
         assert!(errors.is_some());
@@ -2664,7 +2701,7 @@ else:
             errors,
             Some(vec![PythonError {
                 error: PythonErrorType::Syntax,
-                msg: "SyntaxError: can't unpack dictionary inside list!".to_string(),
+                msg: "SyntaxError: can't unpack dictionary inside list!".into(),
                 span: Span {
                     row_start: 1,
                     row_end: 1,
@@ -2677,7 +2714,8 @@ else:
 
     #[test]
     fn parse_empty_list_expression() {
-        let parser = Parser::new("[]");
+        let mut lexer = Lexer::new("[]");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -2699,7 +2737,8 @@ else:
 
     #[test]
     fn parse_unpack_iterable_assignment() {
-        let parser = Parser::new("x = *iterable");
+        let mut lexer = Lexer::new("x = *iterable");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -2708,7 +2747,7 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
                     lhs: Box::new(Expression::Id(
-                        "x".to_string(),
+                        "x".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -2718,7 +2757,7 @@ else:
                     )),
                     rhs: Box::new(Expression::UnaryOp(
                         Box::new(Expression::Id(
-                            "iterable".to_string(),
+                            "iterable".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -2747,7 +2786,8 @@ else:
 
     #[test]
     fn parse_set_expression() {
-        let parser = Parser::new("x = {1, True, \"hello\", *l,}");
+        let mut lexer = Lexer::new("x = {1, True, \"hello\", *l,}");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -2756,7 +2796,7 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
                     lhs: Box::new(Expression::Id(
-                        "x".to_string(),
+                        "x".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -2767,7 +2807,7 @@ else:
                     rhs: Box::new(Expression::Set(
                         vec![
                             Expression::Number(
-                                "1".to_string(),
+                                "1".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -2785,7 +2825,7 @@ else:
                                 }
                             ),
                             Expression::String(
-                                "hello".to_string(),
+                                "hello".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -2795,7 +2835,7 @@ else:
                             ),
                             Expression::UnaryOp(
                                 Box::new(Expression::Id(
-                                    "l".to_string(),
+                                    "l".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -2832,7 +2872,8 @@ else:
 
     #[test]
     fn parse_dict_expression() {
-        let parser = Parser::new("x = {1: \"Hello\", 1 + 3: True, (6, 6): False,}");
+        let mut lexer = Lexer::new("x = {1: \"Hello\", 1 + 3: True, (6, 6): False,}");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -2841,7 +2882,7 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
                     lhs: Box::new(Expression::Id(
-                        "x".to_string(),
+                        "x".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -2853,7 +2894,7 @@ else:
                         vec![
                             DictItemType::KeyValue(
                                 Expression::Number(
-                                    "1".to_string(),
+                                    "1".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -2862,7 +2903,7 @@ else:
                                     }
                                 ),
                                 Expression::String(
-                                    "Hello".to_string(),
+                                    "Hello".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -2874,7 +2915,7 @@ else:
                             DictItemType::KeyValue(
                                 Expression::BinaryOp(
                                     Box::new(Expression::Number(
-                                        "1".to_string(),
+                                        "1".into(),
                                         Span {
                                             row_start: 1,
                                             row_end: 1,
@@ -2884,7 +2925,7 @@ else:
                                     )),
                                     BinaryOperator::Add,
                                     Box::new(Expression::Number(
-                                        "3".to_string(),
+                                        "3".into(),
                                         Span {
                                             row_start: 1,
                                             row_end: 1,
@@ -2913,7 +2954,7 @@ else:
                                 Expression::Tuple(
                                     vec![
                                         Expression::Number(
-                                            "6".to_string(),
+                                            "6".into(),
                                             Span {
                                                 row_start: 1,
                                                 row_end: 1,
@@ -2922,7 +2963,7 @@ else:
                                             }
                                         ),
                                         Expression::Number(
-                                            "6".to_string(),
+                                            "6".into(),
                                             Span {
                                                 row_start: 1,
                                                 row_end: 1,
@@ -2969,7 +3010,8 @@ else:
 
     #[test]
     fn parse_dict_expression2() {
-        let parser = Parser::new("x = {**d, 2: 5, **x,}");
+        let mut lexer = Lexer::new("x = {**d, 2: 5, **x,}");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -2978,7 +3020,7 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
                     lhs: Box::new(Expression::Id(
-                        "x".to_string(),
+                        "x".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -2990,7 +3032,7 @@ else:
                         vec![
                             DictItemType::Unpack(Expression::UnaryOp(
                                 Box::new(Expression::Id(
-                                    "d".to_string(),
+                                    "d".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -3008,7 +3050,7 @@ else:
                             )),
                             DictItemType::KeyValue(
                                 Expression::Number(
-                                    "2".to_string(),
+                                    "2".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -3017,7 +3059,7 @@ else:
                                     }
                                 ),
                                 Expression::Number(
-                                    "5".to_string(),
+                                    "5".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -3028,7 +3070,7 @@ else:
                             ),
                             DictItemType::Unpack(Expression::UnaryOp(
                                 Box::new(Expression::Id(
-                                    "x".to_string(),
+                                    "x".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -3065,7 +3107,8 @@ else:
 
     #[test]
     fn parse_invalid_dict_expression() {
-        let parser = Parser::new("x = {**d, *x}");
+        let mut lexer = Lexer::new("x = {**d, *x}");
+        let parser = Parser::new(&mut lexer);
         let (_, errors) = parser.parse();
 
         assert!(errors.is_some());
@@ -3073,7 +3116,7 @@ else:
             errors.unwrap(),
             vec![PythonError {
                 error: PythonErrorType::Syntax,
-                msg: "SyntaxError: can't unpack iterable inside dictionary!".to_string(),
+                msg: "SyntaxError: can't unpack iterable inside dictionary!".into(),
                 span: Span {
                     row_start: 1,
                     row_end: 1,
@@ -3086,7 +3129,8 @@ else:
 
     #[test]
     fn parse_if_else_expression() {
-        let parser = Parser::new("x = 15 if 5 < x else 45");
+        let mut lexer = Lexer::new("x = 15 if 5 < x else 45");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -3095,7 +3139,7 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
                     lhs: Box::new(Expression::Id(
-                        "x".to_string(),
+                        "x".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -3105,7 +3149,7 @@ else:
                     )),
                     rhs: Box::new(Expression::IfElse(IfElseExpr {
                         lhs: Box::new(Expression::Number(
-                            "15".to_string(),
+                            "15".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -3114,7 +3158,7 @@ else:
                             }
                         )),
                         rhs: Box::new(Expression::Number(
-                            "45".to_string(),
+                            "45".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -3124,7 +3168,7 @@ else:
                         )),
                         condition: Box::new(Expression::BinaryOp(
                             Box::new(Expression::Number(
-                                "5".to_string(),
+                                "5".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -3134,7 +3178,7 @@ else:
                             )),
                             BinaryOperator::LessThan,
                             Box::new(Expression::Id(
-                                "x".to_string(),
+                                "x".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -3169,7 +3213,8 @@ else:
 
     #[test]
     fn parse_if_else_expression2() {
-        let parser = Parser::new("x = func() if (5 < x or x >= y) and is_id else func2() * 5");
+        let mut lexer = Lexer::new("x = func() if (5 < x or x >= y) and is_id else func2() * 5");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -3178,7 +3223,7 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Assign(Assign {
                     lhs: Box::new(Expression::Id(
-                        "x".to_string(),
+                        "x".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -3189,7 +3234,7 @@ else:
                     rhs: Box::new(Expression::IfElse(IfElseExpr {
                         lhs: Box::new(Expression::Call(FunctionCall {
                             lhs: Box::new(Expression::Id(
-                                "func".to_string(),
+                                "func".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -3208,7 +3253,7 @@ else:
                         rhs: Box::new(Expression::BinaryOp(
                             Box::new(Expression::Call(FunctionCall {
                                 lhs: Box::new(Expression::Id(
-                                    "func2".to_string(),
+                                    "func2".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -3226,7 +3271,7 @@ else:
                             })),
                             BinaryOperator::Multiply,
                             Box::new(Expression::Number(
-                                "5".to_string(),
+                                "5".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -3245,7 +3290,7 @@ else:
                             Box::new(Expression::BinaryOp(
                                 Box::new(Expression::BinaryOp(
                                     Box::new(Expression::Number(
-                                        "5".to_string(),
+                                        "5".into(),
                                         Span {
                                             row_start: 1,
                                             row_end: 1,
@@ -3255,7 +3300,7 @@ else:
                                     )),
                                     BinaryOperator::LessThan,
                                     Box::new(Expression::Id(
-                                        "x".to_string(),
+                                        "x".into(),
                                         Span {
                                             row_start: 1,
                                             row_end: 1,
@@ -3273,7 +3318,7 @@ else:
                                 BinaryOperator::LogicalOr,
                                 Box::new(Expression::BinaryOp(
                                     Box::new(Expression::Id(
-                                        "x".to_string(),
+                                        "x".into(),
                                         Span {
                                             row_start: 1,
                                             row_end: 1,
@@ -3283,7 +3328,7 @@ else:
                                     )),
                                     BinaryOperator::GreaterThanOrEqual,
                                     Box::new(Expression::Id(
-                                        "y".to_string(),
+                                        "y".into(),
                                         Span {
                                             row_start: 1,
                                             row_end: 1,
@@ -3307,7 +3352,7 @@ else:
                             )),
                             BinaryOperator::LogicalAnd,
                             Box::new(Expression::Id(
-                                "is_id".to_string(),
+                                "is_id".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -3342,7 +3387,8 @@ else:
 
     #[test]
     fn parse_single_expression() {
-        let parser = Parser::new("1 + 2; 3 + 4, 7, 8");
+        let mut lexer = Lexer::new("1 + 2; 3 + 4, 7, 8");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -3352,7 +3398,7 @@ else:
                 stmts: vec![
                     Statement::Expression(Expression::BinaryOp(
                         Box::new(Expression::Number(
-                            "1".to_string(),
+                            "1".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -3362,7 +3408,7 @@ else:
                         )),
                         BinaryOperator::Add,
                         Box::new(Expression::Number(
-                            "2".to_string(),
+                            "2".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -3381,7 +3427,7 @@ else:
                         vec![
                             Expression::BinaryOp(
                                 Box::new(Expression::Number(
-                                    "3".to_string(),
+                                    "3".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -3391,7 +3437,7 @@ else:
                                 )),
                                 BinaryOperator::Add,
                                 Box::new(Expression::Number(
-                                    "4".to_string(),
+                                    "4".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -3407,7 +3453,7 @@ else:
                                 }
                             ),
                             Expression::Number(
-                                "7".to_string(),
+                                "7".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -3416,7 +3462,7 @@ else:
                                 }
                             ),
                             Expression::Number(
-                                "8".to_string(),
+                                "8".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -3439,7 +3485,8 @@ else:
 
     #[test]
     fn parse_single_expression2() {
-        let parser = Parser::new("x");
+        let mut lexer = Lexer::new("x");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -3447,7 +3494,7 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Id(
-                    "x".to_string(),
+                    "x".into(),
                     Span {
                         row_start: 1,
                         row_end: 1,
@@ -3461,10 +3508,11 @@ else:
 
     #[test]
     fn parse_walrus_operator() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "if (x := 15) > 5:
     x",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -3475,7 +3523,7 @@ else:
                     condition: Expression::BinaryOp(
                         Box::new(Expression::BinaryOp(
                             Box::new(Expression::Id(
-                                "x".to_string(),
+                                "x".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -3485,7 +3533,7 @@ else:
                             )),
                             BinaryOperator::Walrus,
                             Box::new(Expression::Number(
-                                "15".to_string(),
+                                "15".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -3502,7 +3550,7 @@ else:
                         )),
                         BinaryOperator::GreaterThan,
                         Box::new(Expression::Number(
-                            "5".to_string(),
+                            "5".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -3519,7 +3567,7 @@ else:
                     ),
                     block: Block {
                         stmts: vec![Statement::Expression(Expression::Id(
-                            "x".to_string(),
+                            "x".into(),
                             Span {
                                 row_start: 2,
                                 row_end: 2,
@@ -3550,7 +3598,8 @@ else:
     #[test]
     #[ignore = "Handle invalid walrus assignment in statement"]
     fn parse_invalid_walrus_operator() {
-        let parser = Parser::new("x := 5 + 5");
+        let mut lexer = Lexer::new("x := 5 + 5");
+        let parser = Parser::new(&mut lexer);
         let (_, errors) = parser.parse();
 
         assert!(errors.is_some());
@@ -3558,7 +3607,7 @@ else:
             errors.unwrap(),
             vec![PythonError {
                 error: PythonErrorType::Syntax,
-                msg: "SyntaxError: invalid assignment statement!".to_string(),
+                msg: "SyntaxError: invalid assignment statement!".into(),
                 span: Span {
                     row_start: 1,
                     row_end: 1,
@@ -3571,7 +3620,8 @@ else:
 
     #[test]
     fn parse_await_expr() {
-        let parser = Parser::new("await func() * x ** 5 / 3");
+        let mut lexer = Lexer::new("await func() * x ** 5 / 3");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -3583,7 +3633,7 @@ else:
                         Box::new(Expression::Await(
                             Box::new(Expression::Call(FunctionCall {
                                 lhs: Box::new(Expression::Id(
-                                    "func".to_string(),
+                                    "func".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -3609,7 +3659,7 @@ else:
                         BinaryOperator::Multiply,
                         Box::new(Expression::BinaryOp(
                             Box::new(Expression::Id(
-                                "x".to_string(),
+                                "x".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -3619,7 +3669,7 @@ else:
                             )),
                             BinaryOperator::Exponent,
                             Box::new(Expression::Number(
-                                "5".to_string(),
+                                "5".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -3643,7 +3693,7 @@ else:
                     )),
                     BinaryOperator::Divide,
                     Box::new(Expression::Number(
-                        "3".to_string(),
+                        "3".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -3664,7 +3714,8 @@ else:
 
     #[test]
     fn parse_lambda_expr() {
-        let parser = Parser::new("lambda x: x + 1");
+        let mut lexer = Lexer::new("lambda x: x + 1");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -3673,7 +3724,7 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Lambda(LambdaExpr {
                     parameters: vec![FuncParameter {
-                        name: "x".to_string(),
+                        name: "x".into(),
                         default_value: None,
                         star_parameter_type: None,
                         span: Span {
@@ -3687,7 +3738,7 @@ else:
                     }],
                     expression: Box::new(Expression::BinaryOp(
                         Box::new(Expression::Id(
-                            "x".to_string(),
+                            "x".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -3697,7 +3748,7 @@ else:
                         )),
                         BinaryOperator::Add,
                         Box::new(Expression::Number(
-                            "1".to_string(),
+                            "1".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -3725,7 +3776,8 @@ else:
 
     #[test]
     fn parse_lambda_expr2() {
-        let parser = Parser::new("(lambda x: x + 1)()");
+        let mut lexer = Lexer::new("(lambda x: x + 1)()");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -3735,7 +3787,7 @@ else:
                 stmts: vec![Statement::Expression(Expression::Call(FunctionCall {
                     lhs: Box::new(Expression::Lambda(LambdaExpr {
                         parameters: vec![FuncParameter {
-                            name: "x".to_string(),
+                            name: "x".into(),
                             default_value: None,
                             star_parameter_type: None,
                             span: Span {
@@ -3749,7 +3801,7 @@ else:
                         }],
                         expression: Box::new(Expression::BinaryOp(
                             Box::new(Expression::Id(
-                                "x".to_string(),
+                                "x".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -3759,7 +3811,7 @@ else:
                             )),
                             BinaryOperator::Add,
                             Box::new(Expression::Number(
-                                "1".to_string(),
+                                "1".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -3795,11 +3847,12 @@ else:
 
     #[test]
     fn parse_class() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "class Test:
     def __init__(self):
         pass",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -3807,13 +3860,13 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Class(ClassStmt {
-                    name: "Test".to_string(),
+                    name: "Test".into(),
                     block: Block {
                         stmts: vec![Statement::FunctionDef(Function {
-                            name: "__init__".to_string(),
+                            name: "__init__".into(),
                             decorators: vec![],
                             parameters: vec![FuncParameter {
-                                name: "self".to_string(),
+                                name: "self".into(),
                                 default_value: None,
                                 star_parameter_type: None,
                                 span: Span {
@@ -3868,11 +3921,12 @@ else:
 
     #[test]
     fn parse_class2() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "class Dog(Animal):
     def __init__(self):
         pass",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -3880,13 +3934,13 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Class(ClassStmt {
-                    name: "Dog".to_string(),
+                    name: "Dog".into(),
                     block: Block {
                         stmts: vec![Statement::FunctionDef(Function {
-                            name: "__init__".to_string(),
+                            name: "__init__".into(),
                             decorators: vec![],
                             parameters: vec![FuncParameter {
-                                name: "self".to_string(),
+                                name: "self".into(),
                                 default_value: None,
                                 star_parameter_type: None,
                                 span: Span {
@@ -3927,7 +3981,7 @@ else:
                         }
                     },
                     base_classes: vec![Expression::Id(
-                        "Animal".to_string(),
+                        "Animal".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -3949,7 +4003,8 @@ else:
 
     #[test]
     fn parse_import() {
-        let parser = Parser::new("import os");
+        let mut lexer = Lexer::new("import os");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -3958,7 +4013,7 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Import(ImportStmt {
                     modules: vec![ImportModule {
-                        name: vec!["os".to_string()],
+                        name: vec!["os".into()],
                         alias: None
                     }],
                     span: Span {
@@ -3974,7 +4029,8 @@ else:
 
     #[test]
     fn parse_import2() {
-        let parser = Parser::new("import os.walk as O, sys as S");
+        let mut lexer = Lexer::new("import os.walk as O, sys as S");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -3984,12 +4040,12 @@ else:
                 stmts: vec![Statement::Import(ImportStmt {
                     modules: vec![
                         ImportModule {
-                            name: vec!["os".to_string(), "walk".to_string()],
-                            alias: Some("O".to_string())
+                            name: vec!["os".into(), "walk".into()],
+                            alias: Some("O".into())
                         },
                         ImportModule {
-                            name: vec!["sys".to_string()],
-                            alias: Some("S".to_string())
+                            name: vec!["sys".into()],
+                            alias: Some("S".into())
                         }
                     ],
                     span: Span {
@@ -4005,7 +4061,8 @@ else:
 
     #[test]
     fn parse_from_import() {
-        let parser = Parser::new("from os import *");
+        let mut lexer = Lexer::new("from os import *");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4014,11 +4071,11 @@ else:
             ParsedFile {
                 stmts: vec![Statement::FromImport(FromImportStmt {
                     module: vec![ImportModule {
-                        name: vec!["os".to_string()],
+                        name: vec!["os".into()],
                         alias: None
                     }],
                     targets: vec![ImportModule {
-                        name: vec!["*".to_string()],
+                        name: vec!["*".into()],
                         alias: None
                     }],
                     span: Span {
@@ -4034,7 +4091,8 @@ else:
 
     #[test]
     fn parse_from_import2() {
-        let parser = Parser::new("from ... import *");
+        let mut lexer = Lexer::new("from ... import *");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4043,11 +4101,11 @@ else:
             ParsedFile {
                 stmts: vec![Statement::FromImport(FromImportStmt {
                     module: vec![ImportModule {
-                        name: vec![".".to_string(), ".".to_string(), ".".to_string()],
+                        name: vec!["...".into()],
                         alias: None
                     }],
                     targets: vec![ImportModule {
-                        name: vec!["*".to_string()],
+                        name: vec!["*".into()],
                         alias: None
                     }],
                     span: Span {
@@ -4063,7 +4121,8 @@ else:
 
     #[test]
     fn parse_from_import3() {
-        let parser = Parser::new("from .subpackage.module1 import func");
+        let mut lexer = Lexer::new("from .subpackage.module1 import func");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4073,16 +4132,16 @@ else:
                 stmts: vec![Statement::FromImport(FromImportStmt {
                     module: vec![
                         ImportModule {
-                            name: vec![".".to_string()],
+                            name: vec![".".into()],
                             alias: None
                         },
                         ImportModule {
-                            name: vec!["subpackage".to_string(), "module1".to_string()],
+                            name: vec!["subpackage".into(), "module1".into()],
                             alias: None
                         }
                     ],
                     targets: vec![ImportModule {
-                        name: vec!["func".to_string()],
+                        name: vec!["func".into()],
                         alias: None
                     }],
                     span: Span {
@@ -4098,7 +4157,8 @@ else:
 
     #[test]
     fn parse_from_import4() {
-        let parser = Parser::new("from .subpackage.module1 import (func, func2, func3)");
+        let mut lexer = Lexer::new("from .subpackage.module1 import (func, func2, func3)");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4108,25 +4168,25 @@ else:
                 stmts: vec![Statement::FromImport(FromImportStmt {
                     module: vec![
                         ImportModule {
-                            name: vec![".".to_string()],
+                            name: vec![".".into()],
                             alias: None
                         },
                         ImportModule {
-                            name: vec!["subpackage".to_string(), "module1".to_string()],
+                            name: vec!["subpackage".into(), "module1".into()],
                             alias: None
                         }
                     ],
                     targets: vec![
                         ImportModule {
-                            name: vec!["func".to_string()],
+                            name: vec!["func".into()],
                             alias: None
                         },
                         ImportModule {
-                            name: vec!["func2".to_string()],
+                            name: vec!["func2".into()],
                             alias: None
                         },
                         ImportModule {
-                            name: vec!["func3".to_string()],
+                            name: vec!["func3".into()],
                             alias: None
                         }
                     ],
@@ -4143,10 +4203,11 @@ else:
 
     #[test]
     fn parse_with() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "with open() as file:
     pass",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4157,7 +4218,7 @@ else:
                     items: vec![WithItem {
                         item: Expression::Call(FunctionCall {
                             lhs: Box::new(Expression::Id(
-                                "open".to_string(),
+                                "open".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -4174,7 +4235,7 @@ else:
                             }
                         }),
                         target: Some(Expression::Id(
-                            "file".to_string(),
+                            "file".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -4216,12 +4277,13 @@ else:
 
     #[test]
     fn parse_try_except() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "try:
     pass
 except:
     pass",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4283,12 +4345,13 @@ except:
 
     #[test]
     fn parse_try_except_as() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "try:
     pass
 except Except as e:
     pass",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4328,7 +4391,7 @@ except Except as e:
                         },
                         kind: ExceptBlockKind::Except,
                         expr: Some(Expression::Id(
-                            "Except".to_string(),
+                            "Except".into(),
                             Span {
                                 row_start: 3,
                                 row_end: 3,
@@ -4336,7 +4399,7 @@ except Except as e:
                                 column_end: 13
                             }
                         )),
-                        expr_alias: Some("e".to_string()),
+                        expr_alias: Some("e".into()),
                         span: Span {
                             row_start: 3,
                             row_end: 4,
@@ -4358,12 +4421,13 @@ except Except as e:
 
     #[test]
     fn parse_try_finally() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "try:
     pass
 finally:
     pass",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4422,7 +4486,7 @@ finally:
 
     #[test]
     fn parse_try_except_finally() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "try:
     pass
 except:
@@ -4430,6 +4494,7 @@ except:
 finally:
     pass",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4512,7 +4577,7 @@ finally:
 
     #[test]
     fn parse_try_except_else_finally() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "try:
     pass
 except:
@@ -4522,6 +4587,7 @@ else:
 finally:
     pass",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4625,7 +4691,7 @@ finally:
 
     #[test]
     fn parse_try_with_multiple_excepts() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "
 try:
     pass
@@ -4635,6 +4701,7 @@ except:
     pass
 ",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4662,7 +4729,7 @@ except:
                             block: Block {
                                 stmts: vec![Statement::Expression(Expression::BinaryOp(
                                     Box::new(Expression::Number(
-                                        "1".to_string(),
+                                        "1".into(),
                                         Span {
                                             row_start: 5,
                                             row_end: 5,
@@ -4672,7 +4739,7 @@ except:
                                     )),
                                     BinaryOperator::Add,
                                     Box::new(Expression::Number(
-                                        "1".to_string(),
+                                        "1".into(),
                                         Span {
                                             row_start: 5,
                                             row_end: 5,
@@ -4744,19 +4811,20 @@ except:
 
     #[test]
     fn parse_return_stmt() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "
 def x():
     return
 ",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
         assert!(errors.is_none());
         assert_eq!(
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::FunctionDef(Function {
-                    name: "x".to_string(),
+                    name: "x".into(),
                     parameters: vec![],
                     decorators: vec![],
                     block: Block {
@@ -4789,26 +4857,27 @@ def x():
 
     #[test]
     fn parse_return_stmt2() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "
 def x():
     return 2 + 2
 ",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
         assert!(errors.is_none());
         assert_eq!(
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::FunctionDef(Function {
-                    name: "x".to_string(),
+                    name: "x".into(),
                     parameters: vec![],
                     decorators: vec![],
                     block: Block {
                         stmts: vec![Statement::Return(ReturnStmt {
                             value: Some(Expression::BinaryOp(
                                 Box::new(Expression::Number(
-                                    "2".to_string(),
+                                    "2".into(),
                                     Span {
                                         row_start: 3,
                                         row_end: 3,
@@ -4818,7 +4887,7 @@ def x():
                                 )),
                                 BinaryOperator::Add,
                                 Box::new(Expression::Number(
-                                    "2".to_string(),
+                                    "2".into(),
                                     Span {
                                         row_start: 3,
                                         row_end: 3,
@@ -4860,13 +4929,14 @@ def x():
 
     #[test]
     fn parse_yield_expr() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "
 def test():
     yield 1
     yield 1, 2 + 3, abc
 ",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4874,14 +4944,14 @@ def test():
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::FunctionDef(Function {
-                    name: "test".to_string(),
+                    name: "test".into(),
                     parameters: vec![],
                     decorators: vec![],
                     block: Block {
                         stmts: vec![
                             Statement::Expression(Expression::Yield(
                                 Some(Box::new(Expression::Number(
-                                    "1".to_string(),
+                                    "1".into(),
                                     Span {
                                         row_start: 3,
                                         row_end: 3,
@@ -4900,7 +4970,7 @@ def test():
                                 Some(Box::new(Expression::Tuple(
                                     vec![
                                         Expression::Number(
-                                            "1".to_string(),
+                                            "1".into(),
                                             Span {
                                                 row_start: 4,
                                                 row_end: 4,
@@ -4910,7 +4980,7 @@ def test():
                                         ),
                                         Expression::BinaryOp(
                                             Box::new(Expression::Number(
-                                                "2".to_string(),
+                                                "2".into(),
                                                 Span {
                                                     row_start: 4,
                                                     row_end: 4,
@@ -4920,7 +4990,7 @@ def test():
                                             )),
                                             BinaryOperator::Add,
                                             Box::new(Expression::Number(
-                                                "3".to_string(),
+                                                "3".into(),
                                                 Span {
                                                     row_start: 4,
                                                     row_end: 4,
@@ -4936,7 +5006,7 @@ def test():
                                             }
                                         ),
                                         Expression::Id(
-                                            "abc".to_string(),
+                                            "abc".into(),
                                             Span {
                                                 row_start: 4,
                                                 row_end: 4,
@@ -4980,12 +5050,13 @@ def test():
 
     #[test]
     fn parse_yield_from() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "
 def test():
     yield from func()
 ",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4993,14 +5064,14 @@ def test():
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::FunctionDef(Function {
-                    name: "test".to_string(),
+                    name: "test".into(),
                     parameters: vec![],
                     decorators: vec![],
                     block: Block {
                         stmts: vec![Statement::Expression(Expression::YieldFrom(
                             Box::new(Expression::Call(FunctionCall {
                                 lhs: Box::new(Expression::Id(
-                                    "func".to_string(),
+                                    "func".into(),
                                     Span {
                                         row_start: 3,
                                         row_end: 3,
@@ -5043,13 +5114,14 @@ def test():
 
     #[test]
     fn parse_for_stmt() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "
 for i in [1, 2, 3]:
     yield i
     yield i + 1
 ",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -5058,7 +5130,7 @@ for i in [1, 2, 3]:
             ParsedFile {
                 stmts: vec![Statement::For(ForStmt {
                     target: Expression::Id(
-                        "i".to_string(),
+                        "i".into(),
                         Span {
                             row_start: 2,
                             row_end: 2,
@@ -5069,7 +5141,7 @@ for i in [1, 2, 3]:
                     iter: Expression::List(
                         vec![
                             Expression::Number(
-                                "1".to_string(),
+                                "1".into(),
                                 Span {
                                     row_start: 2,
                                     row_end: 2,
@@ -5078,7 +5150,7 @@ for i in [1, 2, 3]:
                                 }
                             ),
                             Expression::Number(
-                                "2".to_string(),
+                                "2".into(),
                                 Span {
                                     row_start: 2,
                                     row_end: 2,
@@ -5087,7 +5159,7 @@ for i in [1, 2, 3]:
                                 }
                             ),
                             Expression::Number(
-                                "3".to_string(),
+                                "3".into(),
                                 Span {
                                     row_start: 2,
                                     row_end: 2,
@@ -5107,7 +5179,7 @@ for i in [1, 2, 3]:
                         stmts: vec![
                             Statement::Expression(Expression::Yield(
                                 Some(Box::new(Expression::Id(
-                                    "i".to_string(),
+                                    "i".into(),
                                     Span {
                                         row_start: 3,
                                         row_end: 3,
@@ -5125,7 +5197,7 @@ for i in [1, 2, 3]:
                             Statement::Expression(Expression::Yield(
                                 Some(Box::new(Expression::BinaryOp(
                                     Box::new(Expression::Id(
-                                        "i".to_string(),
+                                        "i".into(),
                                         Span {
                                             row_start: 4,
                                             row_end: 4,
@@ -5135,7 +5207,7 @@ for i in [1, 2, 3]:
                                     )),
                                     BinaryOperator::Add,
                                     Box::new(Expression::Number(
-                                        "1".to_string(),
+                                        "1".into(),
                                         Span {
                                             row_start: 4,
                                             row_end: 4,
@@ -5179,12 +5251,13 @@ for i in [1, 2, 3]:
 
     #[test]
     fn parse_for_stmt2() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "
 for a, b in ((1, 2, 3)):
     ...
 ",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -5195,7 +5268,7 @@ for a, b in ((1, 2, 3)):
                     target: Expression::Tuple(
                         vec![
                             Expression::Id(
-                                "a".to_string(),
+                                "a".into(),
                                 Span {
                                     row_start: 2,
                                     row_end: 2,
@@ -5204,7 +5277,7 @@ for a, b in ((1, 2, 3)):
                                 }
                             ),
                             Expression::Id(
-                                "b".to_string(),
+                                "b".into(),
                                 Span {
                                     row_start: 2,
                                     row_end: 2,
@@ -5223,7 +5296,7 @@ for a, b in ((1, 2, 3)):
                     iter: Expression::Tuple(
                         vec![
                             Expression::Number(
-                                "1".to_string(),
+                                "1".into(),
                                 Span {
                                     row_start: 2,
                                     row_end: 2,
@@ -5232,7 +5305,7 @@ for a, b in ((1, 2, 3)):
                                 }
                             ),
                             Expression::Number(
-                                "2".to_string(),
+                                "2".into(),
                                 Span {
                                     row_start: 2,
                                     row_end: 2,
@@ -5241,7 +5314,7 @@ for a, b in ((1, 2, 3)):
                                 }
                             ),
                             Expression::Number(
-                                "3".to_string(),
+                                "3".into(),
                                 Span {
                                     row_start: 2,
                                     row_end: 2,
@@ -5285,12 +5358,13 @@ for a, b in ((1, 2, 3)):
 
     #[test]
     fn parse_for_stmt3() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "
 for *a in ((1, 2, 3)):
     ...
 ",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -5300,7 +5374,7 @@ for *a in ((1, 2, 3)):
                 stmts: vec![Statement::For(ForStmt {
                     target: Expression::UnaryOp(
                         Box::new(Expression::Id(
-                            "a".to_string(),
+                            "a".into(),
                             Span {
                                 row_start: 2,
                                 row_end: 2,
@@ -5319,7 +5393,7 @@ for *a in ((1, 2, 3)):
                     iter: Expression::Tuple(
                         vec![
                             Expression::Number(
-                                "1".to_string(),
+                                "1".into(),
                                 Span {
                                     row_start: 2,
                                     row_end: 2,
@@ -5328,7 +5402,7 @@ for *a in ((1, 2, 3)):
                                 }
                             ),
                             Expression::Number(
-                                "2".to_string(),
+                                "2".into(),
                                 Span {
                                     row_start: 2,
                                     row_end: 2,
@@ -5337,7 +5411,7 @@ for *a in ((1, 2, 3)):
                                 }
                             ),
                             Expression::Number(
-                                "3".to_string(),
+                                "3".into(),
                                 Span {
                                     row_start: 2,
                                     row_end: 2,
@@ -5381,13 +5455,14 @@ for *a in ((1, 2, 3)):
 
     #[test]
     fn parse_raise_stmt() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "
 raise
 raise Exception
 raise Exception from e
 ",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -5407,7 +5482,7 @@ raise Exception from e
                     }),
                     Statement::Raise(RaiseStmt {
                         exc: Some(Expression::Id(
-                            "Exception".to_string(),
+                            "Exception".into(),
                             Span {
                                 row_start: 3,
                                 row_end: 3,
@@ -5425,7 +5500,7 @@ raise Exception from e
                     }),
                     Statement::Raise(RaiseStmt {
                         exc: Some(Expression::Id(
-                            "Exception".to_string(),
+                            "Exception".into(),
                             Span {
                                 row_start: 4,
                                 row_end: 4,
@@ -5434,7 +5509,7 @@ raise Exception from e
                             }
                         )),
                         from: Some(Expression::Id(
-                            "e".to_string(),
+                            "e".into(),
                             Span {
                                 row_start: 4,
                                 row_end: 4,
@@ -5456,12 +5531,13 @@ raise Exception from e
 
     #[test]
     fn parse_del_stmt() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "
 del a
 del b, c, d
 ",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -5471,7 +5547,7 @@ del b, c, d
                 stmts: vec![
                     Statement::Del(DelStmt {
                         expr: Expression::Id(
-                            "a".to_string(),
+                            "a".into(),
                             Span {
                                 row_start: 2,
                                 row_end: 2,
@@ -5490,7 +5566,7 @@ del b, c, d
                         expr: Expression::Tuple(
                             vec![
                                 Expression::Id(
-                                    "b".to_string(),
+                                    "b".into(),
                                     Span {
                                         row_start: 3,
                                         row_end: 3,
@@ -5499,7 +5575,7 @@ del b, c, d
                                     }
                                 ),
                                 Expression::Id(
-                                    "c".to_string(),
+                                    "c".into(),
                                     Span {
                                         row_start: 3,
                                         row_end: 3,
@@ -5508,7 +5584,7 @@ del b, c, d
                                     }
                                 ),
                                 Expression::Id(
-                                    "d".to_string(),
+                                    "d".into(),
                                     Span {
                                         row_start: 3,
                                         row_end: 3,
@@ -5538,7 +5614,8 @@ del b, c, d
 
     #[test]
     fn parse_function_call_with_arguments() {
-        let parser = Parser::new("hello(1 + 2, True, y = None)");
+        let mut lexer = Lexer::new("hello(1 + 2, True, y = None)");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -5547,7 +5624,7 @@ del b, c, d
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Call(FunctionCall {
                     lhs: Box::new(Expression::Id(
-                        "hello".to_string(),
+                        "hello".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -5558,7 +5635,7 @@ del b, c, d
                     args: vec![
                         Expression::BinaryOp(
                             Box::new(Expression::Number(
-                                "1".to_string(),
+                                "1".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -5568,7 +5645,7 @@ del b, c, d
                             )),
                             BinaryOperator::Add,
                             Box::new(Expression::Number(
-                                "2".to_string(),
+                                "2".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -5594,7 +5671,7 @@ del b, c, d
                         ),
                         Expression::Assign(Assign {
                             lhs: Box::new(Expression::Id(
-                                "y".to_string(),
+                                "y".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -5629,7 +5706,8 @@ del b, c, d
 
     #[test]
     fn parse_subscript_with_string() {
-        let parser = Parser::new("l[\"x\"]");
+        let mut lexer = Lexer::new("l[\"x\"]");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -5638,7 +5716,7 @@ del b, c, d
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::Subscript(Subscript {
                     lhs: Box::new(Expression::Id(
-                        "l".to_string(),
+                        "l".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -5647,7 +5725,7 @@ del b, c, d
                         }
                     )),
                     slice: Box::new(SubscriptType::Subscript(Expression::String(
-                        "x".to_string(),
+                        "x".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -5668,7 +5746,7 @@ del b, c, d
 
     #[test]
     fn parse_subscript_with_slice() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "
 l[1:]
 l[:1]
@@ -5678,6 +5756,7 @@ l[::]
 l[:]
 ",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -5687,7 +5766,7 @@ l[:]
                 stmts: vec![
                     Statement::Expression(Expression::Subscript(Subscript {
                         lhs: Box::new(Expression::Id(
-                            "l".to_string(),
+                            "l".into(),
                             Span {
                                 row_start: 2,
                                 row_end: 2,
@@ -5697,7 +5776,7 @@ l[:]
                         )),
                         slice: Box::new(SubscriptType::Slice {
                             lower: Some(Expression::Number(
-                                "1".to_string(),
+                                "1".into(),
                                 Span {
                                     row_start: 2,
                                     row_end: 2,
@@ -5717,7 +5796,7 @@ l[:]
                     })),
                     Statement::Expression(Expression::Subscript(Subscript {
                         lhs: Box::new(Expression::Id(
-                            "l".to_string(),
+                            "l".into(),
                             Span {
                                 row_start: 3,
                                 row_end: 3,
@@ -5728,7 +5807,7 @@ l[:]
                         slice: Box::new(SubscriptType::Slice {
                             lower: None,
                             upper: Some(Expression::Number(
-                                "1".to_string(),
+                                "1".into(),
                                 Span {
                                     row_start: 3,
                                     row_end: 3,
@@ -5747,7 +5826,7 @@ l[:]
                     })),
                     Statement::Expression(Expression::Subscript(Subscript {
                         lhs: Box::new(Expression::Id(
-                            "l".to_string(),
+                            "l".into(),
                             Span {
                                 row_start: 4,
                                 row_end: 4,
@@ -5757,7 +5836,7 @@ l[:]
                         )),
                         slice: Box::new(SubscriptType::Slice {
                             lower: Some(Expression::Number(
-                                "1".to_string(),
+                                "1".into(),
                                 Span {
                                     row_start: 4,
                                     row_end: 4,
@@ -5766,7 +5845,7 @@ l[:]
                                 }
                             )),
                             upper: Some(Expression::Number(
-                                "2".to_string(),
+                                "2".into(),
                                 Span {
                                     row_start: 4,
                                     row_end: 4,
@@ -5785,7 +5864,7 @@ l[:]
                     })),
                     Statement::Expression(Expression::Subscript(Subscript {
                         lhs: Box::new(Expression::Id(
-                            "l".to_string(),
+                            "l".into(),
                             Span {
                                 row_start: 5,
                                 row_end: 5,
@@ -5795,7 +5874,7 @@ l[:]
                         )),
                         slice: Box::new(SubscriptType::Slice {
                             lower: Some(Expression::Number(
-                                "1".to_string(),
+                                "1".into(),
                                 Span {
                                     row_start: 5,
                                     row_end: 5,
@@ -5804,7 +5883,7 @@ l[:]
                                 }
                             )),
                             upper: Some(Expression::Number(
-                                "2".to_string(),
+                                "2".into(),
                                 Span {
                                     row_start: 5,
                                     row_end: 5,
@@ -5813,7 +5892,7 @@ l[:]
                                 }
                             )),
                             step: Some(Expression::Number(
-                                "3".to_string(),
+                                "3".into(),
                                 Span {
                                     row_start: 5,
                                     row_end: 5,
@@ -5831,7 +5910,7 @@ l[:]
                     })),
                     Statement::Expression(Expression::Subscript(Subscript {
                         lhs: Box::new(Expression::Id(
-                            "l".to_string(),
+                            "l".into(),
                             Span {
                                 row_start: 6,
                                 row_end: 6,
@@ -5853,7 +5932,7 @@ l[:]
                     })),
                     Statement::Expression(Expression::Subscript(Subscript {
                         lhs: Box::new(Expression::Id(
-                            "l".to_string(),
+                            "l".into(),
                             Span {
                                 row_start: 7,
                                 row_end: 7,
@@ -5880,7 +5959,7 @@ l[:]
 
     #[test]
     fn parse_function_with_decorators() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "
 @abc
 @abc.cde
@@ -5888,6 +5967,7 @@ def test():
    ...
 ",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -5895,7 +5975,7 @@ def test():
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::FunctionDef(Function {
-                    name: "test".to_string(),
+                    name: "test".into(),
                     parameters: vec![],
                     block: Block {
                         stmts: vec![Statement::Expression(Expression::Ellipsis(Span {
@@ -5913,7 +5993,7 @@ def test():
                     },
                     decorators: vec![
                         Expression::Id(
-                            "abc".to_string(),
+                            "abc".into(),
                             Span {
                                 row_start: 2,
                                 row_end: 2,
@@ -5923,7 +6003,7 @@ def test():
                         ),
                         Expression::BinaryOp(
                             Box::new(Expression::Id(
-                                "abc".to_string(),
+                                "abc".into(),
                                 Span {
                                     row_start: 3,
                                     row_end: 3,
@@ -5933,7 +6013,7 @@ def test():
                             )),
                             BinaryOperator::AttributeRef,
                             Box::new(Expression::Id(
-                                "cde".to_string(),
+                                "cde".into(),
                                 Span {
                                     row_start: 3,
                                     row_end: 3,
@@ -5962,7 +6042,8 @@ def test():
 
     #[test]
     fn parse_list_comprehension() {
-        let parser = Parser::new("[n for n in dir(module) if n[0] != \"_\"]");
+        let mut lexer = Lexer::new("[n for n in dir(module) if n[0] != \"_\"]");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -5971,7 +6052,7 @@ def test():
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::ListComp(ListComp {
                     target: Box::new(Expression::Id(
-                        "n".to_string(),
+                        "n".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -5983,7 +6064,7 @@ def test():
                         cond: Expression::BinaryOp(
                             Box::new(Expression::Subscript(Subscript {
                                 lhs: Box::new(Expression::Id(
-                                    "n".to_string(),
+                                    "n".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -5992,7 +6073,7 @@ def test():
                                     }
                                 )),
                                 slice: Box::new(SubscriptType::Subscript(Expression::Number(
-                                    "0".to_string(),
+                                    "0".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -6009,7 +6090,7 @@ def test():
                             })),
                             BinaryOperator::NotEqual,
                             Box::new(Expression::String(
-                                "_".to_string(),
+                                "_".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -6033,7 +6114,7 @@ def test():
                     }],
                     fors: vec![ForComp {
                         target: Expression::Id(
-                            "n".to_string(),
+                            "n".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -6043,7 +6124,7 @@ def test():
                         ),
                         iter: Expression::Call(FunctionCall {
                             lhs: Box::new(Expression::Id(
-                                "dir".to_string(),
+                                "dir".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -6052,7 +6133,7 @@ def test():
                                 }
                             )),
                             args: vec![Expression::Id(
-                                "module".to_string(),
+                                "module".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -6087,7 +6168,8 @@ def test():
 
     #[test]
     fn parse_list_comprehension2() {
-        let parser = Parser::new("[i for i in l for j in l if i > 0 if j > 1 for x in l]");
+        let mut lexer = Lexer::new("[i for i in l for j in l if i > 0 if j > 1 for x in l]");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -6096,7 +6178,7 @@ def test():
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::ListComp(ListComp {
                     target: Box::new(Expression::Id(
-                        "i".to_string(),
+                        "i".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -6108,7 +6190,7 @@ def test():
                         IfComp {
                             cond: Expression::BinaryOp(
                                 Box::new(Expression::Id(
-                                    "i".to_string(),
+                                    "i".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -6118,7 +6200,7 @@ def test():
                                 )),
                                 BinaryOperator::GreaterThan,
                                 Box::new(Expression::Number(
-                                    "0".to_string(),
+                                    "0".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -6143,7 +6225,7 @@ def test():
                         IfComp {
                             cond: Expression::BinaryOp(
                                 Box::new(Expression::Id(
-                                    "j".to_string(),
+                                    "j".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -6153,7 +6235,7 @@ def test():
                                 )),
                                 BinaryOperator::GreaterThan,
                                 Box::new(Expression::Number(
-                                    "1".to_string(),
+                                    "1".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -6179,7 +6261,7 @@ def test():
                     fors: vec![
                         ForComp {
                             target: Expression::Id(
-                                "i".to_string(),
+                                "i".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -6188,7 +6270,7 @@ def test():
                                 }
                             ),
                             iter: Expression::Id(
-                                "l".to_string(),
+                                "l".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -6205,7 +6287,7 @@ def test():
                         },
                         ForComp {
                             target: Expression::Id(
-                                "j".to_string(),
+                                "j".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -6214,7 +6296,7 @@ def test():
                                 }
                             ),
                             iter: Expression::Id(
-                                "l".to_string(),
+                                "l".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -6231,7 +6313,7 @@ def test():
                         },
                         ForComp {
                             target: Expression::Id(
-                                "x".to_string(),
+                                "x".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -6240,7 +6322,7 @@ def test():
                                 }
                             ),
                             iter: Expression::Id(
-                                "l".to_string(),
+                                "l".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -6269,11 +6351,12 @@ def test():
 
     #[test]
     fn parse_function_with_kw_only_parameters() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "
 def test(x=0, *, y=0):
     ...",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -6281,12 +6364,12 @@ def test(x=0, *, y=0):
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::FunctionDef(Function {
-                    name: "test".to_string(),
+                    name: "test".into(),
                     parameters: vec![
                         FuncParameter {
-                            name: "x".to_string(),
+                            name: "x".into(),
                             default_value: Some(Expression::Number(
-                                "0".to_string(),
+                                "0".into(),
                                 Span {
                                     row_start: 2,
                                     row_end: 2,
@@ -6305,9 +6388,9 @@ def test(x=0, *, y=0):
                             }
                         },
                         FuncParameter {
-                            name: "y".to_string(),
+                            name: "y".into(),
                             default_value: Some(Expression::Number(
-                                "0".to_string(),
+                                "0".into(),
                                 Span {
                                     row_start: 2,
                                     row_end: 2,
@@ -6354,11 +6437,12 @@ def test(x=0, *, y=0):
 
     #[test]
     fn parse_function_with_kw_only_and_pos_only_parameters() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "
 def test(x, /, *, y):
     ...",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -6366,10 +6450,10 @@ def test(x, /, *, y):
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::FunctionDef(Function {
-                    name: "test".to_string(),
+                    name: "test".into(),
                     parameters: vec![
                         FuncParameter {
-                            name: "x".to_string(),
+                            name: "x".into(),
                             default_value: None,
                             star_parameter_type: None,
                             is_kw_only: false,
@@ -6382,7 +6466,7 @@ def test(x, /, *, y):
                             }
                         },
                         FuncParameter {
-                            name: "y".to_string(),
+                            name: "y".into(),
                             default_value: None,
                             star_parameter_type: None,
                             is_kw_only: true,
@@ -6423,7 +6507,8 @@ def test(x, /, *, y):
 
     #[test]
     fn parse_assert_stmt() {
-        let parser = Parser::new("assert 1 > x");
+        let mut lexer = Lexer::new("assert 1 > x");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -6433,7 +6518,7 @@ def test(x, /, *, y):
                 stmts: vec![Statement::Assert(AssertStmt {
                     expr: Expression::BinaryOp(
                         Box::new(Expression::Number(
-                            "1".to_string(),
+                            "1".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -6443,7 +6528,7 @@ def test(x, /, *, y):
                         )),
                         BinaryOperator::GreaterThan,
                         Box::new(Expression::Id(
-                            "x".to_string(),
+                            "x".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -6471,7 +6556,8 @@ def test(x, /, *, y):
 
     #[test]
     fn parse_generator_comprehension() {
-        let parser = Parser::new("(i for i in l if i % 2 == 0)");
+        let mut lexer = Lexer::new("(i for i in l if i % 2 == 0)");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -6480,7 +6566,7 @@ def test(x, /, *, y):
             ParsedFile {
                 stmts: vec![Statement::Expression(Expression::GeneratorComp(GeneratorComp {
                     target: Box::new(Expression::Id(
-                        "i".to_string(),
+                        "i".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -6492,7 +6578,7 @@ def test(x, /, *, y):
                         cond: Expression::BinaryOp(
                             Box::new(Expression::BinaryOp(
                                 Box::new(Expression::Id(
-                                    "i".to_string(),
+                                    "i".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -6502,7 +6588,7 @@ def test(x, /, *, y):
                                 )),
                                 BinaryOperator::Modulo,
                                 Box::new(Expression::Number(
-                                    "2".to_string(),
+                                    "2".into(),
                                     Span {
                                         row_start: 1,
                                         row_end: 1,
@@ -6519,7 +6605,7 @@ def test(x, /, *, y):
                             )),
                             BinaryOperator::Equals,
                             Box::new(Expression::Number(
-                                "0".to_string(),
+                                "0".into(),
                                 Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -6543,7 +6629,7 @@ def test(x, /, *, y):
                     }],
                     fors: vec![ForComp {
                         target: Expression::Id(
-                            "i".to_string(),
+                            "i".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -6552,7 +6638,7 @@ def test(x, /, *, y):
                             }
                         ),
                         iter: Expression::Id(
-                            "l".to_string(),
+                            "l".into(),
                             Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -6580,7 +6666,8 @@ def test(x, /, *, y):
 
     #[test]
     fn parse_invalid_global_statement() {
-        let parser = Parser::new("global 1 + 1");
+        let mut lexer = Lexer::new("global 1 + 1");
+        let parser = Parser::new(&mut lexer);
         let (_, errors) = parser.parse();
 
         assert!(errors.is_some());
@@ -6588,7 +6675,7 @@ def test(x, /, *, y):
             errors,
             Some(vec![PythonError {
                 error: PythonErrorType::Syntax,
-                msg: "SyntaxError: unexpected token Number(Integer(Decimal), \"1\")".to_string(),
+                msg: "SyntaxError: unexpected token Number(Integer(Decimal), \"1\")".into(),
                 span: Span {
                     row_start: 1,
                     row_end: 1,
@@ -6601,7 +6688,8 @@ def test(x, /, *, y):
 
     #[test]
     fn parse_global_statement() {
-        let parser = Parser::new("global x");
+        let mut lexer = Lexer::new("global x");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -6610,7 +6698,7 @@ def test(x, /, *, y):
             ParsedFile {
                 stmts: vec![Statement::Global(GlobalStmt {
                     name: Expression::Id(
-                        "x".to_string(),
+                        "x".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -6631,7 +6719,8 @@ def test(x, /, *, y):
 
     #[test]
     fn parse_nonlocal_statement() {
-        let parser = Parser::new("nonlocal x");
+        let mut lexer = Lexer::new("nonlocal x");
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -6640,7 +6729,7 @@ def test(x, /, *, y):
             ParsedFile {
                 stmts: vec![Statement::NonLocal(NonLocalStmt {
                     name: Expression::Id(
-                        "x".to_string(),
+                        "x".into(),
                         Span {
                             row_start: 1,
                             row_end: 1,
@@ -6661,11 +6750,12 @@ def test(x, /, *, y):
 
     #[test]
     fn parse_function_with_simple_stmts() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "
 def t(): x = 1; return x
 ",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -6673,13 +6763,13 @@ def t(): x = 1; return x
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::FunctionDef(Function {
-                    name: "t".to_string(),
+                    name: "t".into(),
                     parameters: vec![],
                     block: Block {
                         stmts: vec![
                             Statement::Expression(Expression::Assign(Assign {
                                 lhs: Box::new(Expression::Id(
-                                    "x".to_string(),
+                                    "x".into(),
                                     Span {
                                         row_start: 2,
                                         row_end: 2,
@@ -6688,7 +6778,7 @@ def t(): x = 1; return x
                                     },
                                 )),
                                 rhs: Box::new(Expression::Number(
-                                    "1".to_string(),
+                                    "1".into(),
                                     Span {
                                         row_start: 2,
                                         row_end: 2,
@@ -6705,7 +6795,7 @@ def t(): x = 1; return x
                             })),
                             Statement::Return(ReturnStmt {
                                 value: Some(Expression::Id(
-                                    "x".to_string(),
+                                    "x".into(),
                                     Span {
                                         row_start: 2,
                                         row_end: 2,
@@ -6744,11 +6834,12 @@ def t(): x = 1; return x
     fn parse_invalid_function_with_simple_stmts() {
         // FIXME: the `parse_simple_stmts` function is creating the AST for the "while" statement,
         // when it should be creating an invalid AST node
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "
 def t(): x = 1; while x > 1: x -= 1
 ",
         );
+        let parser = Parser::new(&mut lexer);
         let (_, errors) = parser.parse();
 
         assert!(errors.is_some());
@@ -6756,7 +6847,7 @@ def t(): x = 1; while x > 1: x -= 1
             errors,
             Some(vec![PythonError {
                 error: PythonErrorType::Syntax,
-                msg: "SyntaxError: invalid syntax".to_string(),
+                msg: "SyntaxError: invalid syntax".into(),
                 span: Span {
                     row_start: 2,
                     row_end: 2,
@@ -6769,11 +6860,12 @@ def t(): x = 1; while x > 1: x -= 1
 
     #[test]
     fn parse_invalid_function_with_simple_stmts2() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "
 def t(): ;
 ",
         );
+        let parser = Parser::new(&mut lexer);
         let (_, errors) = parser.parse();
 
         assert!(errors.is_some());
@@ -6781,7 +6873,7 @@ def t(): ;
             errors,
             Some(vec![PythonError {
                 error: PythonErrorType::Syntax,
-                msg: "SyntaxError: invalid syntax, expecting an simple statement before the ';'".to_string(),
+                msg: "SyntaxError: invalid syntax, expecting an simple statement before the ';'".into(),
                 span: Span {
                     row_start: 2,
                     row_end: 2,
@@ -6794,14 +6886,15 @@ def t(): ;
 
     #[test]
     fn parse_invalid_await_expr() {
-        let parser = Parser::new("await");
+        let mut lexer = Lexer::new("await");
+        let parser = Parser::new(&mut lexer);
         let (_, errors) = parser.parse();
 
         assert_eq!(
             errors,
             Some(vec![PythonError {
                 error: PythonErrorType::Syntax,
-                msg: "SyntaxError: invalid syntax, expecting expression".to_string(),
+                msg: "SyntaxError: invalid syntax, expecting expression".into(),
                 span: Span {
                     row_start: 1,
                     row_end: 1,
@@ -6814,7 +6907,7 @@ def t(): ;
 
     #[test]
     fn parse_class_with_decorators() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "
 @abc
 @abc.cde
@@ -6822,6 +6915,7 @@ class Test:
    ...
 ",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -6829,7 +6923,7 @@ class Test:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Class(ClassStmt {
-                    name: "Test".to_string(),
+                    name: "Test".into(),
                     block: Block {
                         stmts: vec![Statement::Expression(Expression::Ellipsis(Span {
                             row_start: 5,
@@ -6847,7 +6941,7 @@ class Test:
                     base_classes: vec![],
                     decorators: vec![
                         Expression::Id(
-                            "abc".to_string(),
+                            "abc".into(),
                             Span {
                                 row_start: 2,
                                 row_end: 2,
@@ -6857,7 +6951,7 @@ class Test:
                         ),
                         Expression::BinaryOp(
                             Box::new(Expression::Id(
-                                "abc".to_string(),
+                                "abc".into(),
                                 Span {
                                     row_start: 3,
                                     row_end: 3,
@@ -6867,7 +6961,7 @@ class Test:
                             )),
                             BinaryOperator::AttributeRef,
                             Box::new(Expression::Id(
-                                "cde".to_string(),
+                                "cde".into(),
                                 Span {
                                     row_start: 3,
                                     row_end: 3,
@@ -6896,12 +6990,13 @@ class Test:
 
     #[test]
     fn parse_async_function() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "
 async def t():
    ...
 ",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -6909,7 +7004,7 @@ async def t():
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::AsyncFunctionDef(Function {
-                    name: "t".to_string(),
+                    name: "t".into(),
                     parameters: vec![],
                     block: Block {
                         stmts: vec![Statement::Expression(Expression::Ellipsis(Span {
@@ -6939,12 +7034,13 @@ async def t():
 
     #[test]
     fn parse_async_with() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "
 async with T():
    ...
 ",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -6955,7 +7051,7 @@ async with T():
                     items: vec![WithItem {
                         item: Expression::Call(FunctionCall {
                             lhs: Box::new(Expression::Id(
-                                "T".to_string(),
+                                "T".into(),
                                 Span {
                                     row_start: 2,
                                     row_end: 2,
@@ -7006,12 +7102,13 @@ async with T():
 
     #[test]
     fn parse_async_for() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "
 async for i in l:
    ...
 ",
         );
+        let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -7020,7 +7117,7 @@ async for i in l:
             ParsedFile {
                 stmts: vec![Statement::AsyncFor(ForStmt {
                     target: Expression::Id(
-                        "i".to_string(),
+                        "i".into(),
                         Span {
                             row_start: 2,
                             row_end: 2,
@@ -7029,7 +7126,7 @@ async for i in l:
                         },
                     ),
                     iter: Expression::Id(
-                        "l".to_string(),
+                        "l".into(),
                         Span {
                             row_start: 2,
                             row_end: 2,
@@ -7065,12 +7162,13 @@ async for i in l:
 
     #[test]
     fn parse_invalid_async() {
-        let parser = Parser::new(
+        let mut lexer = Lexer::new(
             "
 async class Test:
    ...
 ",
         );
+        let parser = Parser::new(&mut lexer);
         let (_, errors) = parser.parse();
 
         assert!(errors.is_some());
@@ -7078,7 +7176,7 @@ async class Test:
             errors,
             Some(vec![PythonError {
                 error: PythonErrorType::Syntax,
-                msg: "SyntaxError: Expected \"def\", \"with\" or \"for\" to follow \"async\"".to_string(),
+                msg: "SyntaxError: Expected \"def\", \"with\" or \"for\" to follow \"async\"".into(),
                 span: Span {
                     row_start: 2,
                     row_end: 2,
