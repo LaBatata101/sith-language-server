@@ -2869,10 +2869,7 @@ impl<'a> Parser<'a> {
         let mut stmts = vec![];
         let mut span = Span::default();
 
-        while !matches!(
-            self.tokens.get(*index).unwrap().kind,
-            TokenType::NewLine | TokenType::Eof
-        ) {
+        loop {
             let mut token = self.tokens.get(*index).unwrap();
 
             if !token.is_simple_stmt() {
@@ -2914,9 +2911,12 @@ impl<'a> Parser<'a> {
             stmts.push(stmt);
 
             token = self.tokens.get(*index).unwrap();
-            if token.kind == TokenType::SemiColon {
-                *index += 1;
+            if token.kind != TokenType::SemiColon {
+                break;
             }
+
+            // consume ;
+            *index += 1;
         }
 
         (stmts, span, if errors.is_empty() { None } else { Some(errors) })
