@@ -228,7 +228,7 @@ impl<'a> Parser<'a> {
                 }
             };
 
-            if allowed_expr.unary_op.intersects(UnaryOperationsBitflag::ALL) && op.is_unary() {
+            if allowed_expr.unary_op.intersects(UnaryOperationsBitflag::ALL) && op.is_postfix() {
                 let (lhs_bp, ()) = postfix_binding_power(op).unwrap();
 
                 if lhs_bp < min_precedence_weight {
@@ -245,7 +245,7 @@ impl<'a> Parser<'a> {
                 continue;
             }
 
-            if allowed_expr.binary_op.intersects(BinaryOperationsBitflag::ALL) && op.is_binary() {
+            if allowed_expr.binary_op.intersects(BinaryOperationsBitflag::ALL) && op.is_infix() {
                 let (lhs_bp, rhs_bp) = infix_binding_power(op).unwrap();
 
                 if lhs_bp < min_precedence_weight {
@@ -267,7 +267,14 @@ impl<'a> Parser<'a> {
                     }
                 }
 
-                *index += 1;
+                // In Python the "not" token followed by the "in" token and the
+                // "is" token followed by "not" token are treated as one operator,
+                // which means, we have to advance the `index` accordingly.
+                if matches!(op, Operation::Binary(BinaryOperator::NotIn | BinaryOperator::IsNot)) {
+                    *index += 2;
+                } else {
+                    *index += 1;
+                }
 
                 let next_token = self.tokens.get(*index).unwrap();
                 // This wont work if the rhs is another expression
@@ -1497,7 +1504,7 @@ impl<'a> Parser<'a> {
         (parameters, if errors.is_empty() { None } else { Some(errors) })
     }
 
-    fn get_expr_operation(&self, token: &Token, index: &mut usize) -> Result<Operation, PythonError> {
+    fn get_expr_operation(&self, token: &Token, index: &usize) -> Result<Operation, PythonError> {
         Ok(match token.kind {
             TokenType::Operator(OperatorType::Exponent) => Operation::Binary(BinaryOperator::Exponent),
             TokenType::Operator(OperatorType::Plus) => Operation::Binary(BinaryOperator::Add),
@@ -1531,10 +1538,9 @@ impl<'a> Parser<'a> {
             TokenType::Keyword(KeywordType::Is) => {
                 if self
                     .tokens
-                    .get(*index + 1)
+                    .get(index + 1)
                     .map_or(false, |token| token.kind == TokenType::Keyword(KeywordType::Not))
                 {
-                    *index += 1;
                     Operation::Binary(BinaryOperator::IsNot)
                 } else {
                     Operation::Binary(BinaryOperator::Is)
@@ -1543,10 +1549,9 @@ impl<'a> Parser<'a> {
             TokenType::Keyword(KeywordType::Not) => {
                 if self
                     .tokens
-                    .get(*index + 1)
+                    .get(index + 1)
                     .map_or(false, |token| token.kind == TokenType::Keyword(KeywordType::In))
                 {
-                    *index += 1;
                     Operation::Binary(BinaryOperator::NotIn)
                 } else {
                     Operation::Unary(UnaryOperator::LogicalNot)

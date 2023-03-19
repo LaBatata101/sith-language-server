@@ -7186,4 +7186,119 @@ async class Test:
             }])
         )
     }
+
+    #[test]
+    fn parse_is_not_operator() {
+        let mut lexer = Lexer::new("object.attr is not None");
+        let parser = Parser::new(&mut lexer);
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Expression(Expression::BinaryOp(
+                    Box::new(Expression::BinaryOp(
+                        Box::new(Expression::Id(
+                            "object".into(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 1,
+                                column_end: 6,
+                            },
+                        )),
+                        BinaryOperator::AttributeRef,
+                        Box::new(Expression::Id(
+                            "attr".into(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 8,
+                                column_end: 11,
+                            },
+                        )),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 11,
+                        },
+                    )),
+                    BinaryOperator::IsNot,
+                    Box::new(Expression::None(Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 20,
+                        column_end: 23,
+                    })),
+                    Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 23,
+                    },
+                ))]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_not_in_operator() {
+        let mut lexer = Lexer::new("object.attr not in list");
+        let parser = Parser::new(&mut lexer);
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Expression(Expression::BinaryOp(
+                    Box::new(Expression::BinaryOp(
+                        Box::new(Expression::Id(
+                            "object".into(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 1,
+                                column_end: 6,
+                            },
+                        )),
+                        BinaryOperator::AttributeRef,
+                        Box::new(Expression::Id(
+                            "attr".into(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 8,
+                                column_end: 11,
+                            },
+                        )),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 11,
+                        },
+                    )),
+                    BinaryOperator::NotIn,
+                    Box::new(Expression::Id(
+                        "list".into(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 20,
+                            column_end: 23,
+                        }
+                    )),
+                    Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 23,
+                    },
+                ))]
+            }
+        )
+    }
 }

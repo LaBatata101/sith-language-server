@@ -227,12 +227,15 @@ impl Operation {
         }
     }
 
-    pub fn is_binary(&self) -> bool {
+    pub fn is_infix(&self) -> bool {
         matches!(self, Operation::Binary(_))
     }
 
-    pub fn is_unary(&self) -> bool {
-        matches!(self, Operation::Unary(_))
+    pub fn is_postfix(&self) -> bool {
+        matches!(
+            self,
+            Operation::Unary(UnaryOperator::OpenParenthesis | UnaryOperator::OpenBrackets)
+        )
     }
 }
 
