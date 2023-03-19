@@ -453,31 +453,23 @@ impl<'a> Lexer<'a> {
         let quote_char = self.cs.current_char().unwrap();
 
         let start = self.cs.pos();
-        // Consume `"` or `'`
-        while self.cs.current_char().map_or(false, |char| char == quote_char) {
-            self.cs.advance_by(1);
-            start_quote_total += 1;
-        }
 
-        if start_quote_total == 3 {
-            loop {
+        if self.is_triple_quote_str_in_pos(start) {
+            self.cs.advance_by(3);
+            start_quote_total = 3;
+            let mut pos = self.cs.pos();
+
+            while !self.is_triple_quote_str_in_pos(pos) {
                 self.cs.advance_by(1);
 
                 if self.cs.current_char().map_or(false, |char| char == quote_char) {
-                    let quote_pos = self.cs.pos();
-                    if matches!(
-                        (
-                            self.cs.peek_char(quote_pos.index),
-                            self.cs.peek_char(quote_pos.index + 1),
-                            self.cs.peek_char(quote_pos.index + 2)
-                        ),
-                        (Some('"'), Some('"'), Some('"')) | (Some('\''), Some('\''), Some('\''))
-                    ) {
-                        break;
-                    }
+                    pos = self.cs.pos();
                 }
             }
         } else {
+            self.cs.advance_by(1);
+            start_quote_total = 1;
+
             while self
                 .cs
                 .current_char()
@@ -529,7 +521,12 @@ impl<'a> Lexer<'a> {
                 str.to_mut().push_str(&String::from_utf8_lossy(
                     self.cs
                         .get_slice(start.index + start_quote_total, backslash_position.index)
-                        .unwrap(),
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "Failed to get the string slice in pos: ({}, {}) -> ({}, {})",
+                                start.row, start.column, end.row, end.column
+                            )
+                        }),
                 ));
             }
             // Here we join the last string line that doesn't have the backslash.
@@ -539,7 +536,12 @@ impl<'a> Lexer<'a> {
                         backslash_positions.last().unwrap().index + 2, // 2 is the size of the \ + \n
                         end.index - end_quote_total,
                     )
-                    .unwrap(),
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "Failed to get the string slice in pos: ({}, {}) -> ({}, {})",
+                            start.row, start.column, end.row, end.column
+                        )
+                    }),
             ));
 
             str
@@ -547,7 +549,12 @@ impl<'a> Lexer<'a> {
             String::from_utf8_lossy(
                 self.cs
                     .get_slice(start.index + start_quote_total, end.index - end_quote_total)
-                    .unwrap(),
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "Failed to get the string slice in pos: ({}, {}) -> ({}, {})",
+                            start.row, start.column, end.row, end.column
+                        )
+                    }),
             )
         };
 
@@ -555,6 +562,17 @@ impl<'a> Lexer<'a> {
             out_string,
             self.make_span(start, end),
             if errors.is_empty() { None } else { Some(errors) },
+        )
+    }
+
+    fn is_triple_quote_str_in_pos(&self, pos: Position) -> bool {
+        matches!(
+            (
+                self.cs.peek_char(pos.index),
+                self.cs.peek_char(pos.index + 1),
+                self.cs.peek_char(pos.index + 2)
+            ),
+            (Some('"'), Some('"'), Some('"')) | (Some('\''), Some('\''), Some('\''))
         )
     }
 

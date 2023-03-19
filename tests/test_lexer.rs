@@ -2683,4 +2683,105 @@ Multiline text
             ]
         )
     }
+
+    #[test]
+    fn lex_empty_strings() {
+        let mut lexer = Lexer::new(
+            "
+''
+\"\"
+''''''
+\"\"\"\"\"\"
+",
+        );
+        let errors = lexer.tokenize();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token {
+                    kind: TokenType::String("".into()),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 1,
+                        column_end: 2,
+                    },
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 3,
+                        column_end: 3,
+                    },
+                },
+                Token {
+                    kind: TokenType::String("".into()),
+                    span: Span {
+                        row_start: 3,
+                        row_end: 3,
+                        column_start: 1,
+                        column_end: 2,
+                    },
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 3,
+                        row_end: 3,
+                        column_start: 3,
+                        column_end: 3,
+                    },
+                },
+                Token {
+                    kind: TokenType::String("".into()),
+                    span: Span {
+                        row_start: 4,
+                        row_end: 4,
+                        column_start: 1,
+                        column_end: 6,
+                    },
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 4,
+                        row_end: 4,
+                        column_start: 7,
+                        column_end: 7,
+                    },
+                },
+                Token {
+                    kind: TokenType::String("".into()),
+                    span: Span {
+                        row_start: 5,
+                        row_end: 5,
+                        column_start: 1,
+                        column_end: 6,
+                    },
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 5,
+                        row_end: 5,
+                        column_start: 7,
+                        column_end: 7,
+                    },
+                },
+                Token {
+                    kind: TokenType::Eof,
+                    span: Span {
+                        row_start: 6,
+                        row_end: 6,
+                        column_start: 1,
+                        column_end: 1,
+                    },
+                }
+            ]
+        );
+    }
 }
