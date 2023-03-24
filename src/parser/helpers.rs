@@ -88,7 +88,7 @@ bitflags! {
     }
 }
 
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Clone, Copy, Debug)]
 pub struct ParseExprBitflags {
     pub expressions: ExprBitflag,
     pub binary_op: BinaryOperationsBitflag,

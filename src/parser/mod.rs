@@ -45,14 +45,7 @@ impl<'a> Parser<'a> {
         let mut index = 0;
         let mut parse_errors: Vec<PythonError> = vec![];
 
-        while index < self.tokens.len() {
-            if self
-                .tokens
-                .get(index)
-                .map_or(false, |token| token.kind == TokenType::Eof)
-            {
-                break;
-            }
+        while self.tokens.get(index).unwrap().kind != TokenType::Eof {
             let (stmt, errors) = self.parse_statements(&mut index);
             parsed_file.stmts.push(stmt);
             if let Some(stmt_errors) = errors {
@@ -70,11 +63,9 @@ impl<'a> Parser<'a> {
     fn parse_expression(&self, index: &mut usize, allowed_expr: ParseExprBitflags) -> (Expression, PythonErrors) {
         let (mut expr, mut expr_errors) = self.pratt_parsing(index, 0, allowed_expr);
 
+        let mut token = self.tokens.get(*index).unwrap();
         // TODO: Try to refactor this later
-        if self
-            .tokens
-            .get(*index)
-            .map_or(false, |token| token.kind == TokenType::Comma)
+        if token.kind == TokenType::Comma
             && allowed_expr
                 .expressions
                 .contains(ExprBitflag::TUPLE | ExprBitflag::TUPLE_NO_PARENS)
@@ -101,15 +92,14 @@ impl<'a> Parser<'a> {
                     expr_errors = Some(tuple_errors);
                 }
             }
+
+            token = self.tokens.get(*index).unwrap();
         }
 
-        let token = self.tokens.get(*index);
-
-        if token.map_or(false, |token| {
-            allowed_expr.expressions.contains(ExprBitflag::ASSIGN)
-                && (token.is_assign() || token.is_augassign() || token.kind == TokenType::Colon)
-        }) {
-            let (assign_expr, assign_errors) = self.parse_assign(index, token.unwrap(), expr, allowed_expr);
+        if allowed_expr.expressions.contains(ExprBitflag::ASSIGN)
+            && (token.is_assign() || token.is_augassign() || token.kind == TokenType::Colon)
+        {
+            let (assign_expr, assign_errors) = self.parse_assign(index, token, expr, allowed_expr);
 
             expr = assign_expr;
             if let Some(assign_errors) = assign_errors {
@@ -121,9 +111,11 @@ impl<'a> Parser<'a> {
             }
         }
 
-        if self.tokens.get(*index).map_or(false, |token| {
-            matches!(&token.kind, TokenType::NewLine | TokenType::SemiColon)
-        }) {
+        if self
+            .tokens
+            .get(*index)
+            .map_or(false, |token| matches!(&token.kind, TokenType::NewLine))
+        {
             *index += 1;
         }
 
@@ -184,7 +176,7 @@ impl<'a> Parser<'a> {
                 self.parse_unary_operator(index, token)
             }
             TokenType::OpenParenthesis if allowed_expr.expressions.contains(ExprBitflag::PARENTHESIZED) => {
-                self.parse_parenthesized_expr(index, token)
+                self.parse_parenthesized_expr(index, token, allowed_expr)
             }
             TokenType::OpenBrackets if allowed_expr.expressions.contains(ExprBitflag::LIST) => {
                 self.parse_list_expr(index, token.span)
@@ -338,6 +330,12 @@ impl<'a> Parser<'a> {
         let mut errors = vec![];
         let mut function = Function::default();
 
+        let for_token = self.tokens.get(*index).unwrap();
+        function.span.row_start = for_token.span.row_start;
+        function.span.column_start = for_token.span.column_start;
+
+        // consume "for" keyword
+        *index += 1;
         let token = self.tokens.get(*index).unwrap();
         match &token.kind {
             TokenType::Id(name) => {
@@ -416,7 +414,9 @@ impl<'a> Parser<'a> {
         let mut errors = vec![];
         let mut decorators = vec![];
 
-        loop {
+        while self.tokens.get(*index).unwrap().kind == TokenType::Operator(OperatorType::At) {
+            // consume @
+            *index += 1;
             // FIXME: specify correct expression allowed in decorators
             let (decorator, decorator_errors) = self.parse_expression(index, ParseExprBitflags::all());
 
@@ -425,52 +425,44 @@ impl<'a> Parser<'a> {
             }
 
             decorators.push(decorator);
-
-            if self.tokens.get(*index).unwrap().kind != TokenType::Operator(OperatorType::At) {
-                break;
-            }
-
-            // consume @
-            *index += 1;
         }
 
         let token = self.tokens.get(*index).unwrap();
-        if !matches!(token.kind, TokenType::Keyword(KeywordType::Def | KeywordType::Class)) {
-            errors.push(PythonError {
-                error: PythonErrorType::Syntax,
-                msg: "SyntaxError: expecting a function or class declaration after decorator".to_string(),
-                span: token.span,
-            });
-        } else {
-            // consume "def" or "class"
-            *index += 1;
-        }
+        // if !matches!(token.kind, TokenType::Keyword(KeywordType::Def | KeywordType::Class)) {
+        //     errors.push();
+        // } else {
+        //     // consume "def" or "class"
+        //     *index += 1;
+        // }
 
-        let class_or_func = if token.kind == TokenType::Keyword(KeywordType::Def) {
+        let (class_or_func, class_func_errors) = if token.kind == TokenType::Keyword(KeywordType::Def) {
             let (mut func, func_errors) = self.parse_function(index);
             func.decorators = decorators;
             func.span.row_start = initital_span.row_start;
             func.span.column_start = initital_span.column_start;
 
-            if let Some(func_errors) = func_errors {
-                errors.extend(func_errors);
-            }
-
-            Statement::FunctionDef(func)
+            (Statement::FunctionDef(func), func_errors)
         } else if token.kind == TokenType::Keyword(KeywordType::Class) {
-            let (mut class, func_errors) = self.parse_class(index);
+            let (mut class, class_errors) = self.parse_class(index);
             class.decorators = decorators;
             class.span.row_start = initital_span.row_start;
             class.span.column_start = initital_span.column_start;
 
-            if let Some(func_errors) = func_errors {
-                errors.extend(func_errors);
-            }
-
-            Statement::Class(class)
+            (Statement::Class(class), class_errors)
         } else {
-            Statement::Invalid(token.span)
+            (
+                Statement::Invalid(token.span),
+                Some(vec![PythonError {
+                    error: PythonErrorType::Syntax,
+                    msg: "SyntaxError: expecting a function or class declaration after decorator".to_string(),
+                    span: token.span,
+                }]),
+            )
         };
+
+        if let Some(class_func_errors) = class_func_errors {
+            errors.extend(class_func_errors);
+        }
 
         (class_or_func, if errors.is_empty() { None } else { Some(errors) })
     }
@@ -519,18 +511,7 @@ impl<'a> Parser<'a> {
             .map(|token| (token.span.column_start, token.span.row_start))
             .unwrap();
 
-        while let Some(mut token_kind) = self.tokens.get(*index).map(|token| &token.kind) {
-            // Not sure if this should be here or in the parse_statements
-            if *token_kind == TokenType::NewLine {
-                *index += 1;
-                token_kind = self.tokens.get(*index).map(|token| &token.kind).unwrap();
-            }
-
-            if *token_kind == TokenType::Dedent {
-                *index += 1;
-                break;
-            }
-
+        while self.tokens.get(*index).unwrap().kind != TokenType::Dedent {
             let (statement, stmt_errors) = self.parse_statements(index);
             block.span.row_end = statement.span().row_end;
             block.span.column_end = statement.span().column_end;
@@ -539,147 +520,113 @@ impl<'a> Parser<'a> {
             if let Some(stmt_errors) = stmt_errors {
                 errors.extend(stmt_errors);
             }
+
+            // Not sure if this should be here or in the parse_statements
+            if self.tokens.get(*index).unwrap().kind == TokenType::NewLine {
+                *index += 1;
+            }
         }
+        // consume DEDENT
+        *index += 1;
 
         (block, if errors.is_empty() { None } else { Some(errors) })
     }
 
     fn parse_statements(&self, index: &mut usize) -> (Statement, PythonErrors) {
         let token = self.tokens.get(*index).unwrap();
-        *index += 1;
-
-        match &token.kind {
+        let stmt = match &token.kind {
             TokenType::Keyword(KeywordType::Def) => {
-                let (mut func, func_errors) = self.parse_function(index);
-                func.span.row_start = token.span.row_start;
-                func.span.column_start = token.span.column_start;
-
-                (Statement::FunctionDef(func), func_errors)
+                let (func, errors) = self.parse_function(index);
+                (Statement::FunctionDef(func), errors)
             }
             TokenType::Operator(OperatorType::At) => self.parse_class_or_function_with_decorator(index, token.span),
             TokenType::Keyword(KeywordType::If) => {
-                let (mut if_stmt, if_stmt_errors) = self.parse_if(index);
-                if_stmt.span.row_start = token.span.row_start;
-                if_stmt.span.column_start = token.span.column_start;
-
+                let (if_stmt, if_stmt_errors) = self.parse_if(index);
                 (Statement::If(if_stmt), if_stmt_errors)
             }
             TokenType::Keyword(KeywordType::While) => {
-                let (mut while_stmt, while_stmt_errors) = self.parse_while(index);
-                while_stmt.span.row_start = token.span.row_start;
-                while_stmt.span.column_start = token.span.column_start;
-
+                let (while_stmt, while_stmt_errors) = self.parse_while(index);
                 (Statement::While(while_stmt), while_stmt_errors)
             }
             TokenType::Keyword(KeywordType::Class) => {
-                let (mut class_stmt, class_stmt_errors) = self.parse_class(index);
-                class_stmt.span.row_start = token.span.row_start;
-                class_stmt.span.column_start = token.span.column_start;
-
+                let (class_stmt, class_stmt_errors) = self.parse_class(index);
                 (Statement::Class(class_stmt), class_stmt_errors)
             }
             TokenType::Keyword(KeywordType::Import) => {
-                let (mut import_stmt, import_stmt_errors) = self.parse_import(index);
-                import_stmt.span.row_start = token.span.row_start;
-                import_stmt.span.column_start = token.span.column_start;
-
+                let (import_stmt, import_stmt_errors) = self.parse_import(index);
                 (Statement::Import(import_stmt), import_stmt_errors)
             }
             TokenType::Keyword(KeywordType::From) => {
-                let (mut from_import_stmt, from_import_errors) = self.parse_from_import(index);
-                from_import_stmt.span.row_start = token.span.row_start;
-                from_import_stmt.span.column_start = token.span.column_start;
-
+                let (from_import_stmt, from_import_errors) = self.parse_from_import(index);
                 (Statement::FromImport(from_import_stmt), from_import_errors)
             }
             TokenType::Keyword(KeywordType::With) => {
-                let (mut with_stmt, with_stmt_errors) = self.parse_with(index);
-                with_stmt.span.row_start = token.span.row_start;
-                with_stmt.span.column_start = token.span.column_start;
-
+                let (with_stmt, with_stmt_errors) = self.parse_with(index);
                 (Statement::With(with_stmt), with_stmt_errors)
             }
             TokenType::Keyword(KeywordType::Try) => {
-                let (mut try_stmt, try_stmt_errors) = self.parse_try(index);
-                try_stmt.span.row_start = token.span.row_start;
-                try_stmt.span.column_start = token.span.column_start;
-
+                let (try_stmt, try_stmt_errors) = self.parse_try(index);
                 (Statement::Try(try_stmt), try_stmt_errors)
             }
             TokenType::Keyword(KeywordType::Return) => {
-                let (mut return_stmt, return_stmt_errors) = self.parse_return(index);
-                return_stmt.span.row_start = token.span.row_start;
-                return_stmt.span.column_start = token.span.column_start;
-
+                let (return_stmt, return_stmt_errors) = self.parse_return(index);
                 (Statement::Return(return_stmt), return_stmt_errors)
             }
             TokenType::Keyword(KeywordType::For) => {
-                let (mut for_stmt, for_stmt_errors) = self.parse_for_stmt(index);
-                for_stmt.span.row_start = token.span.row_start;
-                for_stmt.span.column_start = token.span.column_start;
-
+                let (for_stmt, for_stmt_errors) = self.parse_for_stmt(index);
                 (Statement::For(for_stmt), for_stmt_errors)
             }
             TokenType::Keyword(KeywordType::Raise) => {
-                let (mut raise_stmt, raise_stmt_errors) = self.parse_raise_stmt(index);
-                raise_stmt.span.row_start = token.span.row_start;
-                raise_stmt.span.column_start = token.span.column_start;
-
+                let (raise_stmt, raise_stmt_errors) = self.parse_raise_stmt(index);
                 (Statement::Raise(raise_stmt), raise_stmt_errors)
             }
             TokenType::Keyword(KeywordType::Del) => {
-                let (mut del_stmt, del_stmt_errors) = self.parse_del_stmt(index);
-                del_stmt.span.row_start = token.span.row_start;
-                del_stmt.span.column_start = token.span.column_start;
-
+                let (del_stmt, del_stmt_errors) = self.parse_del_stmt(index);
                 (Statement::Del(del_stmt), del_stmt_errors)
             }
             TokenType::Keyword(KeywordType::Assert) => {
-                let (mut assert_stmt, assert_stmt_errors) = self.parse_assert(index);
-                assert_stmt.span.row_start = token.span.row_start;
-                assert_stmt.span.column_start = token.span.column_start;
-
+                let (assert_stmt, assert_stmt_errors) = self.parse_assert(index);
                 (Statement::Assert(assert_stmt), assert_stmt_errors)
             }
-            TokenType::Keyword(KeywordType::Pass) => (Statement::Pass(token.span), None),
-            TokenType::Keyword(KeywordType::Continue) => (Statement::Continue(token.span), None),
-            TokenType::Keyword(KeywordType::Break) => (Statement::Break(token.span), None),
+            TokenType::Keyword(KeywordType::Pass) => {
+                *index += 1;
+                (Statement::Pass(token.span), None)
+            }
+            TokenType::Keyword(KeywordType::Continue) => {
+                *index += 1;
+                (Statement::Continue(token.span), None)
+            }
+            TokenType::Keyword(KeywordType::Break) => {
+                *index += 1;
+                (Statement::Break(token.span), None)
+            }
             TokenType::Keyword(KeywordType::Global) => {
-                let (mut global_stmt, global_stmt_errors) = self.parse_global_stmt(index);
-                global_stmt.span.row_start = token.span.row_start;
-                global_stmt.span.column_start = token.span.column_start;
-
+                let (global_stmt, global_stmt_errors) = self.parse_global_stmt(index);
                 (Statement::Global(global_stmt), global_stmt_errors)
             }
             TokenType::Keyword(KeywordType::NonLocal) => {
-                let (mut nonlocal_stmt, nonlocal_stmt_errors) = self.parse_nonlocal_stmt(index);
-                nonlocal_stmt.span.row_start = token.span.row_start;
-                nonlocal_stmt.span.column_start = token.span.column_start;
-
+                let (nonlocal_stmt, nonlocal_stmt_errors) = self.parse_nonlocal_stmt(index);
                 (Statement::NonLocal(nonlocal_stmt), nonlocal_stmt_errors)
             }
-            TokenType::Keyword(KeywordType::Async) => self.parse_async_stms(index, token.span),
-            TokenType::Operator(OperatorType::ColonEqual) => {
-                self.skip_line(index);
-                (
-                    Statement::Invalid(token.span),
-                    Some(vec![PythonError {
-                        error: PythonErrorType::Syntax,
-                        msg: "SyntaxError: invalid assignment statement!".to_string(),
-                        span: token.span,
-                    }]),
-                )
-            }
+            TokenType::Keyword(KeywordType::Async) => self.parse_async_stms(index),
             _ => {
-                *index -= 1;
                 let (expr, expr_errors) = self.parse_expression(index, ParseExprBitflags::all());
+                if self.tokens.get(*index).unwrap().kind == TokenType::SemiColon {
+                    *index += 1;
+                }
                 (Statement::Expression(expr), expr_errors)
             }
-        }
+        };
+
+        stmt
     }
 
     fn parse_if(&self, index: &mut usize) -> (IfStmt, PythonErrors) {
         let mut errors = Vec::new();
+        let if_token = self.tokens.get(*index).unwrap();
+
+        // consume "if" keyword
+        *index += 1;
         let allowed_expr_in_cond = ParseExprBitflags::all().remove_expression(ExprBitflag::ASSIGN);
         let (condition_expr, condition_expr_errors) = self.parse_expression(index, allowed_expr_in_cond);
 
@@ -711,7 +658,7 @@ impl<'a> Parser<'a> {
             span: Span {
                 row_end: block.span.row_end,
                 column_end: block.span.column_end,
-                ..Default::default()
+                ..if_token.span
             },
             block,
         };
@@ -782,6 +729,10 @@ impl<'a> Parser<'a> {
 
     fn parse_while(&self, index: &mut usize) -> (While, PythonErrors) {
         let mut errors = Vec::new();
+        let while_token = self.tokens.get(*index).unwrap();
+
+        // consume "while" keyword
+        *index += 1;
         let (condition_expr, condition_expr_errors) =
             self.parse_expression(index, ParseExprBitflags::all().remove_expression(ExprBitflag::ASSIGN));
 
@@ -811,7 +762,7 @@ impl<'a> Parser<'a> {
             span: Span {
                 column_end: while_block.span.column_end,
                 row_end: while_block.span.row_end,
-                ..Default::default()
+                ..while_token.span
             },
             block: while_block,
         };
@@ -879,7 +830,12 @@ impl<'a> Parser<'a> {
         )
     }
 
-    fn parse_parenthesized_expr(&self, index: &mut usize, token: &Token) -> (Expression, PythonErrors) {
+    fn parse_parenthesized_expr(
+        &self,
+        index: &mut usize,
+        token: &Token,
+        allowed_expr: ParseExprBitflags,
+    ) -> (Expression, PythonErrors) {
         let mut errors = Vec::new();
 
         // Consume (
@@ -902,8 +858,7 @@ impl<'a> Parser<'a> {
             });
         }
 
-        let (mut expr, expr_errors) =
-            self.parse_expression(index, ParseExprBitflags::all().remove_expression(ExprBitflag::ASSIGN));
+        let (mut expr, expr_errors) = self.parse_expression(index, allowed_expr.remove_expression(ExprBitflag::ASSIGN));
 
         if let Some(expr_errors) = expr_errors {
             errors.extend(expr_errors);
@@ -1572,7 +1527,13 @@ impl<'a> Parser<'a> {
 
     fn parse_class(&self, index: &mut usize) -> (ClassStmt, PythonErrors) {
         let mut errors = Vec::new();
+        let class_token = self.tokens.get(*index).unwrap();
+
+        // consume "class" keyword
+        *index += 1;
         let mut class = ClassStmt::default();
+        class.span.row_start = class_token.span.row_start;
+        class.span.column_start = class_token.span.column_start;
 
         let mut token = self.tokens.get(*index).unwrap();
         match &token.kind {
@@ -1663,7 +1624,13 @@ impl<'a> Parser<'a> {
 
     fn parse_import(&self, index: &mut usize) -> (ImportStmt, PythonErrors) {
         let mut errors = Vec::new();
+        let import_token = self.tokens.get(*index).unwrap();
+
+        // consume "import" keyword
+        *index += 1;
         let mut import_stmt = ImportStmt::default();
+        import_stmt.span.row_start = import_token.span.row_start;
+        import_stmt.span.column_start = import_token.span.column_start;
 
         loop {
             let (name, span_end, module_name_errors) = self.parse_import_module_name(index);
@@ -1720,7 +1687,14 @@ impl<'a> Parser<'a> {
     // TODO: refactor this
     fn parse_from_import(&self, index: &mut usize) -> (FromImportStmt, PythonErrors) {
         let mut errors = Vec::new();
+        let from_token = self.tokens.get(*index).unwrap();
+
+        // consume "from" keyword
+        *index += 1;
         let mut from_import_stmt = FromImportStmt::default();
+        from_import_stmt.span.row_start = from_token.span.row_start;
+        from_import_stmt.span.column_start = from_token.span.column_start;
+
         let mut token = self.tokens.get(*index).unwrap();
 
         // Get the relative part
@@ -1912,8 +1886,15 @@ impl<'a> Parser<'a> {
 
     fn parse_with(&self, index: &mut usize) -> (WithStmt, PythonErrors) {
         let mut errors = Vec::new();
+        let with_token = self.tokens.get(*index).unwrap();
+
+        // consume "with" keyword
+        *index += 1;
         let mut with_stmt = WithStmt::default();
         let mut expect_close_paren = false;
+
+        with_stmt.span.row_start = with_token.span.row_start;
+        with_stmt.span.column_start = with_token.span.column_start;
 
         let mut token = self.tokens.get(*index).unwrap();
         if token.kind == TokenType::OpenParenthesis {
@@ -2004,6 +1985,11 @@ impl<'a> Parser<'a> {
 
     fn parse_try(&self, index: &mut usize) -> (TryStmt, PythonErrors) {
         let mut errors = Vec::new();
+        let try_token = self.tokens.get(*index).unwrap();
+
+        // consume "try" keyword
+        *index += 1;
+
         // TODO: improve error checking
         let mut token = self.tokens.get(*index).unwrap();
         if !matches!(token.kind, TokenType::Colon) {
@@ -2028,7 +2014,11 @@ impl<'a> Parser<'a> {
             finally_block: None,
             except_blocks: vec![],
             else_stmt: None,
-            ..Default::default()
+            span: Span {
+                row_start: try_token.span.row_start,
+                column_start: try_token.span.column_start,
+                ..Default::default()
+            },
         };
 
         token = self.tokens.get(*index).unwrap();
@@ -2170,11 +2160,18 @@ impl<'a> Parser<'a> {
 
     fn parse_return(&self, index: &mut usize) -> (ReturnStmt, PythonErrors) {
         let mut errors = Vec::new();
-        let mut return_stmt = ReturnStmt::default();
+        let return_token = self.tokens.get(*index).unwrap();
 
-        let token = self.tokens.get(*index).unwrap();
-        return_stmt.span.column_end = token.span.column_end;
-        return_stmt.span.row_end = token.span.row_end;
+        // consume "return" keyword
+        *index += 1;
+        let mut return_stmt = ReturnStmt {
+            value: None,
+            span: Span {
+                row_start: return_token.span.row_start,
+                column_start: return_token.span.column_start,
+                ..self.tokens.get(*index).unwrap().span
+            },
+        };
 
         if self.tokens.get(*index).map_or(false, |token| token.is_start_of_expr()) {
             let (expr, expr_errors) = self.parse_expression(index, ParseExprBitflags::all());
@@ -2225,13 +2222,23 @@ impl<'a> Parser<'a> {
 
     fn parse_for_stmt(&self, index: &mut usize) -> (ForStmt, PythonErrors) {
         let mut errors = Vec::new();
+        let for_token = self.tokens.get(*index).unwrap();
+
+        // consume "for" keyword
+        *index += 1;
         let mut for_stmt = ForStmt::default();
+        for_stmt.span.row_start = for_token.span.row_start;
+        for_stmt.span.column_start = for_token.span.column_start;
 
         let (target, target_errors) = self.parse_expression(
             index,
             ParseExprBitflags::empty()
                 .set_expressions(
-                    ExprBitflag::ID | ExprBitflag::TUPLE | ExprBitflag::LIST | ExprBitflag::TUPLE_NO_PARENS,
+                    ExprBitflag::ID
+                        | ExprBitflag::TUPLE
+                        | ExprBitflag::LIST
+                        | ExprBitflag::TUPLE_NO_PARENS
+                        | ExprBitflag::PARENTHESIZED,
                 )
                 .set_unary_op(UnaryOperationsBitflag::ALL),
         );
@@ -2301,20 +2308,20 @@ impl<'a> Parser<'a> {
     fn parse_assign(
         &self,
         index: &mut usize,
-        token: &Token,
+        assign_token: &Token,
         lhs: Expression<'a>,
         allowed_expr_in_rhs: ParseExprBitflags,
     ) -> (Expression, PythonErrors) {
         let mut errors = Vec::new();
 
-        if matches!(lhs, Expression::Tuple(_, _)) && token.kind == TokenType::Colon {
+        if matches!(lhs, Expression::Tuple(_, _)) && assign_token.kind == TokenType::Colon {
             self.skip_line(index);
 
             let span = Span {
                 row_start: lhs.span().row_start,
-                row_end: token.span.row_end,
+                row_end: assign_token.span.row_end,
                 column_start: lhs.span().column_start,
-                column_end: token.span.column_end,
+                column_end: assign_token.span.column_end,
             };
 
             return (
@@ -2327,7 +2334,7 @@ impl<'a> Parser<'a> {
             );
         }
 
-        if token.kind == TokenType::Colon {
+        if assign_token.kind == TokenType::Colon {
             // consume :
             *index += 1;
             let (typehint_expr, typehint_errors) =
@@ -2386,13 +2393,23 @@ impl<'a> Parser<'a> {
 
         // consume assign token
         *index += 1;
-        let (rhs, rhs_errors) = self.parse_expression(index, allowed_expr_in_rhs);
+        let token = self.tokens.get(*index).unwrap();
+        let (rhs, rhs_errors) = if token.is_start_of_expr() {
+            self.parse_expression(index, allowed_expr_in_rhs)
+        } else {
+            errors.push(PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: expecting an expression after the \"=\"".to_string(),
+                span: token.span,
+            });
+            (Expression::Invalid(token.span), None)
+        };
 
         if let Some(rhs_errors) = rhs_errors {
             errors.extend(rhs_errors);
         }
 
-        if token.is_assign() {
+        if assign_token.is_assign() {
             (
                 Expression::Assign(Assign {
                     span: Span {
@@ -2418,7 +2435,7 @@ impl<'a> Parser<'a> {
                 Expression::AugAssing(AugAssign {
                     lhs: Box::new(lhs),
                     rhs: Box::new(rhs),
-                    kind: token.to_augassign_type().unwrap(),
+                    kind: assign_token.to_augassign_type().unwrap(),
                     span,
                 }),
                 if errors.is_empty() { None } else { Some(errors) },
@@ -2428,7 +2445,15 @@ impl<'a> Parser<'a> {
 
     fn parse_raise_stmt(&self, index: &mut usize) -> (RaiseStmt, PythonErrors) {
         let mut errors = Vec::new();
-        let mut span = Span::default();
+        let raise_token = self.tokens.get(*index).unwrap();
+
+        // consume "raise" keyword
+        *index += 1;
+        let mut span = Span {
+            row_start: raise_token.span.row_start,
+            column_start: raise_token.span.column_start,
+            ..Default::default()
+        };
 
         let token = self.tokens.get(*index).unwrap();
         let exc = if token.is_start_of_expr() {
@@ -2479,19 +2504,24 @@ impl<'a> Parser<'a> {
     }
 
     fn skip_line(&self, index: &mut usize) {
-        while self
-            .tokens
-            .get(*index)
-            .map_or(false, |token| token.kind != TokenType::NewLine)
-        {
+        while !matches!(
+            self.tokens.get(*index).unwrap().kind,
+            TokenType::NewLine | TokenType::Eof
+        ) {
             *index += 1;
         }
 
-        // consume NEWLINE
-        *index += 1;
+        if self.tokens.get(*index).unwrap().kind == TokenType::NewLine {
+            // consume NEWLINE
+            *index += 1;
+        }
     }
 
     fn parse_del_stmt(&self, index: &mut usize) -> (DelStmt, PythonErrors) {
+        let del_token = self.tokens.get(*index).unwrap();
+        // consume "del" keyword
+        *index += 1;
+
         // FIXME: pass the correct scope of allowed expressions in del statement
         // FIXME: return error when no expression is found
         let (expr, expr_errors) = self.parse_expression(index, ParseExprBitflags::all());
@@ -2502,7 +2532,7 @@ impl<'a> Parser<'a> {
                 span: Span {
                     column_end: expr.span().column_end,
                     row_end: expr.span().row_end,
-                    ..Default::default()
+                    ..del_token.span
                 },
                 expr,
             },
@@ -2797,11 +2827,18 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_assert(&self, index: &mut usize) -> (AssertStmt, PythonErrors) {
+        let assert_token = self.tokens.get(*index).unwrap();
+        // consume "assert" keyword
+        *index += 1;
         let (expr, expr_errors) = self.parse_expression(index, ParseExprBitflags::all());
 
         (
             AssertStmt {
-                span: expr.span(),
+                span: Span {
+                    row_start: assert_token.span.row_start,
+                    column_start: assert_token.span.column_start,
+                    ..expr.span()
+                },
                 expr,
             },
             expr_errors,
@@ -2840,11 +2877,19 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_global_stmt(&self, index: &mut usize) -> (GlobalStmt, PythonErrors) {
+        let global_token = self.tokens.get(*index).unwrap();
+
+        // consume "global" keyword
+        *index += 1;
         let (expr, expr_errors) =
             self.parse_expression(index, ParseExprBitflags::empty().set_expressions(ExprBitflag::ID));
         (
             GlobalStmt {
-                span: expr.span(),
+                span: Span {
+                    row_start: global_token.span.row_start,
+                    column_start: global_token.span.column_start,
+                    ..expr.span()
+                },
                 name: expr,
             },
             expr_errors,
@@ -2852,12 +2897,20 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_nonlocal_stmt(&self, index: &mut usize) -> (NonLocalStmt, PythonErrors) {
+        let nonlocal_token = self.tokens.get(*index).unwrap();
+
+        // consume "nonlocal" keyword
+        *index += 1;
         let (expr, expr_errors) =
             self.parse_expression(index, ParseExprBitflags::empty().set_expressions(ExprBitflag::ID));
 
         (
             NonLocalStmt {
-                span: expr.span(),
+                span: Span {
+                    row_start: nonlocal_token.span.row_start,
+                    column_start: nonlocal_token.span.column_start,
+                    ..expr.span()
+                },
                 name: expr,
             },
             expr_errors,
@@ -2870,12 +2923,15 @@ impl<'a> Parser<'a> {
         let mut span = Span::default();
 
         loop {
-            let mut token = self.tokens.get(*index).unwrap();
+            let token = self.tokens.get(*index).unwrap();
 
             if !token.is_simple_stmt() {
                 errors.push(PythonError {
                     error: PythonErrorType::Syntax,
-                    msg: "SyntaxError: invalid syntax".to_string(),
+                    msg: format!(
+                        "SyntaxError: invalid syntax, {:?} is not a simple statement!",
+                        token.kind
+                    ),
                     span: token.span,
                 });
                 break;
@@ -2910,13 +2966,12 @@ impl<'a> Parser<'a> {
             span = stmt.span();
             stmts.push(stmt);
 
-            token = self.tokens.get(*index).unwrap();
-            if token.kind != TokenType::SemiColon {
+            if matches!(
+                self.tokens.get(*index).unwrap().kind,
+                TokenType::NewLine | TokenType::Eof
+            ) {
                 break;
             }
-
-            // consume ;
-            *index += 1;
         }
 
         (stmts, span, if errors.is_empty() { None } else { Some(errors) })
@@ -3016,38 +3071,39 @@ impl<'a> Parser<'a> {
         )
     }
 
-    fn parse_async_stms(&self, index: &mut usize, initital_span: Span) -> (Statement, PythonErrors) {
+    fn parse_async_stms(&self, index: &mut usize) -> (Statement, PythonErrors) {
+        let async_token = self.tokens.get(*index).unwrap();
+        // consume "async" keyword
+        *index += 1;
+
         // FIXME: show error message when async is used with "with" or "for" outside of a function
         let token = self.tokens.get(*index).unwrap();
         match token.kind {
             TokenType::Keyword(KeywordType::Def) => {
-                *index += 1;
                 let (mut func, errors) = self.parse_function(index);
-                func.span.row_start = initital_span.row_start;
-                func.span.column_start = initital_span.column_start;
+                func.span.row_start = async_token.span.row_start;
+                func.span.column_start = async_token.span.column_start;
 
                 (Statement::AsyncFunctionDef(func), errors)
             }
             TokenType::Keyword(KeywordType::With) => {
-                *index += 1;
                 let (mut with, errors) = self.parse_with(index);
-                with.span.row_start = initital_span.row_start;
-                with.span.column_start = initital_span.column_start;
+                with.span.row_start = async_token.span.row_start;
+                with.span.column_start = async_token.span.column_start;
 
                 (Statement::AsyncWith(with), errors)
             }
             TokenType::Keyword(KeywordType::For) => {
-                *index += 1;
                 let (mut for_stmt, errors) = self.parse_for_stmt(index);
-                for_stmt.span.row_start = initital_span.row_start;
-                for_stmt.span.column_start = initital_span.column_start;
+                for_stmt.span.row_start = async_token.span.row_start;
+                for_stmt.span.column_start = async_token.span.column_start;
 
                 (Statement::AsyncFor(for_stmt), errors)
             }
             _ => {
                 let span = Span {
-                    row_start: initital_span.row_start,
-                    column_start: initital_span.column_start,
+                    row_start: async_token.span.row_start,
+                    column_start: async_token.span.column_start,
                     ..token.span
                 };
                 (

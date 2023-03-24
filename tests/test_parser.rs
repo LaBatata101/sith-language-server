@@ -204,7 +204,7 @@ mod tests_parser {
             errors.unwrap(),
             vec![PythonError {
                 error: PythonErrorType::Syntax,
-                msg: "SyntaxError: unexpected token Eof".into(),
+                msg: "SyntaxError: expecting an expression after the \"=\"".into(),
                 span: Span {
                     row_start: 1,
                     row_end: 1,
@@ -6831,7 +6831,7 @@ def t(): x = 1; return x
     }
 
     #[test]
-    fn parse_invalid_function_with_simple_stmts() {
+    fn parse_function_with_invalid_simple_stmts() {
         // FIXME: the `parse_simple_stmts` function is creating the AST for the "while" statement,
         // when it should be creating an invalid AST node
         let mut lexer = Lexer::new(
@@ -6847,7 +6847,7 @@ def t(): x = 1; while x > 1: x -= 1
             errors,
             Some(vec![PythonError {
                 error: PythonErrorType::Syntax,
-                msg: "SyntaxError: invalid syntax".into(),
+                msg: "SyntaxError: invalid syntax, Keyword(While) is not a simple statement!".into(),
                 span: Span {
                     row_start: 2,
                     row_end: 2,
@@ -6859,7 +6859,7 @@ def t(): x = 1; while x > 1: x -= 1
     }
 
     #[test]
-    fn parse_invalid_function_with_simple_stmts2() {
+    fn parse_function_with_invalid_simple_stmts2() {
         let mut lexer = Lexer::new(
             "
 def t(): ;
