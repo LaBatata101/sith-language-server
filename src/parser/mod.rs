@@ -1904,14 +1904,12 @@ impl<'a> Parser<'a> {
         with_stmt.span.row_start = with_token.span.row_start;
         with_stmt.span.column_start = with_token.span.column_start;
 
-        let mut token = self.tokens.get(*index).unwrap();
-        if token.kind == TokenType::OpenParenthesis {
-            // Consume (
-            *index += 1;
-            expect_close_paren = true;
-        }
-
         loop {
+            if self.tokens.get(*index).unwrap().kind == TokenType::OpenParenthesis {
+                // Consume (
+                *index += 1;
+                expect_close_paren = true;
+            }
             let (item, item_errors) = self.pratt_parsing(index, 0, ParseExprBitflags::all());
 
             if let Some(item_errors) = item_errors {
@@ -1923,6 +1921,21 @@ impl<'a> Parser<'a> {
                 item,
                 target: None,
             };
+
+            if expect_close_paren {
+                expect_close_paren = false;
+                let token = self.tokens.get(*index).unwrap();
+                if token.kind != TokenType::CloseParenthesis {
+                    errors.push(PythonError {
+                        error: PythonErrorType::Syntax,
+                        msg: format!("SyntaxError: expecting ')' got {:?}", token.kind),
+                        span: token.span,
+                    });
+                } else {
+                    // Consume )
+                    *index += 1;
+                }
+            }
 
             if self.tokens.get(*index).unwrap().kind == TokenType::Keyword(KeywordType::As) {
                 // Consume "as"
@@ -1952,22 +1965,8 @@ impl<'a> Parser<'a> {
             *index += 1;
         }
 
-        if expect_close_paren {
-            token = self.tokens.get(*index).unwrap();
-            if !matches!(token.kind, TokenType::CloseParenthesis) {
-                errors.push(PythonError {
-                    error: PythonErrorType::Syntax,
-                    msg: format!("SyntaxError: expecting ')' got {:?}", token.kind),
-                    span: token.span,
-                });
-            } else {
-                // Consume )
-                *index += 1;
-            }
-        }
-
-        token = self.tokens.get(*index).unwrap();
-        if !matches!(token.kind, TokenType::Colon) {
+        let token = self.tokens.get(*index).unwrap();
+        if token.kind != TokenType::Colon {
             errors.push(PythonError {
                 error: PythonErrorType::Syntax,
                 msg: format!("SyntaxError: expecting ':' got {:?}", token.kind),

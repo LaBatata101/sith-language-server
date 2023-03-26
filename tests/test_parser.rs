@@ -7473,4 +7473,160 @@ finally: pass
             }
         )
     }
+
+    #[test]
+    fn parse_with_stmt_with_multiple_items() {
+        let mut lexer = Lexer::new(
+            "
+with (a if b else
+        open(c)) as f, open(d) as e:
+    ...
+",
+        );
+        let parser = Parser::new(&mut lexer);
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::With(WithStmt {
+                    items: vec![
+                        WithItem {
+                            item: Expression::IfElse(IfElseExpr {
+                                lhs: Box::new(Expression::Id(
+                                    "a".into(),
+                                    Span {
+                                        row_start: 2,
+                                        row_end: 2,
+                                        column_start: 7,
+                                        column_end: 7,
+                                    },
+                                )),
+                                rhs: Box::new(Expression::Call(FunctionCall {
+                                    lhs: Box::new(Expression::Id(
+                                        "open".into(),
+                                        Span {
+                                            row_start: 3,
+                                            row_end: 3,
+                                            column_start: 9,
+                                            column_end: 12,
+                                        },
+                                    )),
+                                    args: vec![Expression::Id(
+                                        "c".into(),
+                                        Span {
+                                            row_start: 3,
+                                            row_end: 3,
+                                            column_start: 14,
+                                            column_end: 14,
+                                        },
+                                    )],
+                                    span: Span {
+                                        row_start: 3,
+                                        row_end: 3,
+                                        column_start: 9,
+                                        column_end: 15,
+                                    },
+                                })),
+                                condition: Box::new(Expression::Id(
+                                    "b".into(),
+                                    Span {
+                                        row_start: 2,
+                                        row_end: 2,
+                                        column_start: 12,
+                                        column_end: 12,
+                                    },
+                                )),
+                                span: Span {
+                                    row_start: 2,
+                                    row_end: 3,
+                                    column_start: 7,
+                                    column_end: 15,
+                                },
+                            }),
+                            target: Some(Expression::Id(
+                                "f".into(),
+                                Span {
+                                    row_start: 3,
+                                    row_end: 3,
+                                    column_start: 21,
+                                    column_end: 21,
+                                },
+                            )),
+                            span: Span {
+                                row_start: 2,
+                                row_end: 3,
+                                column_start: 7,
+                                column_end: 21,
+                            },
+                        },
+                        WithItem {
+                            item: Expression::Call(FunctionCall {
+                                lhs: Box::new(Expression::Id(
+                                    "open".into(),
+                                    Span {
+                                        row_start: 3,
+                                        row_end: 3,
+                                        column_start: 24,
+                                        column_end: 27,
+                                    },
+                                )),
+                                args: vec![Expression::Id(
+                                    "d".into(),
+                                    Span {
+                                        row_start: 3,
+                                        row_end: 3,
+                                        column_start: 29,
+                                        column_end: 29,
+                                    },
+                                )],
+                                span: Span {
+                                    row_start: 3,
+                                    row_end: 3,
+                                    column_start: 24,
+                                    column_end: 30,
+                                },
+                            }),
+                            target: Some(Expression::Id(
+                                "e".into(),
+                                Span {
+                                    row_start: 3,
+                                    row_end: 3,
+                                    column_start: 35,
+                                    column_end: 35,
+                                },
+                            )),
+                            span: Span {
+                                row_start: 3,
+                                row_end: 3,
+                                column_start: 24,
+                                column_end: 35,
+                            },
+                        },
+                    ],
+                    block: Block {
+                        stmts: vec![Statement::Expression(Expression::Ellipsis(Span {
+                            row_start: 4,
+                            row_end: 4,
+                            column_start: 5,
+                            column_end: 7,
+                        }))],
+                        span: Span {
+                            row_start: 4,
+                            row_end: 4,
+                            column_start: 5,
+                            column_end: 7,
+                        },
+                    },
+                    span: Span {
+                        row_start: 2,
+                        row_end: 4,
+                        column_start: 1,
+                        column_end: 7,
+                    },
+                })]
+            }
+        )
+    }
 }
