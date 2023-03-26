@@ -1639,6 +1639,9 @@ impl<'a> Parser<'a> {
             if self.tokens.get(*index).unwrap().kind != TokenType::Comma {
                 break;
             }
+
+            // consume ,
+            *index += 1;
         }
 
         (bases, if errors.is_empty() { None } else { Some(errors) })

@@ -7629,4 +7629,76 @@ with (a if b else
             }
         )
     }
+
+    #[test]
+    fn parse_class_with_multiple_base_classes() {
+        let mut lexer = Lexer::new(
+            "
+class Test(A, B, C):
+    ...
+",
+        );
+        let parser = Parser::new(&mut lexer);
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Class(ClassStmt {
+                    name: "Test".into(),
+                    block: Block {
+                        stmts: vec![Statement::Expression(Expression::Ellipsis(Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 5,
+                            column_end: 7,
+                        },),),],
+                        span: Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 5,
+                            column_end: 7,
+                        },
+                    },
+                    base_classes: vec![
+                        Expression::Id(
+                            "A".into(),
+                            Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 12,
+                                column_end: 12,
+                            },
+                        ),
+                        Expression::Id(
+                            "B".into(),
+                            Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 15,
+                                column_end: 15,
+                            },
+                        ),
+                        Expression::Id(
+                            "C".into(),
+                            Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 18,
+                                column_end: 18,
+                            },
+                        ),
+                    ],
+                    decorators: vec![],
+                    span: Span {
+                        row_start: 2,
+                        row_end: 3,
+                        column_start: 1,
+                        column_end: 7,
+                    },
+                })]
+            }
+        )
+    }
 }
