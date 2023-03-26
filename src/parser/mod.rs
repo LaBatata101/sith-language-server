@@ -8,7 +8,7 @@ use crate::{
     lexer::{
         span::Span,
         token::{
-            types::{KeywordType, OperatorType, TokenType},
+            types::{KeywordType, OperatorType, SoftKeywordType, TokenType},
             Token,
         },
         Lexer,
@@ -126,6 +126,20 @@ impl<'a> Parser<'a> {
             TokenType::Id(name) if allowed_expr.expressions.contains(ExprBitflag::ID) => {
                 *index += 1;
                 (Expression::Id(Cow::Borrowed(name), token.span), None)
+            }
+            TokenType::SoftKeyword(SoftKeywordType::Match) if allowed_expr.expressions.contains(ExprBitflag::ID) => {
+                *index += 1;
+                (Expression::Id(Cow::Borrowed("match"), token.span), None)
+            }
+            TokenType::SoftKeyword(SoftKeywordType::Case) if allowed_expr.expressions.contains(ExprBitflag::ID) => {
+                *index += 1;
+                (Expression::Id(Cow::Borrowed("case"), token.span), None)
+            }
+            TokenType::SoftKeyword(SoftKeywordType::Underscore)
+                if allowed_expr.expressions.contains(ExprBitflag::ID) =>
+            {
+                *index += 1;
+                (Expression::Id(Cow::Borrowed("_"), token.span), None)
             }
             TokenType::String(str) if allowed_expr.expressions.contains(ExprBitflag::STRING) => {
                 *index += 1;
