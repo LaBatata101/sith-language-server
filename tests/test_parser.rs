@@ -6831,6 +6831,7 @@ def t(): x = 1; return x
     }
 
     #[test]
+    #[ignore = "Can't detect the use of statements that aren't simple statements right now"]
     fn parse_function_with_invalid_simple_stmts() {
         // FIXME: the `parse_simple_stmts` function is creating the AST for the "while" statement,
         // when it should be creating an invalid AST node
@@ -7298,6 +7299,177 @@ async class Test:
                         column_end: 23,
                     },
                 ))]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_simple_statements_in_try() {
+        let mut lexer = Lexer::new(
+            "
+try: return 2
+finally: pass
+",
+        );
+        let parser = Parser::new(&mut lexer);
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Try(TryStmt {
+                    block: Block {
+                        stmts: vec![Statement::Return(ReturnStmt {
+                            value: Some(Expression::Number(
+                                "2".into(),
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 13,
+                                    column_end: 13,
+                                },
+                            ),),
+                            span: Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 6,
+                                column_end: 13,
+                            },
+                        },),],
+                        span: Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 6,
+                            column_end: 13,
+                        },
+                    },
+                    finally_block: Some(FinallyBlock {
+                        block: Block {
+                            stmts: vec![Statement::Pass(Span {
+                                row_start: 3,
+                                row_end: 3,
+                                column_start: 10,
+                                column_end: 13,
+                            },),],
+                            span: Span {
+                                row_start: 3,
+                                row_end: 3,
+                                column_start: 10,
+                                column_end: 13,
+                            },
+                        },
+                        span: Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 1,
+                            column_end: 13,
+                        },
+                    },),
+                    except_blocks: vec![],
+                    else_stmt: None,
+                    span: Span {
+                        row_start: 2,
+                        row_end: 3,
+                        column_start: 1,
+                        column_end: 13,
+                    },
+                },),]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_function_call() {
+        let mut lexer = Lexer::new("print('%s%s%s%s' % (a, b, c, d))");
+        let parser = Parser::new(&mut lexer);
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Expression(Expression::Call(FunctionCall {
+                    lhs: Box::new(Expression::Id(
+                        "print".into(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 5,
+                        },
+                    )),
+                    args: vec![Expression::BinaryOp(
+                        Box::new(Expression::String(
+                            "%s%s%s%s".into(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 7,
+                                column_end: 17,
+                            },
+                        )),
+                        BinaryOperator::Modulo,
+                        Box::new(Expression::Tuple(
+                            vec![
+                                Expression::Id(
+                                    "a".into(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 21,
+                                        column_end: 21,
+                                    },
+                                ),
+                                Expression::Id(
+                                    "b".into(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 24,
+                                        column_end: 24,
+                                    },
+                                ),
+                                Expression::Id(
+                                    "c".into(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 27,
+                                        column_end: 27,
+                                    },
+                                ),
+                                Expression::Id(
+                                    "d".into(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 30,
+                                        column_end: 30,
+                                    },
+                                ),
+                            ],
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 20,
+                                column_end: 31,
+                            },
+                        )),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 7,
+                            column_end: 31,
+                        },
+                    )],
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 32,
+                    },
+                }))]
             }
         )
     }

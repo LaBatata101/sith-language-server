@@ -65,23 +65,14 @@ impl<'a> Parser<'a> {
 
         let mut token = self.tokens.get(*index).unwrap();
         // TODO: Try to refactor this later
-        if token.kind == TokenType::Comma
-            && allowed_expr
-                .expressions
-                .contains(ExprBitflag::TUPLE | ExprBitflag::TUPLE_NO_PARENS)
-        {
+        if token.kind == TokenType::Comma && allowed_expr.expressions.contains(ExprBitflag::TUPLE_NO_PARENS) {
             // consume ,
             *index += 1;
 
-            let (tuple_expr, tuple_errors) = self.parse_tuple_expr_with_no_parens(index, expr.span(), allowed_expr);
+            let (tuple_items, tuple_span, tuple_errors) = self.parse_tuple_items(index, expr.span(), allowed_expr);
 
-            let mut tuple_span = expr.span();
             let mut items = vec![expr];
-
-            if let Expression::Tuple(tuple_items, tuple_expr_span) = tuple_expr {
-                tuple_span = tuple_expr_span;
-                items.extend(tuple_items);
-            }
+            items.extend(tuple_items);
 
             expr = Expression::Tuple(items, tuple_span);
 
@@ -175,9 +166,12 @@ impl<'a> Parser<'a> {
             {
                 self.parse_unary_operator(index, token)
             }
-            TokenType::OpenParenthesis if allowed_expr.expressions.contains(ExprBitflag::PARENTHESIZED) => {
-                self.parse_parenthesized_expr(index, token, allowed_expr)
-            }
+            TokenType::OpenParenthesis if allowed_expr.expressions.contains(ExprBitflag::PARENTHESIZED) => self
+                .parse_parenthesized_expr(
+                    index,
+                    token,
+                    allowed_expr.remove_expression(ExprBitflag::ASSIGN | ExprBitflag::TUPLE_NO_PARENS),
+                ),
             TokenType::OpenBrackets if allowed_expr.expressions.contains(ExprBitflag::LIST) => {
                 self.parse_list_expr(index, token.span)
             }
@@ -858,14 +852,27 @@ impl<'a> Parser<'a> {
             });
         }
 
-        let (mut expr, expr_errors) = self.parse_expression(index, allowed_expr.remove_expression(ExprBitflag::ASSIGN));
+        let (mut expr, expr_errors) = self.parse_expression(index, allowed_expr);
 
         if let Some(expr_errors) = expr_errors {
             errors.extend(expr_errors);
         }
 
         let mut token = self.tokens.get(*index).unwrap();
-        if token.kind == TokenType::Keyword(KeywordType::For) {
+        if allowed_expr.expressions.contains(ExprBitflag::TUPLE) && token.kind == TokenType::Comma {
+            // consume ,
+            *index += 1;
+            let (tuple_items, tuple_span, tuple_errors) = self.parse_tuple_items(index, expr.span(), allowed_expr);
+
+            let mut items = vec![expr];
+            items.extend(tuple_items);
+
+            if let Some(tuple_errors) = tuple_errors {
+                errors.extend(tuple_errors);
+            }
+
+            expr = Expression::Tuple(items, tuple_span);
+        } else if token.kind == TokenType::Keyword(KeywordType::For) {
             let (generator_comp, generator_errors) = self.parse_generator_comprehension(index, expr);
             expr = generator_comp;
 
@@ -896,12 +903,12 @@ impl<'a> Parser<'a> {
         (expr, if errors.is_empty() { None } else { Some(errors) })
     }
 
-    fn parse_tuple_expr_with_no_parens(
+    fn parse_tuple_items(
         &self,
         index: &mut usize,
         tuple_span_start: Span,
         allowed_expr: ParseExprBitflags,
-    ) -> (Expression, PythonErrors) {
+    ) -> (Vec<Expression>, Span, PythonErrors) {
         let mut errors = Vec::new();
         let mut expressions = vec![];
         let mut tuple_span = Span {
@@ -952,7 +959,8 @@ impl<'a> Parser<'a> {
         tuple_span.row_end = self.tokens.get(*index).map(|token| token.span.row_end).unwrap();
 
         (
-            Expression::Tuple(expressions, tuple_span),
+            expressions,
+            tuple_span,
             if errors.is_empty() { None } else { Some(errors) },
         )
     }
@@ -2922,42 +2930,28 @@ impl<'a> Parser<'a> {
         let mut stmts = vec![];
         let mut span = Span::default();
 
-        loop {
-            let token = self.tokens.get(*index).unwrap();
+        let mut token = self.tokens.get(*index).unwrap();
+        // if we encounter a ";" before parsing any simple statement that's an invalid syntax.
+        if token.kind == TokenType::SemiColon {
+            *index += 1;
 
-            if !token.is_simple_stmt() {
-                errors.push(PythonError {
-                    error: PythonErrorType::Syntax,
-                    msg: format!(
-                        "SyntaxError: invalid syntax, {:?} is not a simple statement!",
-                        token.kind
-                    ),
-                    span: token.span,
-                });
-                break;
-            }
+            errors.push(PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: invalid syntax, expecting an simple statement before the ';'".to_string(),
+                span: token.span,
+            });
 
-            // if we encounter a ";" before parsing any simple statement that's an invalid syntax.
-            if token.kind == TokenType::SemiColon {
+            stmts.push(Statement::Invalid(token.span));
+
+            // in case a NewLine token is found, skip it, to avoid generating an useless error
+            // message.
+            if self.tokens.get(*index).unwrap().kind == TokenType::NewLine {
                 *index += 1;
-
-                errors.push(PythonError {
-                    error: PythonErrorType::Syntax,
-                    msg: "SyntaxError: invalid syntax, expecting an simple statement before the ';'".to_string(),
-                    span: token.span,
-                });
-
-                stmts.push(Statement::Invalid(token.span));
-
-                // in case a NewLine token is found, skip it, to avoid generating an useless error
-                // message.
-                if self.tokens.get(*index).unwrap().kind == TokenType::NewLine {
-                    *index += 1;
-                }
-
-                break;
             }
+            token = self.tokens.get(*index).unwrap();
+        }
 
+        while token.is_simple_stmt() {
             let (stmt, stmt_errors) = self.parse_statements(index);
             if let Some(stmt_errors) = stmt_errors {
                 errors.extend(stmt_errors);
@@ -2966,12 +2960,11 @@ impl<'a> Parser<'a> {
             span = stmt.span();
             stmts.push(stmt);
 
-            if matches!(
-                self.tokens.get(*index).unwrap().kind,
-                TokenType::NewLine | TokenType::Eof
-            ) {
-                break;
-            }
+            token = self.tokens.get(*index).unwrap();
+        }
+
+        if self.tokens.get(*index).unwrap().kind == TokenType::NewLine {
+            *index += 1;
         }
 
         (stmts, span, if errors.is_empty() { None } else { Some(errors) })
