@@ -18,10 +18,20 @@ use self::{
     token::types::{IntegerType, KeywordType, NumberType, OperatorType, SoftKeywordType, TokenType},
 };
 
+#[derive(PartialEq)]
+enum LexerContext {
+    /// Special context that means we need to treat splited strings as one Token when they are
+    /// inside of (), {} or [].
+    ImplicitLineJoining,
+    /// Represents no special context.
+    None,
+}
+
 pub struct Lexer<'a> {
     cs: CharStream<'a>,
     tokens: Vec<Token<'a>>,
     indent_stack: Vec<usize>,
+    context: LexerContext,
 }
 
 impl<'a> Lexer<'a> {
@@ -30,6 +40,7 @@ impl<'a> Lexer<'a> {
             cs: CharStream::new(text),
             tokens: Vec::new(),
             indent_stack: vec![0],
+            context: LexerContext::None,
         }
     }
 
@@ -84,31 +95,38 @@ impl<'a> Lexer<'a> {
                 }
                 '(' => {
                     implicit_line_joining += 1;
+                    self.context = LexerContext::ImplicitLineJoining;
 
                     self.lex_single_char(TokenType::OpenParenthesis);
-
-                    if self.cs.current_char().map_or(false, |char| matches!(char, '"' | '\'')) {
-                        self.lex_string_within_parens();
-                    }
                 }
                 ')' => {
                     implicit_line_joining -= 1;
+                    self.context = LexerContext::None;
+
                     self.lex_single_char(TokenType::CloseParenthesis);
                 }
                 '[' => {
                     implicit_line_joining += 1;
+                    self.context = LexerContext::ImplicitLineJoining;
+
                     self.lex_single_char(TokenType::OpenBrackets);
                 }
                 ']' => {
                     implicit_line_joining -= 1;
+                    self.context = LexerContext::None;
+
                     self.lex_single_char(TokenType::CloseBrackets);
                 }
                 '{' => {
                     implicit_line_joining += 1;
+                    self.context = LexerContext::ImplicitLineJoining;
+
                     self.lex_single_char(TokenType::OpenBrace);
                 }
                 '}' => {
                     implicit_line_joining -= 1;
+                    self.context = LexerContext::None;
+
                     self.lex_single_char(TokenType::CloseBrace);
                 }
                 '.' => {
@@ -397,6 +415,10 @@ impl<'a> Lexer<'a> {
     // TODO: try to refactor this code
     //https://docs.python.org/3/reference/lexical_analysis.html#string-and-bytes-literals
     fn lex_string(&mut self) -> Option<Vec<PythonError>> {
+        if self.context == LexerContext::ImplicitLineJoining {
+            return self.lex_string_within_parens();
+        }
+
         let (string, str_span, errors) = self.process_string();
 
         self.tokens.push(Token {

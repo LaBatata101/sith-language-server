@@ -2685,6 +2685,113 @@ Multiline text
     }
 
     #[test]
+    fn lex_parenthesized_string3() {
+        let mut lexer = Lexer::new(
+            "
+x(help='output only error messages; -qq will suppress '
+     'the error messages as well.')
+",
+        );
+        let errors = lexer.tokenize();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token {
+                    kind: TokenType::Id("x".into(),),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 1,
+                        column_end: 1,
+                    },
+                },
+                Token {
+                    kind: TokenType::OpenParenthesis,
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 2,
+                        column_end: 2,
+                    },
+                },
+                Token {
+                    kind: TokenType::Id("help".into(),),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 3,
+                        column_end: 6,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::Assign,),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 7,
+                        column_end: 7,
+                    },
+                },
+                Token {
+                    kind: TokenType::String(
+                        "output only error messages; -qq will suppress the error messages as well.".into(),
+                    ),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 3,
+                        column_start: 8,
+                        column_end: 34,
+                    },
+                },
+                Token {
+                    kind: TokenType::CloseParenthesis,
+                    span: Span {
+                        row_start: 3,
+                        row_end: 3,
+                        column_start: 35,
+                        column_end: 35,
+                    },
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 3,
+                        row_end: 3,
+                        column_start: 36,
+                        column_end: 36,
+                    },
+                },
+                Token {
+                    kind: TokenType::Eof,
+                    span: Span {
+                        row_start: 4,
+                        row_end: 4,
+                        column_start: 1,
+                        column_end: 1,
+                    },
+                },
+            ]
+        )
+    }
+
+    #[test]
+    #[ignore = "Implement this case!"]
+    fn lex_parenthesized_string4() {
+        let mut lexer = Lexer::new(
+            "
+(f'{}'
+f'World {})
+",
+        );
+        let errors = lexer.tokenize();
+
+        assert!(errors.is_none());
+        assert_eq!(lexer.tokens(), vec![])
+    }
+
+    #[test]
     fn lex_empty_strings() {
         let mut lexer = Lexer::new(
             "
