@@ -2610,10 +2610,20 @@ impl<'a> Parser<'a> {
             let mut token = self.tokens.get(*index).unwrap();
 
             let expr_span = if token.is_start_of_expr() {
-                let (expr, expr_errors) = self.parse_expression(index, allowed_expr_in_args);
+                let (mut expr, expr_errors) = self.parse_expression(index, allowed_expr_in_args);
                 if let Some(expr_errors) = expr_errors {
                     errors.extend(expr_errors);
                 }
+
+                if self.tokens.get(*index).unwrap().kind == TokenType::Keyword(KeywordType::For) {
+                    let (gen_comp, gen_comp_errors) = self.parse_generator_comprehension(index, expr);
+                    expr = gen_comp;
+
+                    if let Some(gen_comp_errors) = gen_comp_errors {
+                        errors.extend(gen_comp_errors);
+                    }
+                }
+
                 let expr_span = expr.span();
                 args.push(expr);
 

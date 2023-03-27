@@ -7759,4 +7759,90 @@ class Test(A, B, C):
             }
         )
     }
+
+    #[test]
+    fn parse_generator_comprehension2() {
+        let mut lexer = Lexer::new("set(i, x for x in l)");
+        let parser = Parser::new(&mut lexer);
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Expression(Expression::Call(FunctionCall {
+                    lhs: Box::new(Expression::Id(
+                        "set".into(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 3,
+                        },
+                    )),
+                    args: vec![
+                        Expression::Id(
+                            "i".into(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 5,
+                                column_end: 5,
+                            },
+                        ),
+                        Expression::GeneratorComp(GeneratorComp {
+                            target: Box::new(Expression::Id(
+                                "x".into(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 8,
+                                    column_end: 8,
+                                },
+                            )),
+                            ifs: vec![],
+                            fors: vec![ForComp {
+                                target: Expression::Id(
+                                    "x".into(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 14,
+                                        column_end: 14,
+                                    },
+                                ),
+                                iter: Expression::Id(
+                                    "l".into(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 19,
+                                        column_end: 19,
+                                    },
+                                ),
+                                span: Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 10,
+                                    column_end: 19,
+                                },
+                            }],
+                            span: Span {
+                                row_start: 0,
+                                row_end: 0,
+                                column_start: 0,
+                                column_end: 0,
+                            },
+                        }),
+                    ],
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 20,
+                    },
+                }))]
+            }
+        )
+    }
 }
