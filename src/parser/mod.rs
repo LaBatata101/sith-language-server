@@ -3105,10 +3105,17 @@ impl<'a> Parser<'a> {
     fn parse_lambda_expr(&self, index: &mut usize, r_bp: u8, token: &Token) -> (Expression, PythonErrors) {
         let mut errors = Vec::new();
 
-        let (parameters, parameters_errors) = self.parse_function_parameters(index);
-        if let Some(parameters_errors) = parameters_errors {
-            errors.extend(parameters_errors);
-        }
+        let parameters = if self.tokens.get(*index).unwrap().is_start_of_expr() {
+            let (parameters, parameters_errors) = self.parse_function_parameters(index);
+            if let Some(parameters_errors) = parameters_errors {
+                errors.extend(parameters_errors);
+            }
+
+            parameters
+        } else {
+            vec![]
+        };
+
         // Consume :
         *index += 1;
         let (expr, expr_errors) = self.pratt_parsing(

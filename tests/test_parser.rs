@@ -8059,4 +8059,33 @@ def test(a, b, c, /):
             }
         )
     }
+
+    #[test]
+    fn parse_lambda_with_no_params() {
+        let mut lexer = Lexer::new("lambda: ...");
+        let parser = Parser::new(&mut lexer);
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Expression(Expression::Lambda(LambdaExpr {
+                    parameters: vec![],
+                    expression: Box::new(Expression::Ellipsis(Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 9,
+                        column_end: 11,
+                    })),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 11,
+                    },
+                }))]
+            }
+        )
+    }
 }
