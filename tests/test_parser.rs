@@ -8036,4 +8036,27 @@ def test(a, b, c, /):
             }
         )
     }
+
+    #[test]
+    fn parse_empty_tuple() {
+        let mut lexer = Lexer::new("()");
+        let parser = Parser::new(&mut lexer);
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Expression(Expression::Tuple(
+                    vec![],
+                    Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 2,
+                        column_end: 1,
+                    },
+                ))]
+            }
+        )
+    }
 }

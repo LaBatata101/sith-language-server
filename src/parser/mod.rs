@@ -867,6 +867,24 @@ impl<'a> Parser<'a> {
             });
         }
 
+        // If a ")" is found right after the ")", return an empty tuple
+        if next_token.kind == TokenType::CloseParenthesis {
+            // consume )
+            *index += 1;
+
+            return (
+                Expression::Tuple(
+                    Vec::new(),
+                    Span {
+                        row_end: token.span.row_end,
+                        column_end: token.span.column_end,
+                        ..next_token.span
+                    },
+                ),
+                None,
+            );
+        }
+
         let (mut expr, expr_errors) = self.parse_expression(index, allowed_expr);
 
         if let Some(expr_errors) = expr_errors {
