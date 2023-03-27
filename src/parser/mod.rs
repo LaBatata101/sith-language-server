@@ -25,7 +25,7 @@ use self::{
     ast::{
         AnnAssign, AssertStmt, Assign, AugAssign, ClassStmt, DelStmt, ForComp, ForStmt, FromImportStmt, FuncParameter,
         FunctionCall, GeneratorComp, GlobalStmt, IfComp, ImportModule, ImportStmt, LambdaExpr, ListComp, NonLocalStmt,
-        RaiseStmt, ReturnStmt, StarParameterType, Subscript, SubscriptType, TryStmt, WithItem, WithStmt,
+        RaiseStmt, ReturnStmt, SetComp, StarParameterType, Subscript, SubscriptType, TryStmt, WithItem, WithStmt,
     },
     helpers::{BinaryOperationsBitflag, ExprBitflag, ParseExprBitflags, UnaryOperationsBitflag},
 };
@@ -1031,11 +1031,8 @@ impl<'a> Parser<'a> {
             errors.extend(lhs_errors);
         }
 
-        if self
-            .tokens
-            .get(*index)
-            .map_or(false, |token| token.kind == TokenType::Colon)
-        {
+        // if we see a ":" parses as a dict
+        if self.tokens.get(*index).unwrap().kind == TokenType::Colon {
             // Consume :
             *index += 1;
             let (rhs, rhs_errors) = self.pratt_parsing(index, 0, ParseExprBitflags::all());
@@ -1056,6 +1053,10 @@ impl<'a> Parser<'a> {
             return self.parse_dict_expression(index, DictItemType::KeyValue(lhs, rhs), brace_span);
         }
 
+        if self.tokens.get(*index).unwrap().kind == TokenType::Keyword(KeywordType::For) {
+            return self.parse_set_comprehension(index, lhs, brace_span);
+        }
+
         let mut expressions = vec![lhs];
         let mut set_span = Span {
             row_start: brace_span.row_start,
@@ -1063,11 +1064,7 @@ impl<'a> Parser<'a> {
             ..Default::default()
         };
 
-        while self
-            .tokens
-            .get(*index)
-            .map_or(false, |token| token.kind == TokenType::Comma)
-        {
+        while self.tokens.get(*index).unwrap().kind == TokenType::Comma {
             *index += 1;
 
             if self.tokens.get(*index).unwrap().kind == TokenType::CloseBrace {
@@ -1102,6 +1099,46 @@ impl<'a> Parser<'a> {
 
         (
             Expression::Set(expressions, set_span),
+            if errors.is_empty() { None } else { Some(errors) },
+        )
+    }
+
+    fn parse_set_comprehension(
+        &self,
+        index: &mut usize,
+        comprehension_target: Expression<'a>,
+        start_span: Span,
+    ) -> (Expression, PythonErrors) {
+        let mut errors = vec![];
+        let (fors, ifs, comp_errors) = self.parse_comprehension(index);
+
+        if let Some(comp_errors) = comp_errors {
+            errors.extend(comp_errors);
+        }
+
+        let token = self.tokens.get(*index).unwrap();
+        if token.kind != TokenType::CloseBrace {
+            errors.push(PythonError {
+                error: PythonErrorType::Syntax,
+                msg: format!("SyntaxError: expecting '}}' got {:?}", token.kind),
+                span: token.span,
+            });
+        } else {
+            // consume "}"
+            *index += 1;
+        }
+
+        (
+            Expression::SetComp(SetComp {
+                target: Box::new(comprehension_target),
+                ifs,
+                fors,
+                span: Span {
+                    row_start: start_span.row_start,
+                    column_start: start_span.column_start,
+                    ..token.span
+                },
+            }),
             if errors.is_empty() { None } else { Some(errors) },
         )
     }
@@ -2826,6 +2863,7 @@ impl<'a> Parser<'a> {
     ) -> (Expression, PythonErrors) {
         let mut errors = Vec::new();
 
+        // TODO: this doesn't make sense remove it later
         if matches!(comprehension_target, Expression::Tuple(_, _)) {
             errors.push(PythonError {
                 error: PythonErrorType::Syntax,

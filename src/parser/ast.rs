@@ -82,6 +82,7 @@ pub enum Expression<'a> {
     GeneratorComp(GeneratorComp<'a>),
     Dict(Vec<DictItemType<'a>>, Span),
     Set(Vec<Expression<'a>>, Span),
+    SetComp(SetComp<'a>),
     Tuple(Vec<Expression<'a>>, Span),
     IfElse(IfElseExpr<'a>),
     Lambda(LambdaExpr<'a>),
@@ -108,6 +109,7 @@ impl<'a> Expression<'a> {
             Expression::Subscript(subscript) => subscript.span,
             Expression::ListComp(list_comp) => list_comp.span,
             Expression::GeneratorComp(gen_comp) => gen_comp.span,
+            Expression::SetComp(set_comp) => set_comp.span,
             Expression::String(_, span)
             | Expression::Number(_, span)
             | Expression::Bool(_, span)
@@ -139,6 +141,7 @@ impl<'a> Expression<'a> {
             Expression::Subscript(subscript) => subscript.span = new_span,
             Expression::ListComp(list_comp) => list_comp.span = new_span,
             Expression::GeneratorComp(gen_comp) => gen_comp.span = new_span,
+            Expression::SetComp(set_comp) => set_comp.span = new_span,
             Expression::String(_, span)
             | Expression::Number(_, span)
             | Expression::Bool(_, span)
@@ -557,5 +560,13 @@ pub struct GlobalStmt<'a> {
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct NonLocalStmt<'a> {
     pub name: Expression<'a>,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct SetComp<'a> {
+    pub target: Box<Expression<'a>>,
+    pub ifs: Vec<IfComp<'a>>,
+    pub fors: Vec<ForComp<'a>>,
     pub span: Span,
 }

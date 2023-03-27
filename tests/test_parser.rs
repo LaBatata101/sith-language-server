@@ -10,8 +10,8 @@ mod tests_parser {
                 DictItemType, ElIfStmt, ElseStmt, ExceptBlock, ExceptBlockKind, Expression, FinallyBlock, ForComp,
                 ForStmt, FromImportStmt, FuncParameter, Function, FunctionCall, GeneratorComp, GlobalStmt, IfComp,
                 IfElseExpr, IfStmt, ImportModule, ImportStmt, LambdaExpr, ListComp, NonLocalStmt, ParsedFile,
-                RaiseStmt, ReturnStmt, StarParameterType, Statement, Subscript, SubscriptType, TryStmt, UnaryOperator,
-                While, WithItem, WithStmt,
+                RaiseStmt, ReturnStmt, SetComp, StarParameterType, Statement, Subscript, SubscriptType, TryStmt,
+                UnaryOperator, While, WithItem, WithStmt,
             },
             Parser,
         },
@@ -7698,6 +7698,64 @@ class Test(A, B, C):
                         column_end: 7,
                     },
                 })]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_set_comprehension() {
+        let mut lexer = Lexer::new("{i for i in list}");
+        let parser = Parser::new(&mut lexer);
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Expression(Expression::SetComp(SetComp {
+                    target: Box::new(Expression::Id(
+                        "i".into(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 2,
+                            column_end: 2,
+                        },
+                    )),
+                    ifs: vec![],
+                    fors: vec![ForComp {
+                        target: Expression::Id(
+                            "i".into(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 8,
+                                column_end: 8,
+                            },
+                        ),
+                        iter: Expression::Id(
+                            "list".into(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 13,
+                                column_end: 16,
+                            }
+                        ),
+                        span: Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 4,
+                            column_end: 16,
+                        },
+                    }],
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 17,
+                    },
+                }))]
             }
         )
     }
