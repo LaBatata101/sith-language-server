@@ -1871,6 +1871,10 @@ impl<'a> Parser<'a> {
             from_import_stmt.span.column_end = token.span.column_end;
             from_import_stmt.span.row_end = token.span.row_end;
 
+            if self.tokens.get(*index).unwrap().kind == TokenType::NewLine {
+                // consume NEWLINE
+                *index += 1;
+            }
             return (from_import_stmt, if errors.is_empty() { None } else { Some(errors) });
         }
 

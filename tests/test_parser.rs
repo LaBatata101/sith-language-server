@@ -7903,4 +7903,53 @@ class Test(A, B, C):
             }
         )
     }
+
+    #[test]
+    fn parse_import3() {
+        let mut lexer = Lexer::new(
+            "
+from a import *
+import a
+",
+        );
+        let parser = Parser::new(&mut lexer);
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![
+                    Statement::FromImport(FromImportStmt {
+                        module: vec![ImportModule {
+                            name: vec!["a".into(),],
+                            alias: None,
+                        }],
+                        targets: vec![ImportModule {
+                            name: vec!["*".into(),],
+                            alias: None,
+                        }],
+                        span: Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 1,
+                            column_end: 15,
+                        },
+                    }),
+                    Statement::Import(ImportStmt {
+                        modules: vec![ImportModule {
+                            name: vec!["a".into(),],
+                            alias: None,
+                        }],
+                        span: Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 1,
+                            column_end: 8,
+                        },
+                    }),
+                ]
+            }
+        )
+    }
 }
