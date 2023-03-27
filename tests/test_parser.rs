@@ -7,9 +7,9 @@ mod tests_parser {
         parser::{
             ast::{
                 AnnAssign, AssertStmt, Assign, AugAssign, AugAssignType, BinaryOperator, Block, ClassStmt, DelStmt,
-                DictItemType, ElIfStmt, ElseStmt, ExceptBlock, ExceptBlockKind, Expression, FinallyBlock, ForComp,
-                ForStmt, FromImportStmt, FuncParameter, Function, FunctionCall, GeneratorComp, GlobalStmt, IfComp,
-                IfElseExpr, IfStmt, ImportModule, ImportStmt, LambdaExpr, ListComp, NonLocalStmt, ParsedFile,
+                DictComp, DictItemType, ElIfStmt, ElseStmt, ExceptBlock, ExceptBlockKind, Expression, FinallyBlock,
+                ForComp, ForStmt, FromImportStmt, FuncParameter, Function, FunctionCall, GeneratorComp, GlobalStmt,
+                IfComp, IfElseExpr, IfStmt, ImportModule, ImportStmt, LambdaExpr, ListComp, NonLocalStmt, ParsedFile,
                 RaiseStmt, ReturnStmt, SetComp, StarParameterType, Statement, Subscript, SubscriptType, TryStmt,
                 UnaryOperator, While, WithItem, WithStmt,
             },
@@ -7840,6 +7840,64 @@ class Test(A, B, C):
                         row_end: 1,
                         column_start: 1,
                         column_end: 20,
+                    },
+                }))]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_dict_comprehension() {
+        let mut lexer = Lexer::new("{i:i + 1 for i in list}");
+        let parser = Parser::new(&mut lexer);
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Expression(Expression::DictComp(DictComp {
+                    target: Box::new(Expression::Id(
+                        "i".into(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 2,
+                            column_end: 2,
+                        },
+                    )),
+                    ifs: vec![],
+                    fors: vec![ForComp {
+                        target: Expression::Id(
+                            "i".into(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 14,
+                                column_end: 14,
+                            },
+                        ),
+                        iter: Expression::Id(
+                            "list".into(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 19,
+                                column_end: 22,
+                            },
+                        ),
+                        span: Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 10,
+                            column_end: 22,
+                        },
+                    }],
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 23,
                     },
                 }))]
             }

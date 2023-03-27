@@ -23,9 +23,10 @@ use helpers::{infix_binding_power, postfix_binding_power, prefix_binding_power};
 
 use self::{
     ast::{
-        AnnAssign, AssertStmt, Assign, AugAssign, ClassStmt, DelStmt, ForComp, ForStmt, FromImportStmt, FuncParameter,
-        FunctionCall, GeneratorComp, GlobalStmt, IfComp, ImportModule, ImportStmt, LambdaExpr, ListComp, NonLocalStmt,
-        RaiseStmt, ReturnStmt, SetComp, StarParameterType, Subscript, SubscriptType, TryStmt, WithItem, WithStmt,
+        AnnAssign, AssertStmt, Assign, AugAssign, ClassStmt, DelStmt, DictComp, ForComp, ForStmt, FromImportStmt,
+        FuncParameter, FunctionCall, GeneratorComp, GlobalStmt, IfComp, ImportModule, ImportStmt, LambdaExpr, ListComp,
+        NonLocalStmt, RaiseStmt, ReturnStmt, SetComp, StarParameterType, Subscript, SubscriptType, TryStmt, WithItem,
+        WithStmt,
     },
     helpers::{BinaryOperationsBitflag, ExprBitflag, ParseExprBitflags, UnaryOperationsBitflag},
 };
@@ -1041,6 +1042,11 @@ impl<'a> Parser<'a> {
                 errors.extend(rhs_errors);
             }
 
+            if self.tokens.get(*index).unwrap().kind == TokenType::Keyword(KeywordType::For) {
+                return self.parse_dict_comprehension(index, lhs, brace_span);
+            }
+
+            // TODO: check if this code does something
             let token = self.tokens.get(*index).unwrap();
             if token.kind != TokenType::Comma {
                 errors.push(PythonError {
@@ -1130,6 +1136,46 @@ impl<'a> Parser<'a> {
 
         (
             Expression::SetComp(SetComp {
+                target: Box::new(comprehension_target),
+                ifs,
+                fors,
+                span: Span {
+                    row_start: start_span.row_start,
+                    column_start: start_span.column_start,
+                    ..token.span
+                },
+            }),
+            if errors.is_empty() { None } else { Some(errors) },
+        )
+    }
+
+    fn parse_dict_comprehension(
+        &self,
+        index: &mut usize,
+        comprehension_target: Expression<'a>,
+        start_span: Span,
+    ) -> (Expression, PythonErrors) {
+        let mut errors = vec![];
+        let (fors, ifs, comp_errors) = self.parse_comprehension(index);
+
+        if let Some(comp_errors) = comp_errors {
+            errors.extend(comp_errors);
+        }
+
+        let token = self.tokens.get(*index).unwrap();
+        if token.kind != TokenType::CloseBrace {
+            errors.push(PythonError {
+                error: PythonErrorType::Syntax,
+                msg: format!("SyntaxError: expecting '}}' got {:?}", token.kind),
+                span: token.span,
+            });
+        } else {
+            // consume "}"
+            *index += 1;
+        }
+
+        (
+            Expression::DictComp(DictComp {
                 target: Box::new(comprehension_target),
                 ifs,
                 fors,

@@ -81,6 +81,7 @@ pub enum Expression<'a> {
     ListComp(ListComp<'a>),
     GeneratorComp(GeneratorComp<'a>),
     Dict(Vec<DictItemType<'a>>, Span),
+    DictComp(DictComp<'a>),
     Set(Vec<Expression<'a>>, Span),
     SetComp(SetComp<'a>),
     Tuple(Vec<Expression<'a>>, Span),
@@ -110,6 +111,7 @@ impl<'a> Expression<'a> {
             Expression::ListComp(list_comp) => list_comp.span,
             Expression::GeneratorComp(gen_comp) => gen_comp.span,
             Expression::SetComp(set_comp) => set_comp.span,
+            Expression::DictComp(dict_comp) => dict_comp.span,
             Expression::String(_, span)
             | Expression::Number(_, span)
             | Expression::Bool(_, span)
@@ -142,6 +144,7 @@ impl<'a> Expression<'a> {
             Expression::ListComp(list_comp) => list_comp.span = new_span,
             Expression::GeneratorComp(gen_comp) => gen_comp.span = new_span,
             Expression::SetComp(set_comp) => set_comp.span = new_span,
+            Expression::DictComp(dict_comp) => dict_comp.span = new_span,
             Expression::String(_, span)
             | Expression::Number(_, span)
             | Expression::Bool(_, span)
@@ -565,6 +568,14 @@ pub struct NonLocalStmt<'a> {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct SetComp<'a> {
+    pub target: Box<Expression<'a>>,
+    pub ifs: Vec<IfComp<'a>>,
+    pub fors: Vec<ForComp<'a>>,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct DictComp<'a> {
     pub target: Box<Expression<'a>>,
     pub ifs: Vec<IfComp<'a>>,
     pub fors: Vec<ForComp<'a>>,
