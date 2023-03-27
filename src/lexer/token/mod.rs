@@ -64,6 +64,7 @@ impl<'a> Token<'a> {
             self.kind,
             TokenType::Number(_, _)
                 | TokenType::Id(_)
+                | TokenType::SoftKeyword(_)
                 | TokenType::String(_)
                 | TokenType::OpenParenthesis
                 | TokenType::OpenBrackets

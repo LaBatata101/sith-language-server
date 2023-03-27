@@ -7952,4 +7952,88 @@ import a
             }
         )
     }
+
+    #[test]
+    fn parse_function_with_pos_only_parameters() {
+        let mut lexer = Lexer::new(
+            "
+def test(a, b, c, /):
+    ...
+",
+        );
+        let parser = Parser::new(&mut lexer);
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::FunctionDef(Function {
+                    name: "test".into(),
+                    parameters: vec![
+                        FuncParameter {
+                            name: "a".into(),
+                            default_value: None,
+                            star_parameter_type: None,
+                            is_kw_only: false,
+                            is_pos_only: true,
+                            span: Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 10,
+                                column_end: 10,
+                            },
+                        },
+                        FuncParameter {
+                            name: "b".into(),
+                            default_value: None,
+                            star_parameter_type: None,
+                            is_kw_only: false,
+                            is_pos_only: true,
+                            span: Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 13,
+                                column_end: 13,
+                            },
+                        },
+                        FuncParameter {
+                            name: "c".into(),
+                            default_value: None,
+                            star_parameter_type: None,
+                            is_kw_only: false,
+                            is_pos_only: true,
+                            span: Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 16,
+                                column_end: 16,
+                            },
+                        },
+                    ],
+                    block: Block {
+                        stmts: vec![Statement::Expression(Expression::Ellipsis(Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 5,
+                            column_end: 7,
+                        }))],
+                        span: Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 5,
+                            column_end: 7,
+                        },
+                    },
+                    decorators: vec![],
+                    span: Span {
+                        row_start: 2,
+                        row_end: 3,
+                        column_start: 1,
+                        column_end: 7,
+                    },
+                })]
+            }
+        )
+    }
 }

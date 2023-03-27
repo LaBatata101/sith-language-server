@@ -1530,7 +1530,7 @@ impl<'a> Parser<'a> {
                     *index += 1;
                     let next_token = self.tokens.get(*index).unwrap();
                     match &next_token.kind {
-                        TokenType::Comma => {
+                        TokenType::Comma | TokenType::CloseParenthesis => {
                             for parameter in &mut parameters {
                                 parameter.is_pos_only = true;
                             }
