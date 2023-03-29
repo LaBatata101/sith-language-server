@@ -347,7 +347,6 @@ impl<'a> Lexer<'a> {
 
         let str = self.cs.get_slice(start.index, end.index).unwrap();
 
-        // FIXME: check if the string is within a parenthesis and use `lex_string_within_parens`
         if self.is_str_prefix(str) && self.cs.current_char().map_or(false, |char| matches!(char, '"' | '\'')) {
             self.lex_string();
             return;
@@ -448,6 +447,29 @@ impl<'a> Lexer<'a> {
                 self.cs.advance_by(1);
             }
             self.cs.skip_whitespace();
+
+            // check for a str prefix and then consume it.
+            if matches!(self.cs.current_char(), Some('r' | 'b' | 'f' | 'F' | 'R' | 'B'))
+                && matches!(self.cs.next_char(), Some('"' | '\''))
+            {
+                let start = self.cs.pos();
+                while matches!(self.cs.current_char(), Some(valid_id_noninitial_chars!())) {
+                    self.cs.advance_by(1);
+                }
+                let end = self.cs.pos();
+
+                let str_prefix = self.cs.get_slice(start.index, end.index).unwrap();
+                if !self.is_str_prefix(str_prefix) {
+                    errors.push(PythonError {
+                        error: PythonErrorType::Syntax,
+                        msg: format!(
+                            "SyntaxError: Invalid str prefix \"{}\"",
+                            String::from_utf8_lossy(str_prefix)
+                        ),
+                        span: self.make_span(start, end),
+                    });
+                }
+            }
         }
         let end = self.cs.pos();
 

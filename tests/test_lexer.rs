@@ -2777,18 +2777,56 @@ x(help='output only error messages; -qq will suppress '
     }
 
     #[test]
-    #[ignore = "Implement this case!"]
     fn lex_parenthesized_string4() {
         let mut lexer = Lexer::new(
             "
 (f'{}'
-f'World {})
-",
+f'World {}')",
         );
         let errors = lexer.tokenize();
 
         assert!(errors.is_none());
-        assert_eq!(lexer.tokens(), vec![])
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token {
+                    kind: TokenType::OpenParenthesis,
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 1,
+                        column_end: 1,
+                    },
+                },
+                Token {
+                    kind: TokenType::String("{}World {}".into(),),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 3,
+                        column_start: 3,
+                        column_end: 11,
+                    },
+                },
+                Token {
+                    kind: TokenType::CloseParenthesis,
+                    span: Span {
+                        row_start: 3,
+                        row_end: 3,
+                        column_start: 12,
+                        column_end: 12,
+                    },
+                },
+                Token {
+                    kind: TokenType::Eof,
+                    span: Span {
+                        row_start: 3,
+                        row_end: 3,
+                        column_start: 13,
+                        column_end: 13,
+                    },
+                },
+            ]
+        )
     }
 
     #[test]
