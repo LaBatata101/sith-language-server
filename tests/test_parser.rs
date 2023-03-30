@@ -6688,7 +6688,7 @@ def test(x, /, *, y):
 
     #[test]
     fn parse_global_statement() {
-        let mut lexer = Lexer::new("global x");
+        let mut lexer = Lexer::new("global x, z, y");
         let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
@@ -6697,22 +6697,42 @@ def test(x, /, *, y):
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Global(GlobalStmt {
-                    name: Expression::Id(
-                        "x".into(),
-                        Span {
-                            row_start: 1,
-                            row_end: 1,
-                            column_start: 8,
-                            column_end: 8,
-                        },
-                    ),
+                    names: vec![
+                        Expression::Id(
+                            "x".into(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 8,
+                                column_end: 8,
+                            },
+                        ),
+                        Expression::Id(
+                            "z".into(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 11,
+                                column_end: 11,
+                            },
+                        ),
+                        Expression::Id(
+                            "y".into(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 14,
+                                column_end: 14,
+                            },
+                        )
+                    ],
                     span: Span {
                         row_start: 1,
                         row_end: 1,
                         column_start: 1,
-                        column_end: 8,
+                        column_end: 14,
                     },
-                },),]
+                })]
             }
         )
     }
@@ -6728,7 +6748,7 @@ def test(x, /, *, y):
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::NonLocal(NonLocalStmt {
-                    name: Expression::Id(
+                    names: vec![Expression::Id(
                         "x".into(),
                         Span {
                             row_start: 1,
@@ -6736,7 +6756,7 @@ def test(x, /, *, y):
                             column_start: 10,
                             column_end: 10,
                         },
-                    ),
+                    )],
                     span: Span {
                         row_start: 1,
                         row_end: 1,

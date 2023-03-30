@@ -3017,43 +3017,83 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_global_stmt(&self, index: &mut usize) -> (GlobalStmt, PythonErrors) {
+        let mut names = vec![];
+        let mut errors = vec![];
+        let mut end_span: Span;
+
         let global_token = self.tokens.get(*index).unwrap();
 
         // consume "global" keyword
         *index += 1;
-        let (expr, expr_errors) =
-            self.parse_expression(index, ParseExprBitflags::empty().set_expressions(ExprBitflag::ID));
+        loop {
+            let (expr, expr_errors) =
+                self.parse_expression(index, ParseExprBitflags::empty().set_expressions(ExprBitflag::ID));
+            end_span = expr.span();
+
+            names.push(expr);
+
+            if let Some(expr_errors) = expr_errors {
+                errors.extend(expr_errors);
+            }
+
+            if self.tokens.get(*index).unwrap().kind != TokenType::Comma {
+                break;
+            }
+
+            // consume ","
+            *index += 1;
+        }
+
         (
             GlobalStmt {
                 span: Span {
                     row_start: global_token.span.row_start,
                     column_start: global_token.span.column_start,
-                    ..expr.span()
+                    ..end_span
                 },
-                name: expr,
+                names,
             },
-            expr_errors,
+            if errors.is_empty() { None } else { Some(errors) },
         )
     }
 
     fn parse_nonlocal_stmt(&self, index: &mut usize) -> (NonLocalStmt, PythonErrors) {
+        let mut names = vec![];
+        let mut errors = vec![];
+        let mut end_span: Span;
         let nonlocal_token = self.tokens.get(*index).unwrap();
 
         // consume "nonlocal" keyword
         *index += 1;
-        let (expr, expr_errors) =
-            self.parse_expression(index, ParseExprBitflags::empty().set_expressions(ExprBitflag::ID));
+        loop {
+            let (expr, expr_errors) =
+                self.parse_expression(index, ParseExprBitflags::empty().set_expressions(ExprBitflag::ID));
+            end_span = expr.span();
+
+            names.push(expr);
+
+            if let Some(expr_errors) = expr_errors {
+                errors.extend(expr_errors);
+            }
+
+            if self.tokens.get(*index).unwrap().kind != TokenType::Comma {
+                break;
+            }
+
+            // consume ","
+            *index += 1;
+        }
 
         (
             NonLocalStmt {
                 span: Span {
                     row_start: nonlocal_token.span.row_start,
                     column_start: nonlocal_token.span.column_start,
-                    ..expr.span()
+                    ..end_span
                 },
-                name: expr,
+                names,
             },
-            expr_errors,
+            if errors.is_empty() { None } else { Some(errors) },
         )
     }
 

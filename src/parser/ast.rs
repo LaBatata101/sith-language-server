@@ -556,13 +556,13 @@ pub struct AssertStmt<'a> {
 
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct GlobalStmt<'a> {
-    pub name: Expression<'a>,
+    pub names: Vec<Expression<'a>>,
     pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct NonLocalStmt<'a> {
-    pub name: Expression<'a>,
+    pub names: Vec<Expression<'a>>,
     pub span: Span,
 }
 
