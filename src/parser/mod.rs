@@ -2907,7 +2907,11 @@ impl<'a> Parser<'a> {
                     index,
                     ParseExprBitflags::empty()
                         .set_expressions(
-                            ExprBitflag::ID | ExprBitflag::TUPLE | ExprBitflag::LIST | ExprBitflag::TUPLE_NO_PARENS,
+                            ExprBitflag::ID
+                                | ExprBitflag::TUPLE
+                                | ExprBitflag::LIST
+                                | ExprBitflag::TUPLE_NO_PARENS
+                                | ExprBitflag::PARENTHESIZED,
                         )
                         .set_unary_op(UnaryOperationsBitflag::ALL),
                 );
