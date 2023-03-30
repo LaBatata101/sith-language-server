@@ -31,6 +31,12 @@ use self::{
     helpers::{BinaryOperationsBitflag, ExprBitflag, ParseExprBitflags, UnaryOperationsBitflag},
 };
 
+#[derive(PartialEq)]
+enum ParseAnnotationInFuncParams {
+    True,
+    False,
+}
+
 pub struct Parser<'a> {
     tokens: &'a [Token<'a>],
 }
@@ -343,7 +349,7 @@ impl<'a> Parser<'a> {
         function.span.row_start = for_token.span.row_start;
         function.span.column_start = for_token.span.column_start;
 
-        // consume "for" keyword
+        // consume "def" keyword
         *index += 1;
         let token = self.tokens.get(*index).unwrap();
         match &token.kind {
@@ -375,7 +381,8 @@ impl<'a> Parser<'a> {
         // check if we have arguments in the function/method
         token = self.tokens.get(*index).unwrap();
         if token.kind != TokenType::CloseParenthesis {
-            let (parameters, parameters_errors) = self.parse_function_parameters(index);
+            let (parameters, parameters_errors) =
+                self.parse_function_parameters(index, ParseAnnotationInFuncParams::True);
             function.parameters = parameters;
             token = self.tokens.get(*index).unwrap();
 
@@ -384,22 +391,42 @@ impl<'a> Parser<'a> {
             }
         }
 
-        if !matches!(token.kind, TokenType::CloseParenthesis) {
+        if token.kind != TokenType::CloseParenthesis {
             errors.push(PythonError {
                 error: PythonErrorType::Syntax,
                 msg: format!("SyntaxError: expecting ')' got {:?}", token.kind),
                 span: token.span,
             });
+        } else {
+            // consume ")"
+            *index += 1;
         }
-        *index += 1;
+
         token = self.tokens.get(*index).unwrap();
-        if !matches!(token.kind, TokenType::Colon) {
+        if token.kind == TokenType::RightArrow {
+            // consume "->"
+            *index += 1;
+
+            let (return_ann, ann_errors) = self.parse_expression(
+                index,
+                ParseExprBitflags::all().remove_expression(ExprBitflag::ASSIGN | ExprBitflag::TUPLE_NO_PARENS),
+            );
+            function.returns = Some(return_ann);
+
+            if let Some(ann_errors) = ann_errors {
+                errors.extend(ann_errors);
+            }
+        }
+
+        token = self.tokens.get(*index).unwrap();
+        if token.kind != TokenType::Colon {
             errors.push(PythonError {
                 error: PythonErrorType::Syntax,
                 msg: format!("SyntaxError: expecting ':' got {:?}", token.kind),
                 span: token.span,
             });
         } else {
+            // consume ":"
             *index += 1;
         }
         let (block, block_errors) = self.parse_block(index);
@@ -437,12 +464,6 @@ impl<'a> Parser<'a> {
         }
 
         let token = self.tokens.get(*index).unwrap();
-        // if !matches!(token.kind, TokenType::Keyword(KeywordType::Def | KeywordType::Class)) {
-        //     errors.push();
-        // } else {
-        //     // consume "def" or "class"
-        //     *index += 1;
-        // }
 
         let (class_or_func, class_func_errors) = if token.kind == TokenType::Keyword(KeywordType::Def) {
             let (mut func, func_errors) = self.parse_function(index);
@@ -1459,7 +1480,11 @@ impl<'a> Parser<'a> {
         )
     }
 
-    fn parse_function_parameters(&self, index: &mut usize) -> (Vec<FuncParameter>, PythonErrors) {
+    fn parse_function_parameters(
+        &self,
+        index: &mut usize,
+        parse_annotation: ParseAnnotationInFuncParams,
+    ) -> (Vec<FuncParameter>, PythonErrors) {
         let mut errors = Vec::new();
         let mut parameters: Vec<FuncParameter> = vec![];
         let mut is_kw_only = false;
@@ -1477,6 +1502,24 @@ impl<'a> Parser<'a> {
 
                     // Consume Id
                     *index += 1;
+
+                    if parse_annotation == ParseAnnotationInFuncParams::True
+                        && self.tokens.get(*index).unwrap().kind == TokenType::Colon
+                    {
+                        // consume ":"
+                        *index += 1;
+                        let (annotation, ann_errors) = self.parse_expression(
+                            index,
+                            ParseExprBitflags::all()
+                                .remove_expression(ExprBitflag::ASSIGN | ExprBitflag::TUPLE_NO_PARENS),
+                        );
+                        func_parameter.annotation = Some(annotation);
+
+                        if let Some(ann_errors) = ann_errors {
+                            errors.extend(ann_errors);
+                        }
+                    }
+
                     // TODO: Maybe use the assignment parse function here
                     if self.tokens.get(*index).unwrap().kind == TokenType::Operator(OperatorType::Assign) {
                         *index += 1;
@@ -2941,15 +2984,6 @@ impl<'a> Parser<'a> {
     ) -> (Expression, PythonErrors) {
         let mut errors = Vec::new();
 
-        // TODO: this doesn't make sense remove it later
-        if matches!(comprehension_target, Expression::Tuple(_, _)) {
-            errors.push(PythonError {
-                error: PythonErrorType::Syntax,
-                msg: "SyntaxError: did you forget parentheses around the comprehension target?".to_string(),
-                span: comprehension_target.span(),
-            });
-        }
-
         let (fors, ifs, comp_errors) = self.parse_comprehension(index);
         if let Some(comp_errors) = comp_errors {
             errors.extend(comp_errors);
@@ -3146,7 +3180,8 @@ impl<'a> Parser<'a> {
         let mut errors = Vec::new();
 
         let parameters = if self.tokens.get(*index).unwrap().is_start_of_expr() {
-            let (parameters, parameters_errors) = self.parse_function_parameters(index);
+            let (parameters, parameters_errors) =
+                self.parse_function_parameters(index, ParseAnnotationInFuncParams::False);
             if let Some(parameters_errors) = parameters_errors {
                 errors.extend(parameters_errors);
             }

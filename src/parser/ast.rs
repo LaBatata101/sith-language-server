@@ -275,6 +275,7 @@ pub struct LambdaExpr<'a> {
 pub struct FuncParameter<'a> {
     pub name: Cow<'a, str>,
     pub default_value: Option<Expression<'a>>,
+    pub annotation: Option<Expression<'a>>,
     pub star_parameter_type: Option<StarParameterType>,
     pub is_kw_only: bool,
     pub is_pos_only: bool,
@@ -367,6 +368,7 @@ pub struct Function<'a> {
     pub parameters: Vec<FuncParameter<'a>>,
     pub block: Block<'a>,
     pub decorators: Vec<Expression<'a>>,
+    pub returns: Option<Expression<'a>>,
     pub span: Span,
 }
 

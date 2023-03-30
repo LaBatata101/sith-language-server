@@ -618,7 +618,8 @@ mod tests_parser {
                         column_start: 1,
                         column_end: 8
                     },
-                    parameters: vec![]
+                    parameters: vec![],
+                    returns: None
                 })]
             }
         )
@@ -676,7 +677,8 @@ mod tests_parser {
                         row_end: 4,
                         column_start: 1,
                         column_end: 8
-                    }
+                    },
+                    returns: None
                 })]
             }
         )
@@ -711,7 +713,8 @@ mod tests_parser {
                             },
                             star_parameter_type: None,
                             is_kw_only: false,
-                            is_pos_only: false
+                            is_pos_only: false,
+                            annotation: None
                         },
                         FuncParameter {
                             name: "y".into(),
@@ -732,7 +735,8 @@ mod tests_parser {
                             },
                             star_parameter_type: None,
                             is_kw_only: false,
-                            is_pos_only: false
+                            is_pos_only: false,
+                            annotation: None
                         }
                     ],
                     block: Block {
@@ -754,7 +758,8 @@ mod tests_parser {
                         row_end: 2,
                         column_start: 1,
                         column_end: 8
-                    }
+                    },
+                    returns: None
                 })]
             }
         )
@@ -788,7 +793,8 @@ mod tests_parser {
                             },
                             star_parameter_type: Some(StarParameterType::Kargs),
                             is_kw_only: false,
-                            is_pos_only: false
+                            is_pos_only: false,
+                            annotation: None
                         },
                         FuncParameter {
                             name: "kwargs".into(),
@@ -801,7 +807,8 @@ mod tests_parser {
                             },
                             star_parameter_type: Some(StarParameterType::KWargs),
                             is_kw_only: false,
-                            is_pos_only: false
+                            is_pos_only: false,
+                            annotation: None
                         }
                     ],
                     block: Block {
@@ -823,7 +830,8 @@ mod tests_parser {
                         row_end: 2,
                         column_start: 1,
                         column_end: 8
-                    }
+                    },
+                    returns: None
                 })]
             }
         )
@@ -3734,7 +3742,8 @@ else:
                             column_end: 8
                         },
                         is_kw_only: false,
-                        is_pos_only: false
+                        is_pos_only: false,
+                        annotation: None
                     }],
                     expression: Box::new(Expression::BinaryOp(
                         Box::new(Expression::Id(
@@ -3797,7 +3806,8 @@ else:
                                 column_end: 9
                             },
                             is_kw_only: false,
-                            is_pos_only: false
+                            is_pos_only: false,
+                            annotation: None
                         }],
                         expression: Box::new(Expression::BinaryOp(
                             Box::new(Expression::Id(
@@ -3876,7 +3886,8 @@ else:
                                     column_end: 21
                                 },
                                 is_kw_only: false,
-                                is_pos_only: false
+                                is_pos_only: false,
+                                annotation: None
                             }],
                             block: Block {
                                 stmts: vec![Statement::Pass(Span {
@@ -3897,7 +3908,8 @@ else:
                                 row_end: 3,
                                 column_start: 5,
                                 column_end: 12
-                            }
+                            },
+                            returns: None
                         })],
                         span: Span {
                             row_start: 2,
@@ -3950,7 +3962,8 @@ else:
                                     column_end: 21
                                 },
                                 is_kw_only: false,
-                                is_pos_only: false
+                                is_pos_only: false,
+                                annotation: None
                             }],
                             block: Block {
                                 stmts: vec![Statement::Pass(Span {
@@ -3971,7 +3984,8 @@ else:
                                 row_end: 3,
                                 column_start: 5,
                                 column_end: 12
-                            }
+                            },
+                            returns: None
                         })],
                         span: Span {
                             row_start: 2,
@@ -4849,7 +4863,8 @@ def x():
                         row_end: 3,
                         column_start: 1,
                         column_end: 11
-                    }
+                    },
+                    returns: None
                 })]
             }
         )
@@ -4921,7 +4936,8 @@ def x():
                         row_end: 3,
                         column_start: 1,
                         column_end: 16
-                    }
+                    },
+                    returns: None
                 })]
             }
         )
@@ -5042,7 +5058,8 @@ def test():
                         row_end: 4,
                         column_start: 1,
                         column_end: 23
-                    }
+                    },
+                    returns: None
                 }),]
             }
         );
@@ -5106,7 +5123,8 @@ def test():
                         row_end: 3,
                         column_start: 1,
                         column_end: 21
-                    }
+                    },
+                    returns: None
                 })]
             }
         );
@@ -6034,7 +6052,8 @@ def test():
                         row_end: 5,
                         column_start: 1,
                         column_end: 6
-                    }
+                    },
+                    returns: None
                 })]
             }
         )
@@ -6385,7 +6404,8 @@ def test(x=0, *, y=0):
                                 row_end: 2,
                                 column_start: 10,
                                 column_end: 12
-                            }
+                            },
+                            annotation: None
                         },
                         FuncParameter {
                             name: "y".into(),
@@ -6406,7 +6426,8 @@ def test(x=0, *, y=0):
                                 row_end: 2,
                                 column_start: 18,
                                 column_end: 20
-                            }
+                            },
+                            annotation: None
                         }
                     ],
                     block: Block {
@@ -6429,7 +6450,8 @@ def test(x=0, *, y=0):
                         row_end: 3,
                         column_start: 1,
                         column_end: 7
-                    }
+                    },
+                    returns: None
                 })]
             }
         )
@@ -6463,7 +6485,8 @@ def test(x, /, *, y):
                                 row_end: 2,
                                 column_start: 10,
                                 column_end: 10
-                            }
+                            },
+                            annotation: None
                         },
                         FuncParameter {
                             name: "y".into(),
@@ -6476,7 +6499,8 @@ def test(x, /, *, y):
                                 row_end: 2,
                                 column_start: 19,
                                 column_end: 19
-                            }
+                            },
+                            annotation: None
                         }
                     ],
                     block: Block {
@@ -6499,7 +6523,8 @@ def test(x, /, *, y):
                         row_end: 3,
                         column_start: 1,
                         column_end: 7
-                    }
+                    },
+                    returns: None
                 })]
             }
         )
@@ -6845,6 +6870,7 @@ def t(): x = 1; return x
                         column_start: 1,
                         column_end: 24,
                     },
+                    returns: None
                 })]
             }
         )
@@ -7048,6 +7074,7 @@ async def t():
                         column_start: 1,
                         column_end: 6,
                     },
+                    returns: None
                 })]
             }
         )
@@ -8003,6 +8030,7 @@ def test(a, b, c, /):
                                 column_start: 10,
                                 column_end: 10,
                             },
+                            annotation: None
                         },
                         FuncParameter {
                             name: "b".into(),
@@ -8016,6 +8044,7 @@ def test(a, b, c, /):
                                 column_start: 13,
                                 column_end: 13,
                             },
+                            annotation: None
                         },
                         FuncParameter {
                             name: "c".into(),
@@ -8029,6 +8058,7 @@ def test(a, b, c, /):
                                 column_start: 16,
                                 column_end: 16,
                             },
+                            annotation: None
                         },
                     ],
                     block: Block {
@@ -8052,6 +8082,7 @@ def test(a, b, c, /):
                         column_start: 1,
                         column_end: 7,
                     },
+                    returns: None
                 })]
             }
         )
@@ -8105,6 +8136,143 @@ def test(a, b, c, /):
                         column_end: 11,
                     },
                 }))]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_function_with_type_annotation() {
+        let mut lexer = Lexer::new(
+            "
+def test(x: int, y: str, z: list[str]) -> str:
+    ...
+",
+        );
+        let parser = Parser::new(&mut lexer);
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::FunctionDef(Function {
+                    name: "test".into(),
+                    parameters: vec![
+                        FuncParameter {
+                            name: "x".into(),
+                            default_value: None,
+                            annotation: Some(Expression::Id(
+                                "int".into(),
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 13,
+                                    column_end: 15,
+                                },
+                            )),
+                            star_parameter_type: None,
+                            is_kw_only: false,
+                            is_pos_only: false,
+                            span: Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 10,
+                                column_end: 10,
+                            },
+                        },
+                        FuncParameter {
+                            name: "y".into(),
+                            default_value: None,
+                            annotation: Some(Expression::Id(
+                                "str".into(),
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 21,
+                                    column_end: 23,
+                                },
+                            ),),
+                            star_parameter_type: None,
+                            is_kw_only: false,
+                            is_pos_only: false,
+                            span: Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 18,
+                                column_end: 18,
+                            },
+                        },
+                        FuncParameter {
+                            name: "z".into(),
+                            default_value: None,
+                            annotation: Some(Expression::Subscript(Subscript {
+                                lhs: Box::new(Expression::Id(
+                                    "list".into(),
+                                    Span {
+                                        row_start: 2,
+                                        row_end: 2,
+                                        column_start: 29,
+                                        column_end: 32,
+                                    },
+                                )),
+                                slice: Box::new(SubscriptType::Subscript(Expression::Id(
+                                    "str".into(),
+                                    Span {
+                                        row_start: 2,
+                                        row_end: 2,
+                                        column_start: 34,
+                                        column_end: 36,
+                                    },
+                                ))),
+                                span: Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 29,
+                                    column_end: 37,
+                                },
+                            })),
+                            star_parameter_type: None,
+                            is_kw_only: false,
+                            is_pos_only: false,
+                            span: Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 26,
+                                column_end: 26,
+                            },
+                        },
+                    ],
+                    block: Block {
+                        stmts: vec![Statement::Expression(Expression::Ellipsis(Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 5,
+                            column_end: 7,
+                        }))],
+                        span: Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 5,
+                            column_end: 7,
+                        },
+                    },
+                    decorators: vec![],
+                    span: Span {
+                        row_start: 2,
+                        row_end: 3,
+                        column_start: 1,
+                        column_end: 7,
+                    },
+                    returns: Some(Expression::Id(
+                        "str".into(),
+                        Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 43,
+                            column_end: 45
+                        }
+                    ))
+                })]
             }
         )
     }
