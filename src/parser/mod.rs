@@ -2538,7 +2538,7 @@ impl<'a> Parser<'a> {
                 );
             }
 
-            let rhs = if !token.is_end_of_expr() {
+            let rhs = if token.kind == TokenType::Operator(OperatorType::Assign) {
                 // consume assign token
                 *index += 1;
                 let (rhs, rhs_errors) = self.parse_expression(index, allowed_expr_in_rhs);
