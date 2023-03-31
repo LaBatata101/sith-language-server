@@ -514,24 +514,20 @@ impl<'a> Lexer<'a> {
             self.cs.advance_by(1);
             start_quote_total = 1;
 
-            while self
-                .cs
-                .current_char()
-                .map_or(false, |char| char != quote_char /* && char != '\n' */)
-            {
+            while self.cs.current_char().map_or(false, |char| char != quote_char) {
                 match (self.cs.current_char(), self.cs.next_char()) {
-                    // FIXME: support \r, \r\n
-                    (Some('\\'), Some('\n')) => {
+                    // FIXME: support \r\n
+                    (Some('\\'), Some('\n' | '\r')) => {
                         has_explicit_line_join = true;
                         backslash_positions.push(self.cs.pos());
                         self.cs.advance_by(1);
                     }
-                    (Some('\\'), Some('\'' | '"')) => self.cs.advance_by(2),
+                    (Some('\\'), Some('\'' | '"' | '\\')) => self.cs.advance_by(2),
                     (Some('\\'), _)
                         if self
                             .cs
                             .peek_char(self.cs.pos().index + 2)
-                            .map_or(false, |char| char == '\n') =>
+                            .map_or(false, |char| char == '\n' || char == '\r') =>
                     {
                         self.cs.advance_by(1);
                         break;
