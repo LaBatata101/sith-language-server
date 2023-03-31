@@ -83,6 +83,7 @@ impl<'a> Token<'a> {
                         | KeywordType::False
                         | KeywordType::Await
                         | KeywordType::Lambda
+                        | KeywordType::Yield
                 )
         )
     }
