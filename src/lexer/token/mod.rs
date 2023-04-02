@@ -147,4 +147,32 @@ impl<'a> Token<'a> {
             }
         )
     }
+
+    pub fn as_str(&self) -> &str {
+        match self.kind {
+            TokenType::OpenBrace => "{",
+            TokenType::OpenBrackets => "[",
+            TokenType::OpenParenthesis => "(",
+            TokenType::CloseBrace => "}",
+            TokenType::CloseBrackets => "]",
+            TokenType::CloseParenthesis => ")",
+            TokenType::Colon => ":",
+            TokenType::Comma => ",",
+            TokenType::SemiColon => ";",
+            TokenType::Dot => ".",
+            TokenType::Eof => "EOF",
+            TokenType::Ellipsis => "...",
+            TokenType::RightArrow => "->",
+            TokenType::Dedent => "DEDENT TOKEN",
+            TokenType::Indent => "INDENT TOKEN",
+            TokenType::NewLine => "NEWLINE TOKEN",
+            TokenType::Invalid(_) => "INVALID TOKEN",
+            TokenType::Id(ref name) => name,
+            TokenType::String(ref string) => string,
+            TokenType::Number(_, ref number) => number,
+            TokenType::Keyword(ref keyword) => keyword.as_str(),
+            TokenType::Operator(ref operator) => operator.as_str(),
+            TokenType::SoftKeyword(ref soft_keyword) => soft_keyword.as_str(),
+        }
+    }
 }
