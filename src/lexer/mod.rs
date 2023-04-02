@@ -18,20 +18,12 @@ use self::{
     token::types::{IntegerType, KeywordType, NumberType, OperatorType, SoftKeywordType, TokenType},
 };
 
-#[derive(PartialEq)]
-enum LexerContext {
-    /// Special context that means we need to treat splited strings as one Token when they are
-    /// inside of (), {} or [].
-    ImplicitLineJoining,
-    /// Represents no special context.
-    None,
-}
-
 pub struct Lexer<'a> {
     cs: CharStream<'a>,
     tokens: Vec<Token<'a>>,
     indent_stack: Vec<usize>,
-    context: LexerContext,
+    /// This is used to check if we are inside a [], () or {}
+    implicit_line_joining: u32,
 }
 
 impl<'a> Lexer<'a> {
@@ -40,13 +32,11 @@ impl<'a> Lexer<'a> {
             cs: CharStream::new(text),
             tokens: Vec::new(),
             indent_stack: vec![0],
-            context: LexerContext::None,
+            implicit_line_joining: 0,
         }
     }
 
     pub fn tokenize(&mut self) -> Option<Vec<PythonError>> {
-        // This is used to check if we are inside a [], () or {} and then skip the NewLine Token.
-        let mut implicit_line_joining = 0;
         let mut errors: Vec<PythonError> = vec![];
         let mut is_beginning_of_line = true;
 
@@ -67,14 +57,14 @@ impl<'a> Lexer<'a> {
 
                 // skip lines containing only white spaces or \n
                 // FIXME: handle \r and \r\n
-                if self.cs.current_char().map_or(false, |char| char == '\n') && implicit_line_joining == 0 {
+                if self.cs.current_char().map_or(false, |char| char == '\n') && self.implicit_line_joining == 0 {
                     is_beginning_of_line = true;
                     // Consume \n
                     self.cs.advance_by(1);
                     continue;
                 }
 
-                if implicit_line_joining == 0 {
+                if self.implicit_line_joining == 0 {
                     if let Err(error) = self.handle_indentation(whitespace_total) {
                         errors.push(error);
                     }
@@ -94,38 +84,32 @@ impl<'a> Lexer<'a> {
                     }
                 }
                 '(' => {
-                    implicit_line_joining += 1;
-                    self.context = LexerContext::ImplicitLineJoining;
+                    self.implicit_line_joining += 1;
 
                     self.lex_single_char(TokenType::OpenParenthesis);
                 }
                 ')' => {
-                    implicit_line_joining -= 1;
-                    self.context = LexerContext::None;
+                    self.implicit_line_joining -= 1;
 
                     self.lex_single_char(TokenType::CloseParenthesis);
                 }
                 '[' => {
-                    implicit_line_joining += 1;
-                    self.context = LexerContext::ImplicitLineJoining;
+                    self.implicit_line_joining += 1;
 
                     self.lex_single_char(TokenType::OpenBrackets);
                 }
                 ']' => {
-                    implicit_line_joining -= 1;
-                    self.context = LexerContext::None;
+                    self.implicit_line_joining -= 1;
 
                     self.lex_single_char(TokenType::CloseBrackets);
                 }
                 '{' => {
-                    implicit_line_joining += 1;
-                    self.context = LexerContext::ImplicitLineJoining;
+                    self.implicit_line_joining += 1;
 
                     self.lex_single_char(TokenType::OpenBrace);
                 }
                 '}' => {
-                    implicit_line_joining -= 1;
-                    self.context = LexerContext::None;
+                    self.implicit_line_joining -= 1;
 
                     self.lex_single_char(TokenType::CloseBrace);
                 }
@@ -189,7 +173,7 @@ impl<'a> Lexer<'a> {
 
                     self.cs.advance_by(eol_size);
 
-                    if implicit_line_joining > 0 {
+                    if self.implicit_line_joining > 0 {
                         continue;
                     }
 
@@ -414,18 +398,74 @@ impl<'a> Lexer<'a> {
     // TODO: try to refactor this code
     //https://docs.python.org/3/reference/lexical_analysis.html#string-and-bytes-literals
     fn lex_string(&mut self) -> Option<Vec<PythonError>> {
-        if self.context == LexerContext::ImplicitLineJoining {
+        if self.implicit_line_joining > 0 {
             return self.lex_string_within_parens();
         }
 
-        let (string, str_span, errors) = self.process_string();
+        let mut errors = vec![];
+        let (mut string, mut str_span, string_errors) = self.process_string();
+        if let Some(string_errors) = string_errors {
+            errors.extend(string_errors);
+        }
+
+        // In case we find a '\' (explicit line join char) with a string after it,
+        // we need to treat these strings as one Token.
+        self.cs.skip_whitespace();
+        while self.cs.current_char().map_or(false, |char| char == '\\') {
+            self.cs.advance_by(1);
+
+            // Skip any whitespace after the "\"
+            self.cs.skip_whitespace();
+            if matches!(self.cs.current_char(), Some('#')) {
+                self.cs.advance_while(1, |char| char != '\n');
+            }
+
+            if matches!(self.cs.current_char(), Some('\n')) {
+                self.cs.advance_by(1);
+            }
+
+            // Skip any whitespace before the string
+            self.cs.skip_whitespace();
+
+            // check for any string prefix
+            let str_prefix = if matches!(self.cs.current_char(), Some('r' | 'b' | 'f' | 'F' | 'R' | 'B')) {
+                let start = self.cs.pos();
+                while matches!(self.cs.current_char(), Some(valid_id_noninitial_chars!())) {
+                    self.cs.advance_by(1);
+                }
+                let end = self.cs.pos();
+
+                Some(self.cs.get_slice(start.index, end.index).unwrap())
+            } else {
+                None
+            };
+
+            if matches!(self.cs.current_char(), Some('"' | '\'')) {
+                let (str, span, str_errors) = self.process_string();
+
+                string.to_mut().push_str(&str);
+                str_span.column_end = span.column_end;
+                str_span.row_end = span.row_end;
+
+                if let Some(str_errors) = str_errors {
+                    errors.extend(str_errors);
+                }
+            }
+
+            // Skip any whitespace after the string
+            self.cs.skip_whitespace();
+        }
 
         self.tokens.push(Token {
             kind: TokenType::String(string),
             span: str_span,
         });
 
-        errors
+        if errors.is_empty() {
+            None
+        } else {
+            Some(errors)
+        }
     }
 
     fn lex_string_within_parens(&mut self) -> Option<Vec<PythonError>> {
@@ -441,17 +481,37 @@ impl<'a> Lexer<'a> {
                 errors.extend(str_errors);
             }
 
-            // this is not good
+            // skip comments in the same line of the string
             self.cs.skip_whitespace();
-            if self.cs.current_char().map_or(false, |char| char == '\n') {
+            if matches!(self.cs.current_char(), Some('#')) {
+                self.cs.advance_while(1, |char| char != '\n');
+            }
+
+            if matches!(self.cs.current_char(), Some('\\')) {
+                self.cs.advance_by(1);
+            }
+
+            if matches!(self.cs.current_char(), Some('\n')) {
                 self.cs.advance_by(1);
             }
             self.cs.skip_whitespace();
 
+            while matches!(self.cs.current_char(), Some('#')) {
+                // FIXME: add support for \r, \r\n
+                self.cs.advance_while(1, |char| char != '\n');
+                // skip \n
+                self.cs.advance_by(1);
+                self.cs.skip_whitespace();
+            }
+
             // check for a str prefix and then consume it.
-            if matches!(self.cs.current_char(), Some('r' | 'b' | 'f' | 'F' | 'R' | 'B'))
-                && matches!(self.cs.next_char(), Some('"' | '\''))
-            {
+            if matches!(
+                (self.cs.current_char(), self.cs.next_char()),
+                (
+                    Some('r' | 'b' | 'f' | 'F' | 'R' | 'B'),
+                    Some('\'' | '"' | 'r' | 'R' | 'f' | 'F' | 'b' | 'B')
+                )
+            ) {
                 let start = self.cs.pos();
                 while matches!(self.cs.current_char(), Some(valid_id_noninitial_chars!())) {
                     self.cs.advance_by(1);
@@ -752,7 +812,7 @@ impl<'a> Lexer<'a> {
 
         let number = self.cs.get_slice(start.index, end.index).unwrap();
         self.tokens.push(Token {
-            kind: TokenType::Number(number_type, String::from_utf8_lossy(number).into()),
+            kind: TokenType::Number(number_type, String::from_utf8_lossy(number)),
             span: self.make_span(start, end),
         });
 

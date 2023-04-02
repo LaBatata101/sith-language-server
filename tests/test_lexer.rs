@@ -2830,6 +2830,173 @@ f'World {}')",
     }
 
     #[test]
+    fn lex_parenthesized_string5() {
+        let mut lexer = Lexer::new(
+            "
+(get_str() + 'hello ' \\
+  # this is a comment
+# this is a comment
+            'world')
+",
+        );
+        let errors = lexer.tokenize();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token {
+                    kind: TokenType::OpenParenthesis,
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 1,
+                        column_end: 1,
+                    },
+                },
+                Token {
+                    kind: TokenType::Id("get_str".into(),),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 2,
+                        column_end: 8,
+                    },
+                },
+                Token {
+                    kind: TokenType::OpenParenthesis,
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 9,
+                        column_end: 9,
+                    },
+                },
+                Token {
+                    kind: TokenType::CloseParenthesis,
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 10,
+                        column_end: 10,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::Plus,),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 12,
+                        column_end: 12,
+                    },
+                },
+                Token {
+                    kind: TokenType::String("hello world".into(),),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 5,
+                        column_start: 14,
+                        column_end: 19,
+                    },
+                },
+                Token {
+                    kind: TokenType::CloseParenthesis,
+                    span: Span {
+                        row_start: 5,
+                        row_end: 5,
+                        column_start: 20,
+                        column_end: 20,
+                    },
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 5,
+                        row_end: 5,
+                        column_start: 21,
+                        column_end: 21,
+                    },
+                },
+                Token {
+                    kind: TokenType::Eof,
+                    span: Span {
+                        row_start: 6,
+                        row_end: 6,
+                        column_start: 1,
+                        column_end: 1,
+                    },
+                }
+            ]
+        )
+    }
+
+    #[test]
+    fn lex_explict_splited_string() {
+        let mut lexer = Lexer::new(
+            "
+'hello' \\ # this is a comment
+  ' ' \\ 
+'World' \\
+fr'{x}' \\
++ '!'
+",
+        );
+        let errors = lexer.tokenize();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token {
+                    kind: TokenType::String("hello World{x}".into(),),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 5,
+                        column_start: 1,
+                        column_end: 7,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::Plus,),
+                    span: Span {
+                        row_start: 6,
+                        row_end: 6,
+                        column_start: 1,
+                        column_end: 1,
+                    },
+                },
+                Token {
+                    kind: TokenType::String("!".into(),),
+                    span: Span {
+                        row_start: 6,
+                        row_end: 6,
+                        column_start: 3,
+                        column_end: 5,
+                    },
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 6,
+                        row_end: 6,
+                        column_start: 6,
+                        column_end: 6,
+                    },
+                },
+                Token {
+                    kind: TokenType::Eof,
+                    span: Span {
+                        row_start: 7,
+                        row_end: 7,
+                        column_start: 1,
+                        column_end: 1,
+                    },
+                },
+            ]
+        )
+    }
+
+    #[test]
     fn lex_empty_strings() {
         let mut lexer = Lexer::new(
             "
