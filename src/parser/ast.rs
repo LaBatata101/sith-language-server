@@ -416,15 +416,14 @@ pub struct ImportStmt<'a> {
 
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct ImportModule<'a> {
-    /// Store the module name and it's parents, e.g., "module1.module2.class.function" will become
-    /// vec!["module1", "module2", "class", "function"]
-    pub name: Vec<Cow<'a, str>>,
-    pub alias: Option<String>,
+    pub name: Cow<'a, str>,
+    pub alias: Option<Cow<'a, str>>,
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct FromImportStmt<'a> {
-    pub module: Vec<ImportModule<'a>>,
+    pub leading_dots: u32,
+    pub module: Option<String>,
     pub targets: Vec<ImportModule<'a>>,
     pub span: Span,
 }

@@ -4027,7 +4027,7 @@ else:
             ParsedFile {
                 stmts: vec![Statement::Import(ImportStmt {
                     modules: vec![ImportModule {
-                        name: vec!["os".into()],
+                        name: "os".into(),
                         alias: None
                     }],
                     span: Span {
@@ -4054,11 +4054,11 @@ else:
                 stmts: vec![Statement::Import(ImportStmt {
                     modules: vec![
                         ImportModule {
-                            name: vec!["os".into(), "walk".into()],
+                            name: "os.walk".into(),
                             alias: Some("O".into())
                         },
                         ImportModule {
-                            name: vec!["sys".into()],
+                            name: "sys".into(),
                             alias: Some("S".into())
                         }
                     ],
@@ -4084,12 +4084,9 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::FromImport(FromImportStmt {
-                    module: vec![ImportModule {
-                        name: vec!["os".into()],
-                        alias: None
-                    }],
+                    module: Some("os".into()),
                     targets: vec![ImportModule {
-                        name: vec!["*".into()],
+                        name: "*".into(),
                         alias: None
                     }],
                     span: Span {
@@ -4097,7 +4094,8 @@ else:
                         row_end: 1,
                         column_start: 1,
                         column_end: 16
-                    }
+                    },
+                    leading_dots: 0
                 })]
             }
         )
@@ -4114,14 +4112,12 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::FromImport(FromImportStmt {
-                    module: vec![ImportModule {
-                        name: vec!["...".into()],
-                        alias: None
-                    }],
+                    module: None,
                     targets: vec![ImportModule {
-                        name: vec!["*".into()],
+                        name: "*".into(),
                         alias: None
                     }],
+                    leading_dots: 3,
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -4135,7 +4131,7 @@ else:
 
     #[test]
     fn parse_from_import3() {
-        let mut lexer = Lexer::new("from .subpackage.module1 import func");
+        let mut lexer = Lexer::new("from .subpackage.module1 import func as fn");
         let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
 
@@ -4144,25 +4140,17 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::FromImport(FromImportStmt {
-                    module: vec![
-                        ImportModule {
-                            name: vec![".".into()],
-                            alias: None
-                        },
-                        ImportModule {
-                            name: vec!["subpackage".into(), "module1".into()],
-                            alias: None
-                        }
-                    ],
+                    module: Some("subpackage.module1".into()),
                     targets: vec![ImportModule {
-                        name: vec!["func".into()],
-                        alias: None
+                        name: "func".into(),
+                        alias: Some("fn".into())
                     }],
+                    leading_dots: 1,
                     span: Span {
                         row_start: 1,
                         row_end: 1,
                         column_start: 1,
-                        column_end: 36
+                        column_end: 42
                     }
                 })]
             }
@@ -4180,30 +4168,22 @@ else:
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::FromImport(FromImportStmt {
-                    module: vec![
-                        ImportModule {
-                            name: vec![".".into()],
-                            alias: None
-                        },
-                        ImportModule {
-                            name: vec!["subpackage".into(), "module1".into()],
-                            alias: None
-                        }
-                    ],
+                    module: Some("subpackage.module1".into()),
                     targets: vec![
                         ImportModule {
-                            name: vec!["func".into()],
+                            name: "func".into(),
                             alias: None
                         },
                         ImportModule {
-                            name: vec!["func2".into()],
+                            name: "func2".into(),
                             alias: None
                         },
                         ImportModule {
-                            name: vec!["func3".into()],
+                            name: "func3".into(),
                             alias: None
                         }
                     ],
+                    leading_dots: 1,
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -7968,14 +7948,12 @@ import a
             ParsedFile {
                 stmts: vec![
                     Statement::FromImport(FromImportStmt {
-                        module: vec![ImportModule {
-                            name: vec!["a".into(),],
-                            alias: None,
-                        }],
+                        module: Some("a".into()),
                         targets: vec![ImportModule {
-                            name: vec!["*".into(),],
+                            name: "*".into(),
                             alias: None,
                         }],
+                        leading_dots: 0,
                         span: Span {
                             row_start: 2,
                             row_end: 2,
@@ -7985,7 +7963,7 @@ import a
                     }),
                     Statement::Import(ImportStmt {
                         modules: vec![ImportModule {
-                            name: vec!["a".into(),],
+                            name: "a".into(),
                             alias: None,
                         }],
                         span: Span {

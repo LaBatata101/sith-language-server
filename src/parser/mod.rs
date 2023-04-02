@@ -1802,40 +1802,15 @@ impl<'a> Parser<'a> {
         import_stmt.span.column_start = import_token.span.column_start;
 
         loop {
-            let (name, span_end, module_name_errors) = self.parse_import_module_name(index);
-            let mut import_module = ImportModule { name, alias: None };
-            import_stmt.span.column_end = span_end.column_end;
-            import_stmt.span.row_end = span_end.row_end;
-
-            if let Some(module_name_errors) = module_name_errors {
-                errors.extend(module_name_errors);
-            }
-
-            if self.tokens.get(*index).unwrap().kind == TokenType::Keyword(KeywordType::As) {
-                // Consume "as"
-                *index += 1;
-                let token = self.tokens.get(*index).unwrap();
-                if let Token {
-                    kind: TokenType::Id(alias_name),
-                    span,
-                } = token
-                {
-                    // Consume Id
-                    *index += 1;
-                    import_stmt.span.column_end = span.column_end;
-                    import_stmt.span.row_end = span.row_end;
-
-                    import_module.alias = Some(alias_name.to_string());
-                } else {
-                    errors.push(PythonError {
-                        error: PythonErrorType::Syntax,
-                        msg: format!("SyntaxError: expected identifier, got {:?}", token.kind),
-                        span: token.span,
-                    })
-                }
-            }
+            let (import_module, import_module_span, import_module_errors) = self.parse_import_module(index);
 
             import_stmt.modules.push(import_module);
+            import_stmt.span.row_end = import_module_span.row_end;
+            import_stmt.span.column_end = import_module_span.column_end;
+
+            if let Some(import_module_errors) = import_module_errors {
+                errors.extend(import_module_errors);
+            }
 
             if self.tokens.get(*index).unwrap().kind != TokenType::Comma {
                 break;
@@ -1853,7 +1828,6 @@ impl<'a> Parser<'a> {
         (import_stmt, if errors.is_empty() { None } else { Some(errors) })
     }
 
-    // TODO: refactor this
     fn parse_from_import(&self, index: &mut usize) -> (FromImportStmt, PythonErrors) {
         let mut errors = Vec::new();
         let from_token = self.tokens.get(*index).unwrap();
@@ -1866,48 +1840,41 @@ impl<'a> Parser<'a> {
 
         let mut token = self.tokens.get(*index).unwrap();
 
-        // Get the relative part
-        let mut has_dots = false;
-        if let TokenType::Dot | TokenType::Ellipsis = token.kind {
-            has_dots = true;
-            let mut dots: Cow<str> = Cow::default();
-
-            while let Token {
-                kind: TokenType::Dot | TokenType::Ellipsis,
-                ..
-            } = token
-            {
-                if token.kind == TokenType::Dot {
-                    dots.to_mut().push('.');
-                } else {
-                    dots.to_mut().push_str("...");
-                }
-
-                *index += 1;
-                token = self.tokens.get(*index).unwrap();
+        let mut leading_dots = 0;
+        while let Token {
+            kind: TokenType::Dot | TokenType::Ellipsis,
+            ..
+        } = token
+        {
+            if token.kind == TokenType::Dot {
+                leading_dots += 1;
+            } else {
+                leading_dots += 3;
             }
 
-            from_import_stmt.module.push(ImportModule {
-                name: vec![dots],
-                alias: None,
-            });
+            *index += 1;
+            token = self.tokens.get(*index).unwrap();
         }
 
+        from_import_stmt.leading_dots = leading_dots;
+
         token = self.tokens.get(*index).unwrap();
-        if let TokenType::Id(..) = token.kind {
+        let module = if matches!(
+            token.kind,
+            TokenType::Id(_) | TokenType::SoftKeyword(SoftKeywordType::Case | SoftKeywordType::Match)
+        ) {
             let (name, _, module_name_errors) = self.parse_import_module_name(index);
-            from_import_stmt.module.push(ImportModule { name, alias: None });
 
             if let Some(module_name_errors) = module_name_errors {
                 errors.extend(module_name_errors);
             }
-        } else if !has_dots {
-            errors.push(PythonError {
-                error: PythonErrorType::Syntax,
-                msg: format!("Syntax Error: expecting identifier, got {:?}", token.kind),
-                span: token.span,
-            });
-        }
+
+            Some(name)
+        } else {
+            None
+        };
+
+        from_import_stmt.module = module;
 
         token = self.tokens.get(*index).unwrap();
         if token.kind != TokenType::Keyword(KeywordType::Import) {
@@ -1926,7 +1893,7 @@ impl<'a> Parser<'a> {
             // Consume *
             *index += 1;
             from_import_stmt.targets.push(ImportModule {
-                name: vec![Cow::Borrowed("*")],
+                name: Cow::Borrowed(token.as_str()),
                 alias: None,
             });
             from_import_stmt.span.column_end = token.span.column_end;
@@ -1947,48 +1914,15 @@ impl<'a> Parser<'a> {
         }
 
         loop {
-            token = self.tokens.get(*index).unwrap();
-            let mut target = ImportModule::default();
-            if let TokenType::Id(ref target_name) = token.kind {
-                // Consume Id
-                *index += 1;
+            let (import_module, import_module_span, import_module_errors) = self.parse_import_module(index);
 
-                from_import_stmt.span.row_end = token.span.row_end;
-                from_import_stmt.span.column_end = token.span.column_end;
-                target.name = vec![Cow::Borrowed(target_name)];
-            } else {
-                errors.push(PythonError {
-                    error: PythonErrorType::Syntax,
-                    msg: format!("SyntaxError: expected identifier, got {:?}", token.kind),
-                    span: token.span,
-                });
+            from_import_stmt.targets.push(import_module);
+            from_import_stmt.span.row_end = import_module_span.row_end;
+            from_import_stmt.span.column_end = import_module_span.column_end;
+
+            if let Some(import_module_errors) = import_module_errors {
+                errors.extend(import_module_errors);
             }
-
-            if self.tokens.get(*index).unwrap().kind == TokenType::Keyword(KeywordType::As) {
-                // Consume "as"
-                *index += 1;
-                let token = self.tokens.get(*index).unwrap();
-                if let Token {
-                    kind: TokenType::Id(alias_name),
-                    span,
-                } = token
-                {
-                    // Consume Id
-                    *index += 1;
-                    from_import_stmt.span.row_end = span.row_end;
-                    from_import_stmt.span.column_end = span.column_end;
-
-                    target.alias = Some(alias_name.to_string());
-                } else {
-                    errors.push(PythonError {
-                        error: PythonErrorType::Syntax,
-                        msg: format!("SyntaxError: expected identifier, got {:?}", token.kind),
-                        span: token.span,
-                    })
-                }
-            }
-
-            from_import_stmt.targets.push(target);
 
             if self.tokens.get(*index).unwrap().kind != TokenType::Comma {
                 break;
@@ -2019,40 +1953,86 @@ impl<'a> Parser<'a> {
         (from_import_stmt, if errors.is_empty() { None } else { Some(errors) })
     }
 
-    // TODO: refactor this
-    fn parse_import_module_name(&self, index: &mut usize) -> (Vec<Cow<str>>, Span, PythonErrors) {
+    fn parse_import_module_name(&self, index: &mut usize) -> (String, Span, PythonErrors) {
         let mut errors = Vec::new();
-        let mut module_name: Vec<Cow<str>> = vec![];
-        let mut span_end = Span::default();
+        let mut module_name = String::new();
+        let mut module_span = Span::default();
 
         loop {
-            let token = self.tokens.get(*index).unwrap();
-            if let TokenType::Id(ref target) = token.kind {
-                // Consume Id
-                *index += 1;
+            let mut token = self.tokens.get(*index).unwrap();
+            match &token.kind {
+                TokenType::Id(_) | TokenType::SoftKeyword(SoftKeywordType::Case | SoftKeywordType::Match) => {
+                    // Consume "case" or "match" or Id
+                    *index += 1;
 
-                span_end.row_end = token.span.row_end;
-                span_end.column_end = token.span.column_end;
-                module_name.push(Cow::Borrowed(target));
-            } else {
-                errors.push(PythonError {
-                    error: PythonErrorType::Syntax,
-                    msg: format!("SyntaxError: expected identifier, got {:?}", token.kind),
-                    span: token.span,
-                });
+                    module_span = token.span;
+                    module_name.push_str(token.as_str());
+                }
+                _ => {
+                    errors.push(PythonError {
+                        error: PythonErrorType::Syntax,
+                        msg: format!("SyntaxError: expected identifier, got {:?}", token.kind),
+                        span: token.span,
+                    });
+                }
             }
 
-            if self.tokens.get(*index).unwrap().kind != TokenType::Dot {
+            token = self.tokens.get(*index).unwrap();
+            if token.kind != TokenType::Dot {
                 break;
             }
 
+            module_name.push_str(token.as_str());
             // Consume .
             *index += 1;
         }
 
         (
             module_name,
-            span_end,
+            module_span,
+            if errors.is_empty() { None } else { Some(errors) },
+        )
+    }
+
+    fn parse_import_module(&self, index: &mut usize) -> (ImportModule, Span, PythonErrors) {
+        let mut errors = vec![];
+        let (name, mut module_span, module_name_errors) = self.parse_import_module_name(index);
+        let mut import_module = ImportModule {
+            name: Cow::Owned(name),
+            alias: None,
+        };
+
+        if let Some(module_name_errors) = module_name_errors {
+            errors.extend(module_name_errors);
+        }
+
+        if self.tokens.get(*index).unwrap().kind == TokenType::Keyword(KeywordType::As) {
+            // Consume "as"
+            *index += 1;
+            let token = self.tokens.get(*index).unwrap();
+            if let Token {
+                kind: TokenType::Id(alias_name),
+                span,
+            } = token
+            {
+                // Consume Id
+                *index += 1;
+                module_span.column_end = span.column_end;
+                module_span.row_end = span.row_end;
+
+                import_module.alias = Some(Cow::Borrowed(alias_name));
+            } else {
+                errors.push(PythonError {
+                    error: PythonErrorType::Syntax,
+                    msg: format!("SyntaxError: expected identifier, got {:?}", token.kind),
+                    span: token.span,
+                })
+            }
+        }
+
+        (
+            import_module,
+            module_span,
             if errors.is_empty() { None } else { Some(errors) },
         )
     }
