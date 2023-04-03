@@ -4270,6 +4270,129 @@ else:
     }
 
     #[test]
+    fn parse_with2() {
+        let mut lexer = Lexer::new(
+            "
+with t() as (a, b), t1():
+    ...",
+        );
+        let parser = Parser::new(&mut lexer);
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::With(WithStmt {
+                    items: vec![
+                        WithItem {
+                            item: Expression::Call(FunctionCall {
+                                lhs: Box::new(Expression::Id(
+                                    "t".into(),
+                                    Span {
+                                        row_start: 2,
+                                        row_end: 2,
+                                        column_start: 6,
+                                        column_end: 6,
+                                    },
+                                )),
+                                args: vec![],
+                                span: Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 6,
+                                    column_end: 8,
+                                },
+                            }),
+                            target: Some(Expression::Tuple(
+                                vec![
+                                    Expression::Id(
+                                        "a".into(),
+                                        Span {
+                                            row_start: 2,
+                                            row_end: 2,
+                                            column_start: 14,
+                                            column_end: 14,
+                                        },
+                                    ),
+                                    Expression::Id(
+                                        "b".into(),
+                                        Span {
+                                            row_start: 2,
+                                            row_end: 2,
+                                            column_start: 17,
+                                            column_end: 17,
+                                        },
+                                    ),
+                                ],
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 13,
+                                    column_end: 18,
+                                },
+                            ),),
+                            span: Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 6,
+                                column_end: 18,
+                            },
+                        },
+                        WithItem {
+                            item: Expression::Call(FunctionCall {
+                                lhs: Box::new(Expression::Id(
+                                    "t1".into(),
+                                    Span {
+                                        row_start: 2,
+                                        row_end: 2,
+                                        column_start: 21,
+                                        column_end: 22,
+                                    },
+                                )),
+                                args: vec![],
+                                span: Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 21,
+                                    column_end: 24,
+                                },
+                            }),
+                            target: None,
+                            span: Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 21,
+                                column_end: 24,
+                            },
+                        },
+                    ],
+                    block: Block {
+                        stmts: vec![Statement::Expression(Expression::Ellipsis(Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 5,
+                            column_end: 7,
+                        }))],
+                        span: Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 5,
+                            column_end: 7,
+                        },
+                    },
+                    span: Span {
+                        row_start: 2,
+                        row_end: 3,
+                        column_start: 1,
+                        column_end: 7,
+                    },
+                })]
+            }
+        )
+    }
+
+    #[test]
     fn parse_try_except() {
         let mut lexer = Lexer::new(
             "try:
