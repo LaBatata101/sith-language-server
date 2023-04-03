@@ -353,10 +353,10 @@ impl<'a> Parser<'a> {
         *index += 1;
         let token = self.tokens.get(*index).unwrap();
         match &token.kind {
-            TokenType::Id(name) => {
+            TokenType::Id(_) | TokenType::SoftKeyword(SoftKeywordType::Match | SoftKeywordType::Case) => {
                 // Consume function identifier
                 *index += 1;
-                function.name = Cow::Borrowed(name);
+                function.name = Cow::Borrowed(token.as_str());
             }
             _ => {
                 errors.push(PythonError {
@@ -1510,8 +1510,8 @@ impl<'a> Parser<'a> {
             // FIXME: "/" must appear before the "*"
             // FIXME: "/" cannot be the first parameter
             match &token.kind {
-                TokenType::Id(name) => {
-                    func_parameter.name = Cow::Borrowed(name);
+                TokenType::Id(_) | TokenType::SoftKeyword(SoftKeywordType::Case | SoftKeywordType::Match) => {
+                    func_parameter.name = Cow::Borrowed(token.as_str());
                     func_parameter.span = token.span;
 
                     // Consume Id
