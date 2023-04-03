@@ -8377,4 +8377,58 @@ def test(x: int, y: str, z: list[str]) -> str:
             }
         )
     }
+
+    #[test]
+    fn parse_async_func_with_decorator() {
+        let mut lexer = Lexer::new(
+            "
+@decorator
+async def test():
+    ...
+",
+        );
+        let parser = Parser::new(&mut lexer);
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::AsyncFunctionDef(Function {
+                    name: "test".into(),
+                    parameters: vec![],
+                    block: Block {
+                        stmts: vec![Statement::Expression(Expression::Ellipsis(Span {
+                            row_start: 4,
+                            row_end: 4,
+                            column_start: 5,
+                            column_end: 7,
+                        }))],
+                        span: Span {
+                            row_start: 4,
+                            row_end: 4,
+                            column_start: 5,
+                            column_end: 7,
+                        },
+                    },
+                    decorators: vec![Expression::Id(
+                        "decorator".into(),
+                        Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 2,
+                            column_end: 10,
+                        },
+                    )],
+                    returns: None,
+                    span: Span {
+                        row_start: 2,
+                        row_end: 4,
+                        column_start: 1,
+                        column_end: 7,
+                    },
+                })]
+            }
+        )
+    }
 }

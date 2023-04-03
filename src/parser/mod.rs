@@ -463,7 +463,17 @@ impl<'a> Parser<'a> {
             decorators.push(decorator);
         }
 
-        let token = self.tokens.get(*index).unwrap();
+        let mut token = self.tokens.get(*index).unwrap();
+
+        let has_async = if token.kind == TokenType::Keyword(KeywordType::Async) {
+            // consume "async"
+            *index += 1;
+            token = self.tokens.get(*index).unwrap();
+
+            true
+        } else {
+            false
+        };
 
         let (class_or_func, class_func_errors) = if token.kind == TokenType::Keyword(KeywordType::Def) {
             let (mut func, func_errors) = self.parse_function(index);
@@ -471,7 +481,11 @@ impl<'a> Parser<'a> {
             func.span.row_start = initital_span.row_start;
             func.span.column_start = initital_span.column_start;
 
-            (Statement::FunctionDef(func), func_errors)
+            if has_async {
+                (Statement::AsyncFunctionDef(func), func_errors)
+            } else {
+                (Statement::FunctionDef(func), func_errors)
+            }
         } else if token.kind == TokenType::Keyword(KeywordType::Class) {
             let (mut class, class_errors) = self.parse_class(index);
             class.decorators = decorators;
