@@ -6,12 +6,12 @@ mod tests_parser {
         lexer::{span::Span, Lexer},
         parser::{
             ast::{
-                AnnAssign, AssertStmt, Assign, AugAssign, AugAssignType, BinaryOperator, Block, ClassStmt, DelStmt,
-                DictComp, DictItemType, ElIfStmt, ElseStmt, ExceptBlock, ExceptBlockKind, Expression, FinallyBlock,
-                ForComp, ForStmt, FromImportStmt, FuncParameter, Function, FunctionCall, GeneratorComp, GlobalStmt,
-                IfComp, IfElseExpr, IfStmt, ImportModule, ImportStmt, LambdaExpr, ListComp, NonLocalStmt, ParsedFile,
-                RaiseStmt, ReturnStmt, SetComp, StarParameterType, Statement, Subscript, SubscriptType, TryStmt,
-                UnaryOperator, While, WithItem, WithStmt,
+                AnnAssign, AssertStmt, Assign, AugAssign, AugAssignType, BinaryOperator, Block, ClassKeywordArg,
+                ClassStmt, DelStmt, DictComp, DictItemType, ElIfStmt, ElseStmt, ExceptBlock, ExceptBlockKind,
+                Expression, FinallyBlock, ForComp, ForStmt, FromImportStmt, FuncParameter, Function, FunctionCall,
+                GeneratorComp, GlobalStmt, IfComp, IfElseExpr, IfStmt, ImportModule, ImportStmt, LambdaExpr, ListComp,
+                NonLocalStmt, ParsedFile, RaiseStmt, ReturnStmt, SetComp, StarParameterType, Statement, Subscript,
+                SubscriptType, TryStmt, UnaryOperator, While, WithItem, WithStmt,
             },
             Parser,
         },
@@ -3925,7 +3925,8 @@ else:
                         column_start: 1,
                         column_end: 12
                     },
-                    decorators: vec![]
+                    decorators: vec![],
+                    keyword_args: vec![]
                 })]
             }
         )
@@ -4009,7 +4010,8 @@ else:
                         column_start: 1,
                         column_end: 12
                     },
-                    decorators: vec![]
+                    decorators: vec![],
+                    keyword_args: vec![]
                 })]
             }
         )
@@ -7080,7 +7082,7 @@ class Test:
                             row_end: 5,
                             column_start: 4,
                             column_end: 6,
-                        },),),],
+                        }))],
                         span: Span {
                             row_start: 5,
                             row_end: 5,
@@ -7133,6 +7135,7 @@ class Test:
                         column_start: 1,
                         column_end: 6,
                     },
+                    keyword_args: vec![]
                 })]
             }
         )
@@ -7803,7 +7806,7 @@ class Test(A, B, C):
                             row_end: 3,
                             column_start: 5,
                             column_end: 7,
-                        },),),],
+                        }))],
                         span: Span {
                             row_start: 3,
                             row_end: 3,
@@ -7847,6 +7850,7 @@ class Test(A, B, C):
                         column_start: 1,
                         column_end: 7,
                     },
+                    keyword_args: vec![]
                 })]
             }
         )
@@ -8542,6 +8546,100 @@ from abc import (
                         column_start: 1,
                         column_end: 5,
                     }
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_class_with_keyword_args() {
+        let mut lexer = Lexer::new(
+            "
+class T(a, x='hello', y='world'):
+    ...
+",
+        );
+        let parser = Parser::new(&mut lexer);
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Class(ClassStmt {
+                    name: "T".into(),
+                    block: Block {
+                        stmts: vec![Statement::Expression(Expression::Ellipsis(Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 5,
+                            column_end: 7,
+                        }))],
+                        span: Span {
+                            row_start: 3,
+                            row_end: 3,
+                            column_start: 5,
+                            column_end: 7,
+                        },
+                    },
+                    base_classes: vec![Expression::Id(
+                        "a".into(),
+                        Span {
+                            row_start: 2,
+                            row_end: 2,
+                            column_start: 9,
+                            column_end: 9,
+                        },
+                    ),],
+                    keyword_args: vec![
+                        ClassKeywordArg {
+                            arg: Expression::Id(
+                                "x".into(),
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 12,
+                                    column_end: 12,
+                                },
+                            ),
+                            value: Expression::String(
+                                "hello".into(),
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 14,
+                                    column_end: 20,
+                                },
+                            ),
+                        },
+                        ClassKeywordArg {
+                            arg: Expression::Id(
+                                "y".into(),
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 23,
+                                    column_end: 23,
+                                },
+                            ),
+                            value: Expression::String(
+                                "world".into(),
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 25,
+                                    column_end: 31,
+                                },
+                            ),
+                        },
+                    ],
+                    decorators: vec![],
+                    span: Span {
+                        row_start: 2,
+                        row_end: 3,
+                        column_start: 1,
+                        column_end: 7,
+                    },
                 })]
             }
         )

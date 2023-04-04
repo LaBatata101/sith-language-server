@@ -23,10 +23,10 @@ use helpers::{infix_binding_power, postfix_binding_power, prefix_binding_power};
 
 use self::{
     ast::{
-        AnnAssign, AssertStmt, Assign, AugAssign, ClassStmt, DelStmt, DictComp, ForComp, ForStmt, FromImportStmt,
-        FuncParameter, FunctionCall, GeneratorComp, GlobalStmt, IfComp, ImportModule, ImportStmt, LambdaExpr, ListComp,
-        NonLocalStmt, RaiseStmt, ReturnStmt, SetComp, StarParameterType, Subscript, SubscriptType, TryStmt, WithItem,
-        WithStmt,
+        AnnAssign, AssertStmt, Assign, AugAssign, ClassKeywordArg, ClassStmt, DelStmt, DictComp, ForComp, ForStmt,
+        FromImportStmt, FuncParameter, FunctionCall, GeneratorComp, GlobalStmt, IfComp, ImportModule, ImportStmt,
+        LambdaExpr, ListComp, NonLocalStmt, RaiseStmt, ReturnStmt, SetComp, StarParameterType, Subscript,
+        SubscriptType, TryStmt, WithItem, WithStmt,
     },
     helpers::{BinaryOperationsBitflag, ExprBitflag, ParseExprBitflags, UnaryOperationsBitflag},
 };
@@ -1766,8 +1766,9 @@ impl<'a> Parser<'a> {
             // Consume (
             *index += 1;
             if self.tokens.get(*index).map_or(false, |token| token.is_start_of_expr()) {
-                let (base_classes, base_classes_errors) = self.parse_base_classes(index);
+                let (base_classes, keyword_args, base_classes_errors) = self.parse_base_classes(index);
                 class.base_classes = base_classes;
+                class.keyword_args = keyword_args;
 
                 if let Some(super_classes_errors) = base_classes_errors {
                     errors.extend(super_classes_errors);
@@ -1812,18 +1813,32 @@ impl<'a> Parser<'a> {
         (class, if errors.is_empty() { None } else { Some(errors) })
     }
 
-    fn parse_base_classes(&self, index: &mut usize) -> (Vec<Expression>, PythonErrors) {
+    fn parse_base_classes(&self, index: &mut usize) -> (Vec<Expression>, Vec<ClassKeywordArg>, PythonErrors) {
         let mut bases = vec![];
+        let mut keyword_args = vec![];
         let mut errors = vec![];
         let allowed_expr_in_args =
             ParseExprBitflags::all().remove_expression(ExprBitflag::TUPLE_NO_PARENS | ExprBitflag::ASSIGN);
 
         loop {
             let (expr, expr_errors) = self.parse_expression(index, allowed_expr_in_args);
-            bases.push(expr);
 
             if let Some(expr_errors) = expr_errors {
                 errors.extend(expr_errors);
+            }
+
+            if self.tokens.get(*index).unwrap().kind == TokenType::Operator(OperatorType::Assign) {
+                // consume "="
+                *index += 1;
+
+                let (value, value_errors) = self.parse_expression(index, allowed_expr_in_args);
+                keyword_args.push(ClassKeywordArg { arg: expr, value });
+
+                if let Some(value_errors) = value_errors {
+                    errors.extend(value_errors);
+                }
+            } else {
+                bases.push(expr);
             }
 
             if self.tokens.get(*index).unwrap().kind != TokenType::Comma {
@@ -1834,7 +1849,7 @@ impl<'a> Parser<'a> {
             *index += 1;
         }
 
-        (bases, if errors.is_empty() { None } else { Some(errors) })
+        (bases, keyword_args, if errors.is_empty() { None } else { Some(errors) })
     }
 
     fn parse_import(&self, index: &mut usize) -> (ImportStmt, PythonErrors) {
@@ -3053,15 +3068,6 @@ impl<'a> Parser<'a> {
         comprehension_target: Expression<'a>,
     ) -> (Expression, PythonErrors) {
         let mut errors = Vec::new();
-
-        if matches!(comprehension_target, Expression::Tuple(_, _)) {
-            errors.push(PythonError {
-                error: PythonErrorType::Syntax,
-                msg: "SyntaxError: tuple is not allowed inside generator comprehension".to_string(),
-                span: comprehension_target.span(),
-            });
-        }
-
         let (fors, ifs, comp_errors) = self.parse_comprehension(index);
         if let Some(comp_errors) = comp_errors {
             errors.extend(comp_errors);

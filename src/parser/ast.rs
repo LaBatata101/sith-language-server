@@ -287,8 +287,15 @@ pub struct ClassStmt<'a> {
     pub name: Cow<'a, str>,
     pub block: Block<'a>,
     pub base_classes: Vec<Expression<'a>>,
+    pub keyword_args: Vec<ClassKeywordArg<'a>>,
     pub decorators: Vec<Expression<'a>>,
     pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct ClassKeywordArg<'a> {
+    pub arg: Expression<'a>,
+    pub value: Expression<'a>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
