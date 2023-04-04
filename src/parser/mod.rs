@@ -1927,7 +1927,7 @@ impl<'a> Parser<'a> {
             expect_close_paren = true;
         }
 
-        loop {
+        while self.tokens.get(*index).unwrap().is_start_of_expr() {
             let (import_module, import_module_span, import_module_errors) = self.parse_import_module(index);
 
             from_import_stmt.targets.push(import_module);
@@ -1938,12 +1938,10 @@ impl<'a> Parser<'a> {
                 errors.extend(import_module_errors);
             }
 
-            if self.tokens.get(*index).unwrap().kind != TokenType::Comma {
-                break;
+            if self.tokens.get(*index).unwrap().kind == TokenType::Comma {
+                // Consume ,
+                *index += 1;
             }
-
-            // Consume ,
-            *index += 1;
         }
 
         if expect_close_paren {

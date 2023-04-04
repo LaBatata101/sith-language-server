@@ -8497,4 +8497,53 @@ async def test():
             }
         )
     }
+
+    #[test]
+    fn parse_from_import5() {
+        let mut lexer = Lexer::new(
+            "
+from abc import (
+    z, x, y,
+    w,
+)
+",
+        );
+        let parser = Parser::new(&mut lexer);
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::FromImport(FromImportStmt {
+                    leading_dots: 0,
+                    module: Some("abc".into(),),
+                    targets: vec![
+                        ImportModule {
+                            name: "z".into(),
+                            alias: None,
+                        },
+                        ImportModule {
+                            name: "x".into(),
+                            alias: None,
+                        },
+                        ImportModule {
+                            name: "y".into(),
+                            alias: None,
+                        },
+                        ImportModule {
+                            name: "w".into(),
+                            alias: None,
+                        },
+                    ],
+                    span: Span {
+                        row_start: 2,
+                        row_end: 4,
+                        column_start: 1,
+                        column_end: 5,
+                    }
+                })]
+            }
+        )
+    }
 }
