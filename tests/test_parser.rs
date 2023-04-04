@@ -8431,4 +8431,70 @@ async def test():
             }
         )
     }
+
+    #[test]
+    fn parse_lambda_expr3() {
+        let mut lexer = Lexer::new("lambda y, x=x: ...");
+        let parser = Parser::new(&mut lexer);
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Expression(Expression::Lambda(LambdaExpr {
+                    parameters: vec![
+                        FuncParameter {
+                            name: "y".into(),
+                            default_value: None,
+                            annotation: None,
+                            star_parameter_type: None,
+                            is_kw_only: false,
+                            is_pos_only: false,
+                            span: Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 8,
+                                column_end: 8,
+                            },
+                        },
+                        FuncParameter {
+                            name: "x".into(),
+                            default_value: Some(Expression::Id(
+                                "x".into(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 13,
+                                    column_end: 13,
+                                },
+                            )),
+                            annotation: None,
+                            star_parameter_type: None,
+                            is_kw_only: false,
+                            is_pos_only: false,
+                            span: Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 11,
+                                column_end: 13,
+                            },
+                        },
+                    ],
+                    expression: Box::new(Expression::Ellipsis(Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 16,
+                        column_end: 18,
+                    })),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 18,
+                    },
+                }))]
+            }
+        )
+    }
 }

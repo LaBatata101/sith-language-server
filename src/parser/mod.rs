@@ -1534,12 +1534,12 @@ impl<'a> Parser<'a> {
                         }
                     }
 
-                    // TODO: Maybe use the assignment parse function here
                     if self.tokens.get(*index).unwrap().kind == TokenType::Operator(OperatorType::Assign) {
                         *index += 1;
                         let (expr, expr_errors) = self.parse_expression(
                             index,
-                            ParseExprBitflags::all().remove_expression(ExprBitflag::TUPLE_NO_PARENS),
+                            ParseExprBitflags::all()
+                                .remove_expression(ExprBitflag::TUPLE_NO_PARENS | ExprBitflag::ASSIGN),
                         );
                         func_parameter.span.column_end = expr.span().column_end;
                         func_parameter.span.row_end = expr.span().row_end;
@@ -3194,7 +3194,7 @@ impl<'a> Parser<'a> {
         let (expr, expr_errors) = self.pratt_parsing(
             index,
             r_bp,
-            ParseExprBitflags::all().remove_expression(ExprBitflag::ASSIGN),
+            ParseExprBitflags::all().remove_expression(ExprBitflag::ASSIGN | ExprBitflag::TUPLE_NO_PARENS),
         );
         let lambda_span = Span {
             row_start: token.span.row_start,
