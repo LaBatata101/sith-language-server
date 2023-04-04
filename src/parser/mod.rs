@@ -353,7 +353,7 @@ impl<'a> Parser<'a> {
         *index += 1;
         let token = self.tokens.get(*index).unwrap();
         match &token.kind {
-            TokenType::Id(_) | TokenType::SoftKeyword(SoftKeywordType::Match | SoftKeywordType::Case) => {
+            TokenType::Id(_) | TokenType::SoftKeyword(_) => {
                 // Consume function identifier
                 *index += 1;
                 function.name = Cow::Borrowed(token.as_str());
