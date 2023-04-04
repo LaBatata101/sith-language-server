@@ -31,7 +31,7 @@ use self::{
     helpers::{BinaryOperationsBitflag, ExprBitflag, ParseExprBitflags, UnaryOperationsBitflag},
 };
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Copy, Clone)]
 enum ParseAnnotationInFuncParams {
     True,
     False,
@@ -1517,38 +1517,12 @@ impl<'a> Parser<'a> {
                     // Consume Id
                     *index += 1;
 
-                    if parse_annotation == ParseAnnotationInFuncParams::True
-                        && self.tokens.get(*index).unwrap().kind == TokenType::Colon
+                    if let Some(ann_errors) =
+                        self.parse_function_parameter_annotation(index, parse_annotation, &mut func_parameter)
                     {
-                        // consume ":"
-                        *index += 1;
-                        let (annotation, ann_errors) = self.parse_expression(
-                            index,
-                            ParseExprBitflags::all()
-                                .remove_expression(ExprBitflag::ASSIGN | ExprBitflag::TUPLE_NO_PARENS),
-                        );
-                        func_parameter.annotation = Some(annotation);
-
-                        if let Some(ann_errors) = ann_errors {
-                            errors.extend(ann_errors);
-                        }
+                        errors.extend(ann_errors);
                     }
 
-                    if self.tokens.get(*index).unwrap().kind == TokenType::Operator(OperatorType::Assign) {
-                        *index += 1;
-                        let (expr, expr_errors) = self.parse_expression(
-                            index,
-                            ParseExprBitflags::all()
-                                .remove_expression(ExprBitflag::TUPLE_NO_PARENS | ExprBitflag::ASSIGN),
-                        );
-                        func_parameter.span.column_end = expr.span().column_end;
-                        func_parameter.span.row_end = expr.span().row_end;
-                        func_parameter.default_value = Some(expr);
-
-                        if let Some(expr_errors) = expr_errors {
-                            errors.extend(expr_errors);
-                        }
-                    }
                     func_parameter.is_kw_only = is_kw_only;
 
                     parameters.push(func_parameter);
@@ -1565,6 +1539,12 @@ impl<'a> Parser<'a> {
                             func_parameter.star_parameter_type = Some(StarParameterType::Kargs);
                             func_parameter.span = next_token.span;
                             func_parameter.is_kw_only = is_kw_only;
+
+                            if let Some(ann_errors) =
+                                self.parse_function_parameter_annotation(index, parse_annotation, &mut func_parameter)
+                            {
+                                errors.extend(ann_errors);
+                            }
 
                             parameters.push(func_parameter);
                         }
@@ -1590,6 +1570,12 @@ impl<'a> Parser<'a> {
                             func_parameter.star_parameter_type = Some(StarParameterType::KWargs);
                             func_parameter.span = next_token.span;
                             func_parameter.is_kw_only = is_kw_only;
+
+                            if let Some(ann_errors) =
+                                self.parse_function_parameter_annotation(index, parse_annotation, &mut func_parameter)
+                            {
+                                errors.extend(ann_errors);
+                            }
 
                             parameters.push(func_parameter);
                         }
@@ -1637,6 +1623,52 @@ impl<'a> Parser<'a> {
         }
 
         (parameters, if errors.is_empty() { None } else { Some(errors) })
+    }
+
+    fn parse_function_parameter_annotation(
+        &'a self,
+        index: &mut usize,
+        parse_annotation: ParseAnnotationInFuncParams,
+        func_param: &mut FuncParameter<'a>,
+    ) -> PythonErrors {
+        let mut errors = vec![];
+
+        if parse_annotation == ParseAnnotationInFuncParams::True
+            && self.tokens.get(*index).unwrap().kind == TokenType::Colon
+        {
+            // consume ":"
+            *index += 1;
+            let (annotation, ann_errors) = self.parse_expression(
+                index,
+                ParseExprBitflags::all().remove_expression(ExprBitflag::ASSIGN | ExprBitflag::TUPLE_NO_PARENS),
+            );
+            func_param.annotation = Some(annotation);
+
+            if let Some(ann_errors) = ann_errors {
+                errors.extend(ann_errors);
+            }
+        }
+
+        if self.tokens.get(*index).unwrap().kind == TokenType::Operator(OperatorType::Assign) {
+            *index += 1;
+            let (expr, expr_errors) = self.parse_expression(
+                index,
+                ParseExprBitflags::all().remove_expression(ExprBitflag::TUPLE_NO_PARENS | ExprBitflag::ASSIGN),
+            );
+            func_param.span.column_end = expr.span().column_end;
+            func_param.span.row_end = expr.span().row_end;
+            func_param.default_value = Some(expr);
+
+            if let Some(expr_errors) = expr_errors {
+                errors.extend(expr_errors);
+            }
+        }
+
+        if errors.is_empty() {
+            None
+        } else {
+            Some(errors)
+        }
     }
 
     fn get_expr_operation(&self, token: &Token, index: &usize) -> Result<Operation, PythonError> {
