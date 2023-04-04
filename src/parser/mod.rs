@@ -2069,17 +2069,13 @@ impl<'a> Parser<'a> {
             // Consume "as"
             *index += 1;
             let token = self.tokens.get(*index).unwrap();
-            if let Token {
-                kind: TokenType::Id(alias_name),
-                span,
-            } = token
-            {
+            if matches!(token.kind, TokenType::Id(_) | TokenType::SoftKeyword(_)) {
                 // Consume Id
                 *index += 1;
-                module_span.column_end = span.column_end;
-                module_span.row_end = span.row_end;
+                module_span.column_end = token.span.column_end;
+                module_span.row_end = token.span.row_end;
 
-                import_module.alias = Some(Cow::Borrowed(alias_name));
+                import_module.alias = Some(Cow::Borrowed(token.as_str()));
             } else {
                 errors.push(PythonError {
                     error: PythonErrorType::Syntax,
