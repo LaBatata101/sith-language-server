@@ -8684,4 +8684,234 @@ class T(a, x='hello', y='world'):
             ]
         )
     }
+
+    #[test]
+    fn parse_dict_expression3() {
+        let mut lexer = Lexer::new(
+            "
+{'a': 1, 'b': 2,
+    **{'a':i for i in l},
+    **{'b':j for j in l},
+    **{'c':x for x in l}}
+",
+        );
+        let parser = Parser::new(&mut lexer);
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Expression(Expression::Dict(
+                    vec![
+                        DictItemType::KeyValue(
+                            Expression::String(
+                                "a".into(),
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 2,
+                                    column_end: 4,
+                                },
+                            ),
+                            Expression::Number(
+                                "1".into(),
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 7,
+                                    column_end: 7,
+                                },
+                            ),
+                        ),
+                        DictItemType::KeyValue(
+                            Expression::String(
+                                "b".into(),
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 10,
+                                    column_end: 12,
+                                },
+                            ),
+                            Expression::Number(
+                                "2".into(),
+                                Span {
+                                    row_start: 2,
+                                    row_end: 2,
+                                    column_start: 15,
+                                    column_end: 15,
+                                },
+                            ),
+                        ),
+                        DictItemType::Unpack(Expression::UnaryOp(
+                            Box::new(Expression::DictComp(DictComp {
+                                target: Box::new(Expression::String(
+                                    "a".into(),
+                                    Span {
+                                        row_start: 3,
+                                        row_end: 3,
+                                        column_start: 8,
+                                        column_end: 10,
+                                    },
+                                )),
+                                ifs: vec![],
+                                fors: vec![ForComp {
+                                    target: Expression::Id(
+                                        "i".into(),
+                                        Span {
+                                            row_start: 3,
+                                            row_end: 3,
+                                            column_start: 18,
+                                            column_end: 18,
+                                        },
+                                    ),
+                                    iter: Expression::Id(
+                                        "l".into(),
+                                        Span {
+                                            row_start: 3,
+                                            row_end: 3,
+                                            column_start: 23,
+                                            column_end: 23,
+                                        },
+                                    ),
+                                    span: Span {
+                                        row_start: 3,
+                                        row_end: 3,
+                                        column_start: 14,
+                                        column_end: 23,
+                                    },
+                                }],
+                                span: Span {
+                                    row_start: 3,
+                                    row_end: 3,
+                                    column_start: 7,
+                                    column_end: 24,
+                                },
+                            })),
+                            UnaryOperator::UnpackDictionary,
+                            Span {
+                                row_start: 3,
+                                row_end: 3,
+                                column_start: 5,
+                                column_end: 24,
+                            },
+                        )),
+                        DictItemType::Unpack(Expression::UnaryOp(
+                            Box::new(Expression::DictComp(DictComp {
+                                target: Box::new(Expression::String(
+                                    "b".into(),
+                                    Span {
+                                        row_start: 4,
+                                        row_end: 4,
+                                        column_start: 8,
+                                        column_end: 10,
+                                    },
+                                )),
+                                ifs: vec![],
+                                fors: vec![ForComp {
+                                    target: Expression::Id(
+                                        "j".into(),
+                                        Span {
+                                            row_start: 4,
+                                            row_end: 4,
+                                            column_start: 18,
+                                            column_end: 18,
+                                        },
+                                    ),
+                                    iter: Expression::Id(
+                                        "l".into(),
+                                        Span {
+                                            row_start: 4,
+                                            row_end: 4,
+                                            column_start: 23,
+                                            column_end: 23,
+                                        },
+                                    ),
+                                    span: Span {
+                                        row_start: 4,
+                                        row_end: 4,
+                                        column_start: 14,
+                                        column_end: 23,
+                                    },
+                                }],
+                                span: Span {
+                                    row_start: 4,
+                                    row_end: 4,
+                                    column_start: 7,
+                                    column_end: 24,
+                                },
+                            })),
+                            UnaryOperator::UnpackDictionary,
+                            Span {
+                                row_start: 4,
+                                row_end: 4,
+                                column_start: 5,
+                                column_end: 24,
+                            },
+                        )),
+                        DictItemType::Unpack(Expression::UnaryOp(
+                            Box::new(Expression::DictComp(DictComp {
+                                target: Box::new(Expression::String(
+                                    "c".into(),
+                                    Span {
+                                        row_start: 5,
+                                        row_end: 5,
+                                        column_start: 8,
+                                        column_end: 10,
+                                    },
+                                )),
+                                ifs: vec![],
+                                fors: vec![ForComp {
+                                    target: Expression::Id(
+                                        "x".into(),
+                                        Span {
+                                            row_start: 5,
+                                            row_end: 5,
+                                            column_start: 18,
+                                            column_end: 18,
+                                        },
+                                    ),
+                                    iter: Expression::Id(
+                                        "l".into(),
+                                        Span {
+                                            row_start: 5,
+                                            row_end: 5,
+                                            column_start: 23,
+                                            column_end: 23,
+                                        },
+                                    ),
+                                    span: Span {
+                                        row_start: 5,
+                                        row_end: 5,
+                                        column_start: 14,
+                                        column_end: 23,
+                                    },
+                                }],
+                                span: Span {
+                                    row_start: 5,
+                                    row_end: 5,
+                                    column_start: 7,
+                                    column_end: 24,
+                                },
+                            })),
+                            UnaryOperator::UnpackDictionary,
+                            Span {
+                                row_start: 5,
+                                row_end: 5,
+                                column_start: 5,
+                                column_end: 24,
+                            },
+                        )),
+                    ],
+                    Span {
+                        row_start: 2,
+                        row_end: 5,
+                        column_start: 1,
+                        column_end: 25,
+                    },
+                ))]
+            }
+        )
+    }
 }

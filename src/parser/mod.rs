@@ -1259,6 +1259,7 @@ impl<'a> Parser<'a> {
         };
 
         while self.tokens.get(*index).unwrap().kind == TokenType::Comma {
+            // consume ","
             *index += 1;
             let mut token = self.tokens.get(*index).unwrap();
             if token.kind == TokenType::Operator(OperatorType::Asterisk) {
@@ -1285,7 +1286,6 @@ impl<'a> Parser<'a> {
             }
 
             if self.tokens.get(*index).unwrap().kind == TokenType::Comma {
-                *index += 1;
                 dict_items.push(DictItemType::Unpack(lhs));
                 continue;
             }
