@@ -66,6 +66,7 @@ impl<'a> Token<'a> {
                 | TokenType::Id(_)
                 | TokenType::SoftKeyword(_)
                 | TokenType::String(_)
+                | TokenType::Ellipsis
                 | TokenType::OpenParenthesis
                 | TokenType::OpenBrackets
                 | TokenType::OpenBrace
