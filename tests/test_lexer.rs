@@ -3096,4 +3096,53 @@ fr'{x}' \\
             ]
         );
     }
+
+    #[test]
+    fn lex_whitespaces() {
+        let mut lexer = Lexer::new("a \tb\u{0c}c");
+        let errors = lexer.tokenize();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token {
+                    kind: TokenType::Id("a".into(),),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 1,
+                    },
+                },
+                Token {
+                    kind: TokenType::Id("b".into(),),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 4,
+                        column_end: 4,
+                    },
+                },
+                Token {
+                    kind: TokenType::Id("c".into(),),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 6,
+                        column_end: 6,
+                    },
+                },
+                Token {
+                    kind: TokenType::Eof,
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 7,
+                        column_end: 7,
+                    },
+                },
+            ]
+        );
+    }
 }

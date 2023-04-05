@@ -162,7 +162,7 @@ impl<'a> Lexer<'a> {
                         self.lex_operator();
                     }
                 }
-                ' ' => {
+                ' ' | '\t' | '\u{0c}' => {
                     self.cs.skip_whitespace();
                 }
                 '\n' | '\r' => {

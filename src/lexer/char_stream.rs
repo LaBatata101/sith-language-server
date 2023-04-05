@@ -65,7 +65,7 @@ impl<'a> CharStream<'a> {
     /// Skip ASCII whitespace and return the total amount skiped
     pub fn skip_whitespace(&mut self) -> usize {
         let mut whitespace_total = 0;
-        while !self.is_eof() && self.current_char().map_or(false, |char| char == ' ') {
+        while !self.is_eof() && matches!(self.current_char(), Some(' ' | '\t' | '\u{0c}')) {
             whitespace_total += 1;
             self.advance_by(1)
         }
