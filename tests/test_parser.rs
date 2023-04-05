@@ -8644,4 +8644,44 @@ class T(a, x='hello', y='world'):
             }
         )
     }
+
+    #[test]
+    fn parse_invalid_use_of_unpacking() {
+        let mut lexer = Lexer::new(
+            "
+(*a)
+(*a,) # this is valid because is creating a tuple
+(**b)
+",
+        );
+        let parser = Parser::new(&mut lexer);
+        let (_, errors) = parser.parse();
+
+        assert!(errors.is_some());
+        assert_eq!(
+            errors.unwrap(),
+            vec![
+                PythonError {
+                    error: PythonErrorType::Syntax,
+                    msg: "SyntaxError: cannot use starred expression inside parenthesis!".to_string(),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 2,
+                        column_end: 2,
+                    },
+                },
+                PythonError {
+                    error: PythonErrorType::Syntax,
+                    msg: "SyntaxError: cannot use double starred expression inside parenthesis!".to_string(),
+                    span: Span {
+                        row_start: 4,
+                        row_end: 4,
+                        column_start: 2,
+                        column_end: 3,
+                    },
+                },
+            ]
+        )
+    }
 }

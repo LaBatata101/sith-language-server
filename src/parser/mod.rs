@@ -888,20 +888,6 @@ impl<'a> Parser<'a> {
         let paren_row_start = token.span.row_start;
         let next_token = self.tokens.get(*index).unwrap();
 
-        if next_token.kind == TokenType::Operator(OperatorType::Asterisk) {
-            errors.push(PythonError {
-                error: PythonErrorType::Syntax,
-                msg: String::from("SyntaxError: cannot use starred expression inside parenthesis!"),
-                span: next_token.span,
-            });
-        } else if next_token.kind == TokenType::Operator(OperatorType::Exponent) {
-            errors.push(PythonError {
-                error: PythonErrorType::Syntax,
-                msg: String::from("SyntaxError: cannot use double starred expression inside parenthesis!"),
-                span: next_token.span,
-            });
-        }
-
         // If a ")" is found right after the ")", return an empty tuple
         if next_token.kind == TokenType::CloseParenthesis {
             // consume )
@@ -927,6 +913,22 @@ impl<'a> Parser<'a> {
         }
 
         let mut token = self.tokens.get(*index).unwrap();
+        if token.kind != TokenType::Comma && matches!(expr, Expression::UnaryOp(_, UnaryOperator::UnpackIterable, _)) {
+            errors.push(PythonError {
+                error: PythonErrorType::Syntax,
+                msg: String::from("SyntaxError: cannot use starred expression inside parenthesis!"),
+                span: next_token.span,
+            });
+        } else if token.kind != TokenType::Comma
+            && matches!(expr, Expression::UnaryOp(_, UnaryOperator::UnpackDictionary, _))
+        {
+            errors.push(PythonError {
+                error: PythonErrorType::Syntax,
+                msg: String::from("SyntaxError: cannot use double starred expression inside parenthesis!"),
+                span: next_token.span,
+            });
+        }
+
         if allowed_expr.expressions.contains(ExprBitflag::TUPLE) && token.kind == TokenType::Comma {
             // consume ,
             *index += 1;
