@@ -1512,7 +1512,7 @@ impl<'a> Parser<'a> {
             // FIXME: "/" must appear before the "*"
             // FIXME: "/" cannot be the first parameter
             match &token.kind {
-                TokenType::Id(_) | TokenType::SoftKeyword(SoftKeywordType::Case | SoftKeywordType::Match) => {
+                TokenType::Id(_) | TokenType::SoftKeyword(_) => {
                     func_parameter.name = Cow::Borrowed(token.as_str());
                     func_parameter.span = token.span;
 
