@@ -682,7 +682,6 @@ impl<'a> Lexer<'a> {
             ('=', Some('=')) => (TokenType::Operator(OperatorType::Equals), 2),
             ('+', Some('=')) => (TokenType::Operator(OperatorType::PlusEqual), 2),
             ('*', Some('=')) => (TokenType::Operator(OperatorType::AsteriskEqual), 2),
-            ('*', Some('*')) => (TokenType::Operator(OperatorType::Exponent), 2),
             ('-', Some('=')) => (TokenType::Operator(OperatorType::MinusEqual), 2),
             ('<', Some('=')) => (TokenType::Operator(OperatorType::LessThanOrEqual), 2),
             ('>', Some('=')) => (TokenType::Operator(OperatorType::GreaterThanOrEqual), 2),
@@ -725,6 +724,17 @@ impl<'a> Lexer<'a> {
                     (TokenType::Operator(OperatorType::BitwiseRightShiftEqual), 3)
                 } else {
                     (TokenType::Operator(OperatorType::BitwiseRightShift), 2)
+                }
+            }
+            ('*', Some('*')) => {
+                if self
+                    .cs
+                    .peek_char(self.cs.pos().index + 2)
+                    .map_or(false, |char| char == '=')
+                {
+                    (TokenType::Operator(OperatorType::ExponentEqual), 3)
+                } else {
+                    (TokenType::Operator(OperatorType::Exponent), 2)
                 }
             }
 
