@@ -181,9 +181,9 @@ pub fn infix_binding_power(op: Operation) -> Option<(u8, u8)> {
         Operation::Binary(BinaryOperator::BitwiseAnd) => Some((10, 10)),
         Operation::Binary(BinaryOperator::BitwiseLeftShift | BinaryOperator::BitwiseRightShift) => Some((11, 11)),
         Operation::Binary(BinaryOperator::Add | BinaryOperator::Subtract) => Some((12, 13)),
-        Operation::Binary(BinaryOperator::Divide | BinaryOperator::FloorDivision | BinaryOperator::Modulo) => {
-            Some((14, 14))
-        }
+        Operation::Binary(
+            BinaryOperator::Divide | BinaryOperator::FloorDivision | BinaryOperator::Modulo | BinaryOperator::At,
+        ) => Some((14, 14)),
         Operation::Binary(BinaryOperator::Multiply) => Some((14, 15)),
         Operation::Binary(BinaryOperator::Exponent) => Some((18, 18)),
         Operation::Binary(BinaryOperator::AttributeRef) => Some((22, 22)),

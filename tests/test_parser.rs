@@ -8914,4 +8914,45 @@ class T(a, x='hello', y='world'):
             }
         )
     }
+
+    #[test]
+    fn parse_matrix_multiplication_operator() {
+        let mut lexer = Lexer::new("a @ b");
+        let parser = Parser::new(&mut lexer);
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Expression(Expression::BinaryOp(
+                    Box::new(Expression::Id(
+                        "a".into(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 1,
+                        },
+                    )),
+                    BinaryOperator::At,
+                    Box::new(Expression::Id(
+                        "b".into(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 5,
+                            column_end: 5,
+                        },
+                    )),
+                    Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 5,
+                    }
+                ))]
+            }
+        )
+    }
 }
