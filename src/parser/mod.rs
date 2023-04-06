@@ -657,6 +657,9 @@ impl<'a> Parser<'a> {
                 let (expr, expr_errors) = self.parse_expression(index, ParseExprBitflags::all());
                 if self.tokens.get(*index).unwrap().kind == TokenType::SemiColon {
                     *index += 1;
+                    if self.tokens.get(*index).unwrap().kind == TokenType::NewLine {
+                        *index += 1;
+                    }
                 }
                 (Statement::Expression(expr), expr_errors)
             }
