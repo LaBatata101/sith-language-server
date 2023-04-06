@@ -1505,7 +1505,12 @@ impl<'a> Parser<'a> {
         let mut parameters: Vec<FuncParameter> = vec![];
         let mut is_kw_only = false;
 
-        loop {
+        while self
+            .tokens
+            .get(*index)
+            .map(|token| token.is_start_of_expr() || token.kind == TokenType::Operator(OperatorType::Divide))
+            .unwrap()
+        {
             let mut func_parameter = FuncParameter::default();
             let token = self.tokens.get(*index).unwrap();
             // FIXME: only allow one "*" in the parameters
@@ -1616,12 +1621,10 @@ impl<'a> Parser<'a> {
                 }
             }
 
-            if self.tokens.get(*index).unwrap().kind != TokenType::Comma {
-                break;
+            if self.tokens.get(*index).unwrap().kind == TokenType::Comma {
+                // Consume ","
+                *index += 1;
             }
-
-            // Consume ,
-            *index += 1;
         }
 
         (parameters, if errors.is_empty() { None } else { Some(errors) })
