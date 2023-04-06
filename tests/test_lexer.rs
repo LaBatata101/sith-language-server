@@ -3145,4 +3145,50 @@ fr'{x}' \\
             ]
         );
     }
+
+    #[test]
+    fn lex_triple_quote_string_with_escaped_triple_quote() {
+        let mut lexer = Lexer::new(
+            "
+r\"\"\"
+\\\"\"\"
+\"\"\"
+",
+        );
+        let errors = lexer.tokenize();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token {
+                    kind: TokenType::String("\n\\\"\"\"\n".into(),),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 4,
+                        column_start: 2,
+                        column_end: 3,
+                    },
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 4,
+                        row_end: 4,
+                        column_start: 4,
+                        column_end: 4,
+                    },
+                },
+                Token {
+                    kind: TokenType::Eof,
+                    span: Span {
+                        row_start: 5,
+                        row_end: 5,
+                        column_start: 1,
+                        column_end: 1,
+                    },
+                },
+            ]
+        )
+    }
 }

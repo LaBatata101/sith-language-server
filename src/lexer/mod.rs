@@ -564,6 +564,16 @@ impl<'a> Lexer<'a> {
             let mut pos = self.cs.pos();
 
             while !self.is_triple_quote_str_in_pos(pos) {
+                if self.cs.current_char().map_or(false, |char| char == '\\')
+                    && self.cs.next_char().map_or(false, |char| char == quote_char)
+                {
+                    // consume "\"
+                    self.cs.advance_by(1);
+                    if self.is_triple_quote_str_in_pos(self.cs.pos()) {
+                        self.cs.advance_by(3);
+                    }
+                }
+
                 self.cs.advance_by(1);
 
                 if self.cs.current_char().map_or(false, |char| char == quote_char) {
