@@ -2268,16 +2268,14 @@ impl<'a> Parser<'a> {
                     // Consume "as"
                     *index += 1;
 
-                    match self.tokens.get(*index).unwrap() {
-                        Token {
-                            kind: TokenType::Id(name),
-                            ..
-                        } => {
+                    let token = self.tokens.get(*index).unwrap();
+                    match token.kind {
+                        TokenType::Id(_) | TokenType::SoftKeyword(_) => {
                             // Consume Id
                             *index += 1;
-                            except_block.expr_alias = Some(name.to_string());
+                            except_block.expr_alias = Some(token.as_str());
                         }
-                        token => errors.push(PythonError {
+                        _ => errors.push(PythonError {
                             error: PythonErrorType::Syntax,
                             msg: format!("SyntaxError: expecting identifier, got {:?}", token.kind),
                             span: token.span,

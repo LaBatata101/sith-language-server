@@ -463,7 +463,7 @@ pub struct ExceptBlock<'a> {
     pub block: Block<'a>,
     pub kind: ExceptBlockKind,
     pub expr: Option<Expression<'a>>,
-    pub expr_alias: Option<String>,
+    pub expr_alias: Option<&'a str>,
     pub span: Span,
 }
 
