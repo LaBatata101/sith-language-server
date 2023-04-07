@@ -1828,7 +1828,7 @@ impl<'a> Parser<'a> {
         let allowed_expr_in_args =
             ParseExprBitflags::all().remove_expression(ExprBitflag::TUPLE_NO_PARENS | ExprBitflag::ASSIGN);
 
-        loop {
+        while self.tokens.get(*index).unwrap().is_start_of_expr() {
             let (expr, expr_errors) = self.parse_expression(index, allowed_expr_in_args);
 
             if let Some(expr_errors) = expr_errors {
@@ -1849,12 +1849,10 @@ impl<'a> Parser<'a> {
                 bases.push(expr);
             }
 
-            if self.tokens.get(*index).unwrap().kind != TokenType::Comma {
-                break;
+            if self.tokens.get(*index).unwrap().kind == TokenType::Comma {
+                // consume ","
+                *index += 1;
             }
-
-            // consume ,
-            *index += 1;
         }
 
         (bases, keyword_args, if errors.is_empty() { None } else { Some(errors) })
