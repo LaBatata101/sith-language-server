@@ -846,12 +846,13 @@ impl<'a> Lexer<'a> {
     // Handle the fraction part of the float number
     fn handle_float_or_imaginary_number(&mut self, float_start: Position) -> (NumberType, Vec<PythonError>) {
         let mut errors = vec![];
+        let mut allow_sign = false;
 
         // Here we are consuming all the valid characters that a float string can have, we don't care
         // at this point if the string is valid, the checking if the string is a valid float is done
         // later. The goal is to keep the float string in one Token, even if it is an invalid float.
         while self.cs.current_char().map_or(false, |char| {
-            char.is_ascii_digit() || matches!(char, '.' | 'e' | 'E' | '-' | '+' | '_')
+            char.is_ascii_digit() || matches!(char, '.' | 'e' | 'E' | '_') || (allow_sign && matches!(char, '-' | '+'))
         }) {
             if self
                 .cs
@@ -864,6 +865,9 @@ impl<'a> Lexer<'a> {
                     errors.push(error);
                 }
             } else {
+                if matches!(self.cs.current_char(), Some('e' | 'E')) {
+                    allow_sign = true;
+                }
                 self.cs.advance_by(1);
             }
         }

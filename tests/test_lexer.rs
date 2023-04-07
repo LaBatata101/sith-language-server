@@ -2386,6 +2386,55 @@ World!\"",
     }
 
     #[test]
+    fn lex_float_number5() {
+        let mut lexer = Lexer::new("2.0-5");
+        let errors = lexer.tokenize();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token {
+                    kind: TokenType::Number(NumberType::Float, "2.0".into()),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 3,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::Minus),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 4,
+                        column_end: 4,
+                    },
+                },
+                Token {
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "5".into()),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 5,
+                        column_end: 5,
+                    },
+                },
+                Token {
+                    kind: TokenType::Eof,
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 6,
+                        column_end: 6,
+                    },
+                }
+            ]
+        );
+    }
+
+    #[test]
     fn lex_incorrect_float_number2() {
         let mut lexer = Lexer::new("112_3.23e4E-56");
         let errors = lexer.tokenize();
