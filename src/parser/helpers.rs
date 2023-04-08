@@ -61,6 +61,11 @@ bitflags! {
 
         const AT = 1 << 27;
 
+        // This is a hacky way to avoid errors when parsing an "if ... else ..." inside of a comprehension.
+        // For instance, the following code "[f for f in l if (a if b is None else c)]" without
+        // this flag would not be able to parse the "if ... else ..." inside the parenthesis.
+        const IF_ELSE_WITHIN_PARENS = 1 << 28;
+
         const ALL = Self::ADD.bits | Self::SUBTRACT.bits | Self::FLOOR_DIVISION.bits | Self::DIVISION.bits
         | Self::MULTIPLY.bits | Self::MODULO.bits | Self::EXPONENT.bits | Self::IN.bits | Self::IS.bits
         | Self::NOT_IN.bits | Self::IS_NOT.bits | Self::LESS_THAN.bits | Self::LESS_THAN_OR_EQUAL.bits

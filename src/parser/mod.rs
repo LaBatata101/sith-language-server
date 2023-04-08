@@ -187,12 +187,21 @@ impl<'a> Parser<'a> {
             {
                 self.parse_unary_operator(index, token)
             }
-            TokenType::OpenParenthesis if allowed_expr.expressions.contains(ExprBitflag::PARENTHESIZED) => self
-                .parse_parenthesized_expr(
-                    index,
-                    token,
-                    allowed_expr.remove_expression(ExprBitflag::ASSIGN | ExprBitflag::TUPLE_NO_PARENS),
-                ),
+            TokenType::OpenParenthesis if allowed_expr.expressions.contains(ExprBitflag::PARENTHESIZED) => {
+                let mut allowed_expr_within_parens =
+                    allowed_expr.remove_expression(ExprBitflag::ASSIGN | ExprBitflag::TUPLE_NO_PARENS);
+
+                if allowed_expr_within_parens
+                    .binary_op
+                    .intersects(BinaryOperationsBitflag::IF_ELSE_WITHIN_PARENS)
+                {
+                    allowed_expr_within_parens
+                        .binary_op
+                        .insert(BinaryOperationsBitflag::IF_ELSE);
+                }
+
+                self.parse_parenthesized_expr(index, token, allowed_expr_within_parens)
+            }
             TokenType::OpenBrackets if allowed_expr.expressions.contains(ExprBitflag::LIST) => {
                 self.parse_list_expr(index, token.span)
             }
@@ -252,7 +261,11 @@ impl<'a> Parser<'a> {
                 continue;
             }
 
-            if allowed_expr.binary_op.intersects(BinaryOperationsBitflag::ALL) && op.is_infix() {
+            if allowed_expr
+                .binary_op
+                .intersects(BinaryOperationsBitflag::ALL | BinaryOperationsBitflag::IF_ELSE_WITHIN_PARENS)
+                && op.is_infix()
+            {
                 let (lhs_bp, rhs_bp) = infix_binding_power(op).unwrap();
 
                 if lhs_bp < min_precedence_weight {
@@ -2998,7 +3011,10 @@ impl<'a> Parser<'a> {
 
                 let (cond, cond_errors) = self.parse_expression(
                     index,
-                    ParseExprBitflags::all().remove_binary_op(BinaryOperationsBitflag::IF_ELSE),
+                    ParseExprBitflags::all()
+                        .remove_binary_op(BinaryOperationsBitflag::IF_ELSE)
+                        .set_binary_op(BinaryOperationsBitflag::IF_ELSE_WITHIN_PARENS)
+                        .remove_expression(ExprBitflag::ASSIGN),
                 );
                 if let Some(cond_errors) = cond_errors {
                     errors.extend(cond_errors);

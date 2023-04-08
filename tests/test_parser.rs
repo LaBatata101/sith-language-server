@@ -8955,4 +8955,119 @@ class T(a, x='hello', y='world'):
             }
         )
     }
+
+    #[test]
+    fn parse_list_comprehension3() {
+        let mut lexer = Lexer::new("[f for f in l if (a if b is None else c)]");
+        let parser = Parser::new(&mut lexer);
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Expression(Expression::ListComp(ListComp {
+                    target: Box::new(Expression::Id(
+                        "f".into(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 2,
+                            column_end: 2,
+                        },
+                    )),
+                    ifs: vec![IfComp {
+                        cond: Expression::IfElse(IfElseExpr {
+                            lhs: Box::new(Expression::Id(
+                                "a".into(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 19,
+                                    column_end: 19,
+                                },
+                            )),
+                            rhs: Box::new(Expression::Id(
+                                "c".into(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 39,
+                                    column_end: 39,
+                                },
+                            )),
+                            condition: Box::new(Expression::BinaryOp(
+                                Box::new(Expression::Id(
+                                    "b".into(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 24,
+                                        column_end: 24,
+                                    },
+                                )),
+                                BinaryOperator::Is,
+                                Box::new(Expression::None(Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 29,
+                                    column_end: 32,
+                                })),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 24,
+                                    column_end: 32,
+                                },
+                            )),
+                            span: Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 18,
+                                column_end: 40,
+                            },
+                        }),
+                        span: Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 15,
+                            column_end: 40,
+                        },
+                    }],
+                    fors: vec![ForComp {
+                        target: Expression::Id(
+                            "f".into(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 8,
+                                column_end: 8,
+                            },
+                        ),
+                        iter: Expression::Id(
+                            "l".into(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 13,
+                                column_end: 13,
+                            },
+                        ),
+                        span: Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 4,
+                            column_end: 13,
+                        },
+                    }],
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 41,
+                    }
+                }))]
+            }
+        )
+    }
 }
