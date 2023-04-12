@@ -410,7 +410,10 @@ impl<'a> Lexer<'a> {
 
         self.cs.skip_whitespace();
         // check for any string prefix
-        if matches!(self.cs.current_char(), Some('r' | 'b' | 'f' | 'F' | 'R' | 'B')) {
+        if matches!(
+            self.cs.current_char(),
+            Some('r' | 'b' | 'f' | 'F' | 'R' | 'B' | 'u' | 'U')
+        ) {
             while matches!(self.cs.current_char(), Some(valid_id_noninitial_chars!())) {
                 self.cs.advance_by(1);
             }
@@ -434,7 +437,10 @@ impl<'a> Lexer<'a> {
             }
 
             // check for any string prefix
-            if matches!(self.cs.current_char(), Some('r' | 'b' | 'f' | 'F' | 'R' | 'B')) {
+            if matches!(
+                self.cs.current_char(),
+                Some('r' | 'b' | 'f' | 'F' | 'R' | 'B' | 'u' | 'U')
+            ) {
                 while matches!(self.cs.current_char(), Some(valid_id_noninitial_chars!())) {
                     self.cs.advance_by(1);
                 }
@@ -461,7 +467,10 @@ impl<'a> Lexer<'a> {
             self.cs.skip_whitespace();
 
             // check for any string prefix
-            if matches!(self.cs.current_char(), Some('r' | 'b' | 'f' | 'F' | 'R' | 'B')) {
+            if matches!(
+                self.cs.current_char(),
+                Some('r' | 'b' | 'f' | 'F' | 'R' | 'B' | 'u' | 'U')
+            ) {
                 while matches!(self.cs.current_char(), Some(valid_id_noninitial_chars!())) {
                     self.cs.advance_by(1);
                 }
@@ -535,7 +544,7 @@ impl<'a> Lexer<'a> {
             if matches!(
                 (self.cs.current_char(), self.cs.next_char()),
                 (
-                    Some('r' | 'b' | 'f' | 'F' | 'R' | 'B'),
+                    Some('r' | 'b' | 'f' | 'F' | 'R' | 'B' | 'u' | 'U'),
                     Some('\'' | '"' | 'r' | 'R' | 'f' | 'F' | 'b' | 'B')
                 )
             ) {
