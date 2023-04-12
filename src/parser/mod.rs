@@ -1555,10 +1555,10 @@ impl<'a> Parser<'a> {
                     *index += 1;
                     let next_token = self.tokens.get(*index).unwrap();
                     match &next_token.kind {
-                        TokenType::Id(name) => {
+                        TokenType::Id(_) | TokenType::SoftKeyword(_) => {
                             // Consume Id
                             *index += 1;
-                            func_parameter.name = Cow::Borrowed(name);
+                            func_parameter.name = Cow::Borrowed(next_token.as_str());
                             func_parameter.star_parameter_type = Some(StarParameterType::Kargs);
                             func_parameter.span = next_token.span;
                             func_parameter.is_kw_only = is_kw_only;
@@ -1586,10 +1586,10 @@ impl<'a> Parser<'a> {
                     *index += 1;
                     let next_token = self.tokens.get(*index).unwrap();
                     match &next_token.kind {
-                        TokenType::Id(name) => {
+                        TokenType::Id(_) | TokenType::SoftKeyword(_) => {
                             // Consume Id
                             *index += 1;
-                            func_parameter.name = Cow::Borrowed(name);
+                            func_parameter.name = Cow::Borrowed(next_token.as_str());
                             func_parameter.star_parameter_type = Some(StarParameterType::KWargs);
                             func_parameter.span = next_token.span;
                             func_parameter.is_kw_only = is_kw_only;
