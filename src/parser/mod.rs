@@ -2986,7 +2986,9 @@ impl<'a> Parser<'a> {
                 // List comprehension and other comprehensions
                 let (iter, iter_errors) = self.parse_expression(
                     index,
-                    ParseExprBitflags::all().remove_binary_op(BinaryOperationsBitflag::IF_ELSE),
+                    ParseExprBitflags::all()
+                        .remove_binary_op(BinaryOperationsBitflag::IF_ELSE)
+                        .set_binary_op(BinaryOperationsBitflag::IF_ELSE_WITHIN_PARENS),
                 );
 
                 if let Some(iter_errors) = iter_errors {
