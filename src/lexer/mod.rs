@@ -23,7 +23,7 @@ pub struct Lexer<'a> {
     tokens: Vec<Token<'a>>,
     indent_stack: Vec<usize>,
     /// This is used to check if we are inside a [], () or {}
-    implicit_line_joining: u32,
+    implicit_line_joining: i32,
 }
 
 impl<'a> Lexer<'a> {
@@ -408,6 +408,39 @@ impl<'a> Lexer<'a> {
             errors.extend(string_errors);
         }
 
+        self.cs.skip_whitespace();
+        // check for any string prefix
+        if matches!(self.cs.current_char(), Some('r' | 'b' | 'f' | 'F' | 'R' | 'B')) {
+            while matches!(self.cs.current_char(), Some(valid_id_noninitial_chars!())) {
+                self.cs.advance_by(1);
+            }
+        }
+
+        while matches!(self.cs.current_char(), Some('\'' | '"')) {
+            let (str, span, str_errors) = self.process_string();
+
+            string.to_mut().push_str(&str);
+            str_span.column_end = span.column_end;
+            str_span.row_end = span.row_end;
+
+            if let Some(str_errors) = str_errors {
+                errors.extend(str_errors);
+            }
+
+            self.cs.skip_whitespace();
+
+            if matches!(self.cs.current_char(), Some('#')) {
+                self.cs.advance_while(1, |char| char != '\n');
+            }
+
+            // check for any string prefix
+            if matches!(self.cs.current_char(), Some('r' | 'b' | 'f' | 'F' | 'R' | 'B')) {
+                while matches!(self.cs.current_char(), Some(valid_id_noninitial_chars!())) {
+                    self.cs.advance_by(1);
+                }
+            }
+        }
+
         // In case we find a '\' (explicit line join char) with a string after it,
         // we need to treat these strings as one Token.
         self.cs.skip_whitespace();
@@ -428,17 +461,11 @@ impl<'a> Lexer<'a> {
             self.cs.skip_whitespace();
 
             // check for any string prefix
-            let str_prefix = if matches!(self.cs.current_char(), Some('r' | 'b' | 'f' | 'F' | 'R' | 'B')) {
-                let start = self.cs.pos();
+            if matches!(self.cs.current_char(), Some('r' | 'b' | 'f' | 'F' | 'R' | 'B')) {
                 while matches!(self.cs.current_char(), Some(valid_id_noninitial_chars!())) {
                     self.cs.advance_by(1);
                 }
-                let end = self.cs.pos();
-
-                Some(self.cs.get_slice(start.index, end.index).unwrap())
-            } else {
-                None
-            };
+            }
 
             if matches!(self.cs.current_char(), Some('"' | '\'')) {
                 let (str, span, str_errors) = self.process_string();
@@ -548,8 +575,6 @@ impl<'a> Lexer<'a> {
     fn process_string(&mut self) -> (Cow<'a, str>, Span, Option<Vec<PythonError>>) {
         let mut errors: Vec<PythonError> = vec![];
 
-        let mut has_explicit_line_join = false;
-        let mut backslash_positions = vec![];
         let mut start_quote_total = 0;
         let mut end_quote_total = 0;
 
@@ -588,11 +613,11 @@ impl<'a> Lexer<'a> {
                 match (self.cs.current_char(), self.cs.next_char()) {
                     // FIXME: support \r\n
                     (Some('\\'), Some('\n' | '\r')) => {
-                        has_explicit_line_join = true;
-                        backslash_positions.push(self.cs.pos());
                         self.cs.advance_by(1);
                     }
                     (Some('\\'), Some('\'' | '"' | '\\')) => self.cs.advance_by(2),
+                    (Some('\''), Some('\'')) => self.cs.advance_by(2),
+                    (Some('"'), Some('"')) => self.cs.advance_by(2),
                     (Some('\\'), _)
                         if self
                             .cs
@@ -603,6 +628,12 @@ impl<'a> Lexer<'a> {
                         break;
                     }
                     _ => self.cs.advance_by(1),
+                }
+
+                if self.cs.current_char().map_or(false, |char| char == quote_char)
+                    && self.cs.next_char().map_or(false, |char| char == quote_char)
+                {
+                    self.cs.advance_by(2);
                 }
             }
         }
@@ -622,40 +653,7 @@ impl<'a> Lexer<'a> {
             });
         }
 
-        let out_string = if has_explicit_line_join {
-            let mut str: Cow<str> = Cow::default();
-            // string literals are the only type of Token that can be split across lines,
-            // so we need to take every string char until the backslash, for every string line that
-            // has a backslash, to join as one string.
-            for backslash_position in &backslash_positions {
-                str.to_mut().push_str(&String::from_utf8_lossy(
-                    self.cs
-                        .get_slice(start.index + start_quote_total, backslash_position.index)
-                        .unwrap_or_else(|| {
-                            panic!(
-                                "Failed to get the string slice in pos: ({}, {}) -> ({}, {})",
-                                start.row, start.column, end.row, end.column
-                            )
-                        }),
-                ));
-            }
-            // Here we join the last string line that doesn't have the backslash.
-            str.to_mut().push_str(&String::from_utf8_lossy(
-                self.cs
-                    .get_slice(
-                        backslash_positions.last().unwrap().index + 2, // 2 is the size of the \ + \n
-                        end.index - end_quote_total,
-                    )
-                    .unwrap_or_else(|| {
-                        panic!(
-                            "Failed to get the string slice in pos: ({}, {}) -> ({}, {})",
-                            start.row, start.column, end.row, end.column
-                        )
-                    }),
-            ));
-
-            str
-        } else {
+        (
             String::from_utf8_lossy(
                 self.cs
                     .get_slice(start.index + start_quote_total, end.index - end_quote_total)
@@ -665,11 +663,7 @@ impl<'a> Lexer<'a> {
                             start.row, start.column, end.row, end.column
                         )
                     }),
-            )
-        };
-
-        (
-            out_string,
+            ),
             self.make_span(start, end),
             if errors.is_empty() { None } else { Some(errors) },
         )

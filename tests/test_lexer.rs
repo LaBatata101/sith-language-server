@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests_lexer {
+
     use pretty_assertions::assert_eq;
     use python_parser::{
         error::{PythonError, PythonErrorType},
@@ -2021,7 +2022,7 @@ World!\"",
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::String("Hello World!".into()),
+                    kind: TokenType::String("Hello \\\nWorld!".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 2,
@@ -2053,7 +2054,7 @@ World!\\\"\"",
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::String("\\\"Hello World!\\\"".into()),
+                    kind: TokenType::String("\\\"Hello \\\nWorld!\\\"".into()),
                     span: Span {
                         row_start: 1,
                         row_end: 2,
@@ -3239,5 +3240,97 @@ r\"\"\"
                 },
             ]
         )
+    }
+
+    #[test]
+    fn lex_string5() {
+        let mut lexer = Lexer::new(
+            "
+'aa''a'
+\"a\"\"a\"
+\"Hello \" \"World\"
+'Hello ' 'World'\\
+'!'",
+        );
+        let errors = lexer.tokenize();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            lexer.tokens(),
+            vec![
+                Token {
+                    kind: TokenType::String("aa''a".into()),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 1,
+                        column_end: 7,
+                    },
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 8,
+                        column_end: 8,
+                    },
+                },
+                Token {
+                    kind: TokenType::String("a\"\"a".into()),
+                    span: Span {
+                        row_start: 3,
+                        row_end: 3,
+                        column_start: 1,
+                        column_end: 6,
+                    },
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 3,
+                        row_end: 3,
+                        column_start: 7,
+                        column_end: 7,
+                    },
+                },
+                Token {
+                    kind: TokenType::String("Hello World".into()),
+                    span: Span {
+                        row_start: 4,
+                        row_end: 4,
+                        column_start: 1,
+                        column_end: 16,
+                    },
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 4,
+                        row_end: 4,
+                        column_start: 17,
+                        column_end: 17,
+                    },
+                },
+                Token {
+                    kind: TokenType::String("Hello World!".into()),
+                    span: Span {
+                        row_start: 5,
+                        row_end: 6,
+                        column_start: 1,
+                        column_end: 3,
+                    },
+                },
+                Token {
+                    kind: TokenType::Eof,
+                    span: Span {
+                        row_start: 6,
+                        row_end: 6,
+                        column_start: 4,
+                        column_end: 4,
+                    },
+                }
+            ]
+        );
     }
 }
