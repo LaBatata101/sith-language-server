@@ -112,7 +112,15 @@ impl<'a> Parser<'a> {
         if self
             .tokens
             .get(*index)
-            .map_or(false, |token| matches!(&token.kind, TokenType::NewLine))
+            .map_or(false, |token| token.kind == TokenType::SemiColon)
+        {
+            *index += 1;
+        }
+
+        if self
+            .tokens
+            .get(*index)
+            .map_or(false, |token| token.kind == TokenType::NewLine)
         {
             *index += 1;
         }
@@ -668,12 +676,6 @@ impl<'a> Parser<'a> {
             TokenType::Keyword(KeywordType::Async) => self.parse_async_stms(index),
             _ => {
                 let (expr, expr_errors) = self.parse_expression(index, ParseExprBitflags::all());
-                if self.tokens.get(*index).unwrap().kind == TokenType::SemiColon {
-                    *index += 1;
-                    if self.tokens.get(*index).unwrap().kind == TokenType::NewLine {
-                        *index += 1;
-                    }
-                }
                 (Statement::Expression(expr), expr_errors)
             }
         };
