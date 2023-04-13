@@ -35,15 +35,11 @@ impl<'a> CharStream<'a> {
         self.text.get(start as usize..end as usize)
     }
 
-    // FIXME: refactor this, if the offset is > 1, the checking of the EOL won't work resulting in
-    // an invalid span.
     pub fn advance_by(&mut self, offset: u32) {
-        if let Some(char) = self.current_char() {
-            if char == '\n' {
-                self.pos.new_line();
-            } else {
-                self.pos.go_right(offset);
-            }
+        if self.is_at_eol().is_some() {
+            self.pos.new_line();
+        } else {
+            self.pos.go_right(offset);
         }
 
         self.index += offset;
@@ -75,7 +71,7 @@ impl<'a> CharStream<'a> {
 
     /// Checks if the current char is EOL (\n, \r or \r\n).
     /// Returns the size of the EOL character, otherwise return `None`.
-    pub fn is_eol(&self) -> Option<u32> {
+    pub fn is_at_eol(&self) -> Option<u32> {
         match (self.current_char(), self.next_char()) {
             (Some('\r'), Some('\n')) => Some(2),
             (Some('\n' | '\r'), _) => Some(1),

@@ -55,13 +55,13 @@ impl<'a> Lexer<'a> {
                     self.cs.advance_while(1, |char| char != '\n');
                 }
 
-                // skip lines containing only white spaces or \n
-                // FIXME: handle \r and \r\n
-                if self.cs.current_char().map_or(false, |char| char == '\n') && self.implicit_line_joining == 0 {
-                    is_beginning_of_line = true;
-                    // Consume \n
-                    self.cs.advance_by(1);
-                    continue;
+                // skip lines containing only white spaces or \n, \r, \r\n
+                if let Some(eol_size) = self.cs.is_at_eol() {
+                    if self.implicit_line_joining == 0 {
+                        is_beginning_of_line = true;
+                        self.cs.advance_by(eol_size);
+                        continue;
+                    }
                 }
 
                 if self.implicit_line_joining == 0 {
@@ -167,7 +167,7 @@ impl<'a> Lexer<'a> {
                 }
                 '\n' | '\r' => {
                     is_beginning_of_line = true;
-                    let eol_size = self.cs.is_eol().unwrap();
+                    let eol_size = self.cs.is_at_eol().unwrap();
 
                     let start = self.cs.pos();
 

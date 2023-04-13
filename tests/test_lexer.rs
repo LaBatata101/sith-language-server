@@ -1822,9 +1822,7 @@ for i in range(len(l)):             # error: not indented
     }
 
     #[test]
-    #[ignore = "add support for \\n\\r, \\r"]
     fn lex_implicit_line_joining() {
-        // FIXME: add support for \n\r, \r
         let mut lexer = Lexer::new("\n[\n(\n\r)\r{\n}\r\n]\r");
 
         lexer.tokenize();
@@ -1834,73 +1832,73 @@ for i in range(len(l)):             # error: not indented
                 Token {
                     kind: TokenType::OpenBrackets,
                     span: Span {
-                        row_start: 1,
+                        row_start: 2,
                         row_end: 2,
-                        column_start: 2,
+                        column_start: 1,
                         column_end: 1
                     }
                 },
                 Token {
                     kind: TokenType::OpenParenthesis,
                     span: Span {
-                        row_start: 2,
+                        row_start: 3,
                         row_end: 3,
-                        column_start: 3,
-                        column_end: 3
+                        column_start: 1,
+                        column_end: 1
                     }
                 },
                 Token {
                     kind: TokenType::CloseParenthesis,
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 6
+                        row_start: 5,
+                        row_end: 5,
+                        column_start: 1,
+                        column_end: 1
                     }
                 },
                 Token {
                     kind: TokenType::OpenBrace,
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 8,
-                        column_end: 8
+                        row_start: 6,
+                        row_end: 6,
+                        column_start: 1,
+                        column_end: 1
                     }
                 },
                 Token {
                     kind: TokenType::CloseBrace,
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 10,
-                        column_end: 10
+                        row_start: 7,
+                        row_end: 7,
+                        column_start: 1,
+                        column_end: 1
                     }
                 },
                 Token {
                     kind: TokenType::CloseBrackets,
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 13,
-                        column_end: 13
+                        row_start: 8,
+                        row_end: 8,
+                        column_start: 1,
+                        column_end: 1
                     }
                 },
                 Token {
                     kind: TokenType::NewLine,
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 14,
-                        column_end: 14
+                        row_start: 8,
+                        row_end: 8,
+                        column_start: 2,
+                        column_end: 2
                     }
                 },
                 Token {
                     kind: TokenType::Eof,
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 15,
-                        column_end: 16
+                        row_start: 9,
+                        row_end: 9,
+                        column_start: 1,
+                        column_end: 1
                     }
                 },
             ]
