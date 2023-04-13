@@ -2162,8 +2162,16 @@ impl<'a> Parser<'a> {
                 let (target, target_errors) = self.parse_expression(
                     index,
                     ParseExprBitflags::empty()
-                        .set_expressions(ExprBitflag::ID | ExprBitflag::TUPLE | ExprBitflag::PARENTHESIZED)
-                        .set_binary_op(BinaryOperationsBitflag::ALL),
+                        .set_expressions(
+                            ExprBitflag::ID
+                                | ExprBitflag::TUPLE
+                                | ExprBitflag::PARENTHESIZED
+                                | ExprBitflag::LIST
+                                | ExprBitflag::DICT
+                                | ExprBitflag::SET,
+                        )
+                        .set_binary_op(BinaryOperationsBitflag::ALL)
+                        .set_unary_op(UnaryOperationsBitflag::SUBSCRIPT),
                 );
                 with_item.span.row_end = target.span().row_end;
                 with_item.span.column_end = target.span().column_end;
