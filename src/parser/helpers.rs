@@ -114,17 +114,17 @@ impl ParseExprBitflags {
     }
 
     pub fn set_binary_op(mut self, binary_op: BinaryOperationsBitflag) -> Self {
-        self.binary_op = binary_op;
+        self.binary_op |= binary_op;
         self
     }
 
     pub fn set_unary_op(mut self, unary_op: UnaryOperationsBitflag) -> Self {
-        self.unary_op = unary_op;
+        self.unary_op |= unary_op;
         self
     }
 
     pub fn set_expressions(mut self, expr: ExprBitflag) -> Self {
-        self.expressions = expr;
+        self.expressions |= expr;
         self
     }
 
@@ -139,10 +139,13 @@ impl ParseExprBitflags {
     }
 }
 
-pub fn postfix_binding_power(op: Operation) -> Option<(u8, ())> {
+pub fn postfix_binding_power(op: Operation, allowed_unary_op: UnaryOperationsBitflag) -> Option<(u8, ())> {
     match op {
-        Operation::Unary(UnaryOperator::OpenParenthesis) => Some((22, ())),
-        Operation::Unary(UnaryOperator::OpenBrackets) => Some((22, ())),
+        Operation::Unary(UnaryOperator::OpenParenthesis | UnaryOperator::OpenBrackets)
+            if allowed_unary_op.intersects(UnaryOperationsBitflag::FUNC_CALL | UnaryOperationsBitflag::SUBSCRIPT) =>
+        {
+            Some((22, ()))
+        }
         _ => None,
     }
 }
@@ -163,12 +166,20 @@ pub fn prefix_binding_power(op: Operation) -> Option<((), u8)> {
     }
 }
 
-pub fn infix_binding_power(op: Operation) -> Option<(u8, u8)> {
+pub fn infix_binding_power(op: Operation, allowed_bin_op: BinaryOperationsBitflag) -> Option<(u8, u8)> {
     match op {
-        Operation::Binary(BinaryOperator::Walrus) => Some((1, 1)),
-        Operation::Binary(BinaryOperator::IfElse) => Some((3, 3)),
-        Operation::Binary(BinaryOperator::LogicalOr) => Some((4, 4)),
-        Operation::Binary(BinaryOperator::LogicalAnd) => Some((5, 5)),
+        Operation::Binary(BinaryOperator::Walrus) if allowed_bin_op.intersects(BinaryOperationsBitflag::WALRUS) => {
+            Some((1, 1))
+        }
+        Operation::Binary(BinaryOperator::IfElse) if allowed_bin_op.intersects(BinaryOperationsBitflag::IF_ELSE) => {
+            Some((3, 3))
+        }
+        Operation::Binary(BinaryOperator::LogicalOr) if allowed_bin_op.intersects(BinaryOperationsBitflag::OR) => {
+            Some((4, 4))
+        }
+        Operation::Binary(BinaryOperator::LogicalAnd) if allowed_bin_op.intersects(BinaryOperationsBitflag::AND) => {
+            Some((5, 5))
+        }
         Operation::Binary(
             BinaryOperator::In
             | BinaryOperator::NotIn
@@ -180,18 +191,70 @@ pub fn infix_binding_power(op: Operation) -> Option<(u8, u8)> {
             | BinaryOperator::GreaterThanOrEqual
             | BinaryOperator::Equals
             | BinaryOperator::NotEqual,
-        ) => Some((7, 7)),
-        Operation::Binary(BinaryOperator::BitwiseOr) => Some((8, 8)),
-        Operation::Binary(BinaryOperator::BitwiseXOR) => Some((9, 9)),
-        Operation::Binary(BinaryOperator::BitwiseAnd) => Some((10, 10)),
-        Operation::Binary(BinaryOperator::BitwiseLeftShift | BinaryOperator::BitwiseRightShift) => Some((11, 11)),
-        Operation::Binary(BinaryOperator::Add | BinaryOperator::Subtract) => Some((12, 13)),
+        ) if allowed_bin_op.intersects(
+            BinaryOperationsBitflag::IN
+                | BinaryOperationsBitflag::IS
+                | BinaryOperationsBitflag::IS_NOT
+                | BinaryOperationsBitflag::NOT_IN
+                | BinaryOperationsBitflag::LESS_THAN
+                | BinaryOperationsBitflag::LESS_THAN_OR_EQUAL
+                | BinaryOperationsBitflag::GREATER_THAN
+                | BinaryOperationsBitflag::GREATER_THAN_OR_EQUAL
+                | BinaryOperationsBitflag::EQUALS
+                | BinaryOperationsBitflag::NOT_EQUAL,
+        ) =>
+        {
+            Some((7, 7))
+        }
+        Operation::Binary(BinaryOperator::BitwiseOr)
+            if allowed_bin_op.intersects(BinaryOperationsBitflag::BITWISE_OR) =>
+        {
+            Some((8, 8))
+        }
+        Operation::Binary(BinaryOperator::BitwiseXOR)
+            if allowed_bin_op.intersects(BinaryOperationsBitflag::BITWISE_XOR) =>
+        {
+            Some((9, 9))
+        }
+        Operation::Binary(BinaryOperator::BitwiseAnd)
+            if allowed_bin_op.intersects(BinaryOperationsBitflag::BITWISE_AND) =>
+        {
+            Some((10, 10))
+        }
+        Operation::Binary(BinaryOperator::BitwiseLeftShift | BinaryOperator::BitwiseRightShift)
+            if allowed_bin_op.intersects(
+                BinaryOperationsBitflag::BITWISE_LEFT_SHIFT | BinaryOperationsBitflag::BITWISE_RIGHT_SHIFT,
+            ) =>
+        {
+            Some((11, 11))
+        }
+        Operation::Binary(BinaryOperator::Add | BinaryOperator::Subtract)
+            if allowed_bin_op.intersects(BinaryOperationsBitflag::ADD | BinaryOperationsBitflag::SUBTRACT) =>
+        {
+            Some((12, 13))
+        }
         Operation::Binary(
             BinaryOperator::Divide | BinaryOperator::FloorDivision | BinaryOperator::Modulo | BinaryOperator::At,
-        ) => Some((14, 14)),
-        Operation::Binary(BinaryOperator::Multiply) => Some((14, 15)),
-        Operation::Binary(BinaryOperator::Exponent) => Some((18, 18)),
-        Operation::Binary(BinaryOperator::AttributeRef) => Some((22, 22)),
+        ) if allowed_bin_op.intersects(
+            BinaryOperationsBitflag::DIVISION
+                | BinaryOperationsBitflag::FLOOR_DIVISION
+                | BinaryOperationsBitflag::MODULO
+                | BinaryOperationsBitflag::AT,
+        ) =>
+        {
+            Some((14, 14))
+        }
+        Operation::Binary(BinaryOperator::Multiply) if allowed_bin_op.intersects(BinaryOperationsBitflag::MULTIPLY) => {
+            Some((14, 15))
+        }
+        Operation::Binary(BinaryOperator::Exponent) if allowed_bin_op.intersects(BinaryOperationsBitflag::EXPONENT) => {
+            Some((18, 18))
+        }
+        Operation::Binary(BinaryOperator::AttributeRef)
+            if allowed_bin_op.intersects(BinaryOperationsBitflag::ATTRIBUTE_REF) =>
+        {
+            Some((22, 22))
+        }
         _ => None,
     }
 }

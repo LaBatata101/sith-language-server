@@ -191,7 +191,9 @@ impl<'a> Parser<'a> {
                 | OperatorType::Exponent,
             )
             | TokenType::Keyword(KeywordType::Not | KeywordType::Await | KeywordType::Lambda)
-                if allowed_expr.unary_op.intersects(UnaryOperationsBitflag::ALL) =>
+                if allowed_expr.unary_op.intersects(
+                    UnaryOperationsBitflag::NOT | UnaryOperationsBitflag::AWAIT | UnaryOperationsBitflag::LAMBDA,
+                ) =>
             {
                 self.parse_unary_operator(index, token)
             }
@@ -253,7 +255,9 @@ impl<'a> Parser<'a> {
             };
 
             if allowed_expr.unary_op.intersects(UnaryOperationsBitflag::ALL) && op.is_postfix() {
-                let (lhs_bp, ()) = postfix_binding_power(op).unwrap();
+                let Some((lhs_bp, ())) = postfix_binding_power(op, allowed_expr.unary_op) else {
+                    break
+                };
 
                 if lhs_bp < min_precedence_weight {
                     break;
@@ -274,25 +278,23 @@ impl<'a> Parser<'a> {
                 .intersects(BinaryOperationsBitflag::ALL | BinaryOperationsBitflag::IF_ELSE_WITHIN_PARENS)
                 && op.is_infix()
             {
-                let (lhs_bp, rhs_bp) = infix_binding_power(op).unwrap();
+                let Some((lhs_bp, rhs_bp)) = infix_binding_power(op, allowed_expr.binary_op) else {
+                    break
+                };
 
                 if lhs_bp < min_precedence_weight {
                     break;
                 }
 
                 if op == Operation::Binary(BinaryOperator::IfElse) {
-                    if allowed_expr.binary_op.contains(BinaryOperationsBitflag::IF_ELSE) {
-                        let (expr, expr_errors) = self.parse_if_else_expr(index, lhs);
-                        lhs = expr;
+                    let (expr, expr_errors) = self.parse_if_else_expr(index, lhs);
+                    lhs = expr;
 
-                        if let Some(expr_errors) = expr_errors {
-                            errors.extend(expr_errors);
-                        }
-
-                        continue;
-                    } else {
-                        break;
+                    if let Some(expr_errors) = expr_errors {
+                        errors.extend(expr_errors);
                     }
+
+                    continue;
                 }
 
                 // In Python the "not" token followed by the "in" token and the
@@ -2474,6 +2476,7 @@ impl<'a> Parser<'a> {
                         | ExprBitflag::TUPLE_NO_PARENS
                         | ExprBitflag::PARENTHESIZED,
                 )
+                .set_binary_op(BinaryOperationsBitflag::ATTRIBUTE_REF)
                 .set_unary_op(UnaryOperationsBitflag::ALL),
         );
         for_stmt.target = target;
