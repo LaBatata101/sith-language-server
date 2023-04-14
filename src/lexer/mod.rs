@@ -527,7 +527,7 @@ impl<'a> Lexer<'a> {
                 self.cs.advance_by(1);
             }
 
-            if matches!(self.cs.current_char(), Some('\n')) {
+            while self.cs.is_at_eol().is_some() {
                 self.cs.advance_by(1);
             }
             self.cs.skip_whitespace();

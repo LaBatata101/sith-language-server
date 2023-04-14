@@ -2882,6 +2882,7 @@ f'World {}')",
         let mut lexer = Lexer::new(
             "
 (get_str() + 'hello ' \\
+
   # this is a comment
 # this is a comment
             'world')
@@ -2930,7 +2931,7 @@ f'World {}')",
                     },
                 },
                 Token {
-                    kind: TokenType::Operator(OperatorType::Plus,),
+                    kind: TokenType::Operator(OperatorType::Plus),
                     span: Span {
                         row_start: 2,
                         row_end: 2,
@@ -2939,10 +2940,10 @@ f'World {}')",
                     },
                 },
                 Token {
-                    kind: TokenType::String("hello world".into(),),
+                    kind: TokenType::String("hello world".into()),
                     span: Span {
                         row_start: 2,
-                        row_end: 5,
+                        row_end: 6,
                         column_start: 14,
                         column_end: 19,
                     },
@@ -2950,8 +2951,8 @@ f'World {}')",
                 Token {
                     kind: TokenType::CloseParenthesis,
                     span: Span {
-                        row_start: 5,
-                        row_end: 5,
+                        row_start: 6,
+                        row_end: 6,
                         column_start: 20,
                         column_end: 20,
                     },
@@ -2959,8 +2960,8 @@ f'World {}')",
                 Token {
                     kind: TokenType::NewLine,
                     span: Span {
-                        row_start: 5,
-                        row_end: 5,
+                        row_start: 6,
+                        row_end: 6,
                         column_start: 21,
                         column_end: 21,
                     },
@@ -2968,8 +2969,8 @@ f'World {}')",
                 Token {
                     kind: TokenType::Eof,
                     span: Span {
-                        row_start: 6,
-                        row_end: 6,
+                        row_start: 7,
+                        row_end: 7,
                         column_start: 1,
                         column_end: 1,
                     },
