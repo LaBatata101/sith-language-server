@@ -116,6 +116,7 @@ impl<'a> Token<'a> {
                     KeywordType::Del
                         | KeywordType::Pass
                         | KeywordType::Import
+                        | KeywordType::From
                         | KeywordType::Global
                         | KeywordType::NonLocal
                         | KeywordType::Assert
