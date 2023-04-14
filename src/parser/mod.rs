@@ -1943,10 +1943,7 @@ impl<'a> Parser<'a> {
         from_import_stmt.leading_dots = leading_dots;
 
         token = self.tokens.get(*index).unwrap();
-        let module = if matches!(
-            token.kind,
-            TokenType::Id(_) | TokenType::SoftKeyword(SoftKeywordType::Case | SoftKeywordType::Match)
-        ) {
+        let module = if matches!(token.kind, TokenType::Id(_) | TokenType::SoftKeyword(_)) {
             let (name, _, module_name_errors) = self.parse_import_module_name(index);
 
             if let Some(module_name_errors) = module_name_errors {
@@ -2043,7 +2040,7 @@ impl<'a> Parser<'a> {
         loop {
             let mut token = self.tokens.get(*index).unwrap();
             match &token.kind {
-                TokenType::Id(_) | TokenType::SoftKeyword(SoftKeywordType::Case | SoftKeywordType::Match) => {
+                TokenType::Id(_) | TokenType::SoftKeyword(_) => {
                     // Consume "case" or "match" or Id
                     *index += 1;
 
