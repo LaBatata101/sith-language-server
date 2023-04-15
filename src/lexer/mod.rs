@@ -55,6 +55,10 @@ impl<'a> Lexer<'a> {
                     self.cs.advance_while(1, |char| char != '\n');
                 }
 
+                if self.cs.is_eof() {
+                    break;
+                }
+
                 // skip lines containing only white spaces or \n, \r, \r\n
                 if let Some(eol_size) = self.cs.is_at_eol() {
                     if self.implicit_line_joining == 0 {
