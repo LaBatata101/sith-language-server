@@ -9,11 +9,9 @@ pub struct CharStream<'a> {
 
 impl<'a> CharStream<'a> {
     pub fn new(text: &'a str) -> Self {
-        let text = text.as_bytes();
-
         Self {
             index: 0,
-            text,
+            text: text.as_bytes(),
             is_eof: text.is_empty(),
             pos: Position::default(),
         }

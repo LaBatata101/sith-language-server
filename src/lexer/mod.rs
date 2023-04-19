@@ -329,7 +329,7 @@ impl<'a> Lexer<'a> {
             .current_char()
             .map_or(false, |char| matches!(char, valid_id_noninitial_chars!()))
         {
-            self.cs.advance_by(1);
+            self.cs.advance_by(self.cs.current_char().unwrap().len_utf8() as u32);
         }
         let end = self.cs.pos();
 
