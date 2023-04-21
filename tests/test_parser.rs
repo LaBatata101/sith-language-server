@@ -4518,7 +4518,7 @@ except Except as e:
                                 column_end: 13
                             }
                         )),
-                        expr_alias: Some("e".into()),
+                        expr_alias: Some("e"),
                         span: Span {
                             row_start: 3,
                             row_end: 4,
@@ -6277,7 +6277,8 @@ def test():
                             row_end: 1,
                             column_start: 4,
                             column_end: 23
-                        }
+                        },
+                        is_async: false
                     }],
                     span: Span {
                         row_start: 1,
@@ -6407,7 +6408,8 @@ def test():
                                 row_end: 1,
                                 column_start: 4,
                                 column_end: 13
-                            }
+                            },
+                            is_async: false
                         },
                         ForComp {
                             target: Expression::Id(
@@ -6433,7 +6435,8 @@ def test():
                                 row_end: 1,
                                 column_start: 15,
                                 column_end: 24
-                            }
+                            },
+                            is_async: false
                         },
                         ForComp {
                             target: Expression::Id(
@@ -6459,7 +6462,8 @@ def test():
                                 row_end: 1,
                                 column_start: 44,
                                 column_end: 53
-                            }
+                            },
+                            is_async: false
                         }
                     ],
                     span: Span {
@@ -6781,7 +6785,8 @@ def test(x, /, *, y):
                             row_end: 1,
                             column_start: 4,
                             column_end: 13
-                        }
+                        },
+                        is_async: false
                     }],
                     span: Span {
                         row_start: 1,
@@ -7902,6 +7907,7 @@ class Test(A, B, C):
                             column_start: 4,
                             column_end: 16,
                         },
+                        is_async: false
                     }],
                     span: Span {
                         row_start: 1,
@@ -7980,12 +7986,13 @@ class Test(A, B, C):
                                     column_start: 10,
                                     column_end: 19,
                                 },
+                                is_async: false
                             }],
                             span: Span {
-                                row_start: 0,
-                                row_end: 0,
-                                column_start: 0,
-                                column_end: 0,
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 8,
+                                column_end: 20,
                             },
                         }),
                     ],
@@ -8046,6 +8053,7 @@ class Test(A, B, C):
                             column_start: 10,
                             column_end: 22,
                         },
+                        is_async: false
                     }],
                     span: Span {
                         row_start: 1,
@@ -8781,6 +8789,7 @@ class T(a, x='hello', y='world'):
                                         column_start: 14,
                                         column_end: 23,
                                     },
+                                    is_async: false
                                 }],
                                 span: Span {
                                     row_start: 3,
@@ -8834,6 +8843,7 @@ class T(a, x='hello', y='world'):
                                         column_start: 14,
                                         column_end: 23,
                                     },
+                                    is_async: false
                                 }],
                                 span: Span {
                                     row_start: 4,
@@ -8887,6 +8897,7 @@ class T(a, x='hello', y='world'):
                                         column_start: 14,
                                         column_end: 23,
                                     },
+                                    is_async: false
                                 }],
                                 span: Span {
                                     row_start: 5,
@@ -9059,6 +9070,7 @@ class T(a, x='hello', y='world'):
                             column_start: 4,
                             column_end: 13,
                         },
+                        is_async: false
                     }],
                     span: Span {
                         row_start: 1,
@@ -9069,5 +9081,22 @@ class T(a, x='hello', y='world'):
                 }))]
             }
         )
+    }
+
+    #[test]
+    fn parse_async_comprehensions() {
+        let mut lexer = Lexer::new(
+            "
+[i async for i in l]
+{i async for i in l}
+{i:i+1 async for i in l}
+(i async for i in l)
+func(i async for i in l)
+",
+        );
+        let parser = Parser::new(&mut lexer);
+        let (_, errors) = parser.parse();
+
+        assert!(errors.is_none());
     }
 }

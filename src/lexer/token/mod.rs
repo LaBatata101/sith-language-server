@@ -105,6 +105,7 @@ impl<'a> Token<'a> {
                 | TokenType::Keyword(KeywordType::As)
                 | TokenType::Keyword(KeywordType::From)
                 | TokenType::Keyword(KeywordType::For)
+                | TokenType::Keyword(KeywordType::Async)
         )
     }
 

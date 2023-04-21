@@ -553,6 +553,7 @@ pub struct IfComp<'a> {
 pub struct ForComp<'a> {
     pub target: Expression<'a>,
     pub iter: Expression<'a>,
+    pub is_async: bool,
     pub span: Span,
 }
 

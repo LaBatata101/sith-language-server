@@ -904,6 +904,7 @@ impl<'a> Parser<'a> {
 
         // Consume (
         *index += 1;
+        let paren_span = token.span;
         let paren_column_start = token.span.column_start;
         let paren_row_start = token.span.row_start;
         let next_token = self.tokens.get(*index).unwrap();
@@ -962,8 +963,28 @@ impl<'a> Parser<'a> {
             }
 
             expr = Expression::Tuple(items, tuple_span);
-        } else if token.kind == TokenType::Keyword(KeywordType::For) {
-            let (generator_comp, generator_errors) = self.parse_generator_comprehension(index, expr);
+        }
+
+        if token.kind == TokenType::Keyword(KeywordType::Async) {
+            let token = self.tokens.get(*index + 1).unwrap();
+            if token.kind != TokenType::Keyword(KeywordType::For) {
+                errors.push(PythonError {
+                    error: PythonErrorType::Syntax,
+                    msg: format!("SyntaxError: expecting \"for\" after \"async\", got {:?}", token.kind),
+                    span: token.span,
+                });
+            }
+
+            let (generator_comp, generator_errors) = self.parse_generator_comprehension(index, expr, paren_span);
+            expr = generator_comp;
+
+            if let Some(generator_errors) = generator_errors {
+                errors.extend(generator_errors);
+            }
+        }
+
+        if token.kind == TokenType::Keyword(KeywordType::For) {
+            let (generator_comp, generator_errors) = self.parse_generator_comprehension(index, expr, paren_span);
             expr = generator_comp;
 
             if let Some(generator_errors) = generator_errors {
@@ -1117,6 +1138,19 @@ impl<'a> Parser<'a> {
                 errors.extend(rhs_errors);
             }
 
+            if self.tokens.get(*index).unwrap().kind == TokenType::Keyword(KeywordType::Async) {
+                let token = self.tokens.get(*index + 1).unwrap();
+                if token.kind != TokenType::Keyword(KeywordType::For) {
+                    errors.push(PythonError {
+                        error: PythonErrorType::Syntax,
+                        msg: format!("SyntaxError: expecting \"for\" after \"async\", got {:?}", token.kind),
+                        span: token.span,
+                    });
+                }
+
+                return self.parse_dict_comprehension(index, lhs, brace_span);
+            }
+
             if self.tokens.get(*index).unwrap().kind == TokenType::Keyword(KeywordType::For) {
                 return self.parse_dict_comprehension(index, lhs, brace_span);
             }
@@ -1132,6 +1166,19 @@ impl<'a> Parser<'a> {
             }
 
             return self.parse_dict_expression(index, DictItemType::KeyValue(lhs, rhs), brace_span);
+        }
+
+        if self.tokens.get(*index).unwrap().kind == TokenType::Keyword(KeywordType::Async) {
+            let token = self.tokens.get(*index + 1).unwrap();
+            if token.kind != TokenType::Keyword(KeywordType::For) {
+                errors.push(PythonError {
+                    error: PythonErrorType::Syntax,
+                    msg: format!("SyntaxError: expecting \"for\" after \"async\", got {:?}", token.kind),
+                    span: token.span,
+                });
+            }
+
+            return self.parse_set_comprehension(index, lhs, brace_span);
         }
 
         if self.tokens.get(*index).unwrap().kind == TokenType::Keyword(KeywordType::For) {
@@ -1390,21 +1437,54 @@ impl<'a> Parser<'a> {
             errors.extend(expr_errors);
         }
 
-        // Check if there is a "for" keyword inside the list, then start parsing a list
+        // Check if there is a "for" or "async" followed by a "for" keyword inside the list, then start parsing a list
         // comprehension.
+        if self.tokens.get(*index).unwrap().kind == TokenType::Keyword(KeywordType::Async) {
+            let token = self.tokens.get(*index + 1).unwrap();
+            if token.kind != TokenType::Keyword(KeywordType::For) {
+                errors.push(PythonError {
+                    error: PythonErrorType::Syntax,
+                    msg: format!("SyntaxError: expecting \"for\" after \"async\", got {:?}", token.kind),
+                    span: token.span,
+                });
+            }
+
+            return self.parse_list_comprehension(index, expr, bracket_span);
+        }
+
         if self
             .tokens
             .get(*index)
             .map_or(false, |token| token.kind == TokenType::Keyword(KeywordType::For))
         {
-            let (list_comp, list_comp_errors) = self.parse_list_comprehension(index, expr);
-            expr = list_comp;
+            return self.parse_list_comprehension(index, expr, bracket_span);
+        }
 
-            if let Some(list_comp_errors) = list_comp_errors {
-                errors.extend(list_comp_errors);
+        if matches!(expr, Expression::UnaryOp(_, UnaryOperator::UnpackDictionary, _)) {
+            errors.push(PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: can't unpack dictionary inside list!".to_string(),
+                span: token.span,
+            });
+        }
+
+        expressions.push(expr);
+
+        while self
+            .tokens
+            .get(*index)
+            .map_or(false, |token| token.kind == TokenType::Comma)
+        {
+            // Consume ,
+            *index += 1;
+            let token = self.tokens.get(*index).unwrap();
+
+            // allow trailing comma
+            if token.kind == TokenType::CloseBrackets {
+                break;
             }
-        } else {
-            if matches!(expr, Expression::UnaryOp(_, UnaryOperator::UnpackDictionary, _)) {
+
+            if token.kind == TokenType::Operator(OperatorType::Exponent) {
                 errors.push(PythonError {
                     error: PythonErrorType::Syntax,
                     msg: "SyntaxError: can't unpack dictionary inside list!".to_string(),
@@ -1412,44 +1492,19 @@ impl<'a> Parser<'a> {
                 });
             }
 
-            expressions.push(expr);
+            let (expr, expr_errors) = self.parse_expression(
+                index,
+                ParseExprBitflags::all().remove_expression(ExprBitflag::TUPLE_NO_PARENS | ExprBitflag::ASSIGN),
+            );
 
-            while self
-                .tokens
-                .get(*index)
-                .map_or(false, |token| token.kind == TokenType::Comma)
-            {
-                // Consume ,
-                *index += 1;
-                let token = self.tokens.get(*index).unwrap();
-
-                // allow trailing comma
-                if token.kind == TokenType::CloseBrackets {
-                    break;
-                }
-
-                if token.kind == TokenType::Operator(OperatorType::Exponent) {
-                    errors.push(PythonError {
-                        error: PythonErrorType::Syntax,
-                        msg: "SyntaxError: can't unpack dictionary inside list!".to_string(),
-                        span: token.span,
-                    });
-                }
-
-                let (expr, expr_errors) = self.parse_expression(
-                    index,
-                    ParseExprBitflags::all().remove_expression(ExprBitflag::TUPLE_NO_PARENS | ExprBitflag::ASSIGN),
-                );
-
-                if let Some(expr_errors) = expr_errors {
-                    errors.extend(expr_errors);
-                }
-
-                expressions.push(expr);
+            if let Some(expr_errors) = expr_errors {
+                errors.extend(expr_errors);
             }
 
-            expr = Expression::List(expressions, Span::default());
+            expressions.push(expr);
         }
+
+        expr = Expression::List(expressions, Span::default());
 
         let token = self.tokens.get(*index).unwrap();
         if token.kind != TokenType::CloseBrackets {
@@ -2783,13 +2838,31 @@ impl<'a> Parser<'a> {
             let mut token = self.tokens.get(*index).unwrap();
 
             let expr_span = if token.is_start_of_expr() {
+                let paren_span = token.span;
+
                 let (mut expr, expr_errors) = self.parse_expression(index, allowed_expr_in_args);
                 if let Some(expr_errors) = expr_errors {
                     errors.extend(expr_errors);
                 }
 
-                if self.tokens.get(*index).unwrap().kind == TokenType::Keyword(KeywordType::For) {
-                    let (gen_comp, gen_comp_errors) = self.parse_generator_comprehension(index, expr);
+                if self.tokens.get(*index).unwrap().kind == TokenType::Keyword(KeywordType::Async) {
+                    let token = self.tokens.get(*index + 1).unwrap();
+                    if token.kind != TokenType::Keyword(KeywordType::For) {
+                        errors.push(PythonError {
+                            error: PythonErrorType::Syntax,
+                            msg: format!("SyntaxError: expecting \"for\" after \"async\", got {:?}", token.kind),
+                            span: token.span,
+                        });
+                    }
+
+                    let (gen_comp, gen_comp_errors) = self.parse_generator_comprehension(index, expr, paren_span);
+                    expr = gen_comp;
+
+                    if let Some(gen_comp_errors) = gen_comp_errors {
+                        errors.extend(gen_comp_errors);
+                    }
+                } else if self.tokens.get(*index).unwrap().kind == TokenType::Keyword(KeywordType::For) {
+                    let (gen_comp, gen_comp_errors) = self.parse_generator_comprehension(index, expr, paren_span);
                     expr = gen_comp;
 
                     if let Some(gen_comp_errors) = gen_comp_errors {
@@ -2959,9 +3032,25 @@ impl<'a> Parser<'a> {
         let mut fors = Vec::new();
 
         while self.tokens.get(*index).map_or(false, |token| {
-            matches!(token.kind, TokenType::Keyword(KeywordType::For | KeywordType::If))
+            matches!(
+                token.kind,
+                TokenType::Keyword(KeywordType::Async | KeywordType::For | KeywordType::If)
+            )
         }) {
-            let token = self.tokens.get(*index).unwrap();
+            let mut is_async = false;
+
+            let mut token = self.tokens.get(*index).unwrap();
+            let mut for_span_start = token.span;
+
+            if token.kind == TokenType::Keyword(KeywordType::Async) {
+                for_span_start = token.span;
+                // consume "async"
+                *index += 1;
+                is_async = true;
+
+                token = self.tokens.get(*index).unwrap();
+            }
+
             if token.kind == TokenType::Keyword(KeywordType::For) {
                 // consume "for"
                 *index += 1;
@@ -3006,12 +3095,12 @@ impl<'a> Parser<'a> {
                 }
 
                 fors.push(ForComp {
+                    is_async,
                     target: for_target,
                     span: Span {
-                        row_start: token.span.row_start,
-                        row_end: iter.span().row_end,
-                        column_start: token.span.column_start,
-                        column_end: iter.span().column_end,
+                        row_start: for_span_start.row_start,
+                        column_start: for_span_start.column_start,
+                        ..iter.span()
                     },
                     iter,
                 });
@@ -3052,6 +3141,7 @@ impl<'a> Parser<'a> {
         &self,
         index: &mut usize,
         comprehension_target: Expression<'a>,
+        start_span: Span,
     ) -> (Expression, PythonErrors) {
         let mut errors = Vec::new();
 
@@ -3060,12 +3150,28 @@ impl<'a> Parser<'a> {
             errors.extend(comp_errors);
         }
 
+        let token = self.tokens.get(*index).unwrap();
+        if token.kind != TokenType::CloseBrackets {
+            errors.push(PythonError {
+                error: PythonErrorType::Syntax,
+                msg: format!("SyntaxError: expecting ']' got {:?}", token.kind),
+                span: token.span,
+            });
+        } else {
+            // Consume ]
+            *index += 1;
+        }
+
         (
             Expression::ListComp(ListComp {
                 target: Box::new(comprehension_target),
                 ifs,
                 fors,
-                span: Span::default(),
+                span: Span {
+                    row_start: start_span.row_start,
+                    column_start: start_span.column_start,
+                    ..token.span
+                },
             }),
             if errors.is_empty() { None } else { Some(errors) },
         )
@@ -3094,21 +3200,22 @@ impl<'a> Parser<'a> {
         &self,
         index: &mut usize,
         comprehension_target: Expression<'a>,
+        start_span: Span,
     ) -> (Expression, PythonErrors) {
-        let mut errors = Vec::new();
         let (fors, ifs, comp_errors) = self.parse_comprehension(index);
-        if let Some(comp_errors) = comp_errors {
-            errors.extend(comp_errors);
-        }
 
         (
             Expression::GeneratorComp(GeneratorComp {
                 target: Box::new(comprehension_target),
                 fors,
                 ifs,
-                span: Span::default(),
+                span: Span {
+                    row_start: start_span.row_start,
+                    column_start: start_span.column_start,
+                    ..self.tokens.get(*index).unwrap().span
+                },
             }),
-            if errors.is_empty() { None } else { Some(errors) },
+            comp_errors,
         )
     }
 
