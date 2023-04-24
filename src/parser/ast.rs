@@ -559,7 +559,8 @@ pub struct ForComp<'a> {
 
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct AssertStmt<'a> {
-    pub expr: Expression<'a>,
+    pub test: Expression<'a>,
+    pub message: Option<Expression<'a>>,
     pub span: Span,
 }
 

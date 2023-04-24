@@ -6650,7 +6650,7 @@ def test(x, /, *, y):
             parsed_file,
             ParsedFile {
                 stmts: vec![Statement::Assert(AssertStmt {
-                    expr: Expression::BinaryOp(
+                    test: Expression::BinaryOp(
                         Box::new(Expression::Number(
                             "1".into(),
                             Span {
@@ -6682,7 +6682,66 @@ def test(x, /, *, y):
                         row_end: 1,
                         column_start: 1,
                         column_end: 12
-                    }
+                    },
+                    message: None
+                })]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_assert_stmt_with_message() {
+        let mut lexer = Lexer::new("assert 1 > x, 'error message'");
+        let parser = Parser::new(&mut lexer);
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Assert(AssertStmt {
+                    test: Expression::BinaryOp(
+                        Box::new(Expression::Number(
+                            "1".into(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 8,
+                                column_end: 8
+                            }
+                        )),
+                        BinaryOperator::GreaterThan,
+                        Box::new(Expression::Id(
+                            "x".into(),
+                            Span {
+                                row_start: 1,
+                                row_end: 1,
+                                column_start: 12,
+                                column_end: 12
+                            }
+                        )),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 8,
+                            column_end: 12
+                        }
+                    ),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 12
+                    },
+                    message: Some(Expression::String(
+                        "error message".into(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 15,
+                            column_end: 29
+                        }
+                    ))
                 })]
             }
         )

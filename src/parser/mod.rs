@@ -3178,21 +3178,53 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_assert(&self, index: &mut usize) -> (AssertStmt, PythonErrors) {
+        let mut errors = vec![];
+        let mut message = None;
+
+        let allowed_expr =
+            ParseExprBitflags::all().remove_expression(ExprBitflag::TUPLE_NO_PARENS | ExprBitflag::ASSIGN);
         let assert_token = self.tokens.get(*index).unwrap();
+
         // consume "assert" keyword
         *index += 1;
-        let (expr, expr_errors) = self.parse_expression(index, ParseExprBitflags::all());
+        let (test, test_errors) = self.parse_expression(index, allowed_expr);
+
+        if let Some(test_errors) = test_errors {
+            errors.extend(test_errors);
+        }
+
+        if self.tokens.get(*index).unwrap().kind == TokenType::Comma {
+            // consume ","
+            *index += 1;
+
+            let token = self.tokens.get(*index).unwrap();
+            if !token.is_start_of_expr() {
+                errors.push(PythonError {
+                    error: PythonErrorType::Syntax,
+                    msg: format!("SyntaxError: expected expression, got {:?}", token.kind),
+                    span: token.span,
+                });
+            } else {
+                let (message_expr, message_expr_errors) = self.parse_expression(index, allowed_expr);
+                message = Some(message_expr);
+
+                if let Some(message_expr_errors) = message_expr_errors {
+                    errors.extend(message_expr_errors);
+                }
+            }
+        }
 
         (
             AssertStmt {
                 span: Span {
                     row_start: assert_token.span.row_start,
                     column_start: assert_token.span.column_start,
-                    ..expr.span()
+                    ..test.span()
                 },
-                expr,
+                test,
+                message,
             },
-            expr_errors,
+            if errors.is_empty() { None } else { Some(errors) },
         )
     }
 
