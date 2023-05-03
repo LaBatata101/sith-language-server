@@ -10,8 +10,8 @@ mod tests_parser {
                 ClassStmt, DelStmt, DictComp, DictItemType, ElIfStmt, ElseStmt, ExceptBlock, ExceptBlockKind,
                 Expression, FinallyBlock, ForComp, ForStmt, FromImportStmt, FuncParameter, Function, FunctionCall,
                 GeneratorComp, GlobalStmt, IfComp, IfElseExpr, IfStmt, ImportModule, ImportStmt, LambdaExpr, ListComp,
-                NonLocalStmt, ParsedFile, RaiseStmt, ReturnStmt, SetComp, StarParameterType, Statement, Subscript,
-                SubscriptType, TryStmt, UnaryOperator, While, WithItem, WithStmt,
+                NonLocalStmt, ParsedFile, RaiseStmt, ReturnStmt, SetComp, Slice, StarParameterType, Statement,
+                Subscript, TryStmt, UnaryOperator, While, WithItem, WithStmt,
             },
             Parser,
         },
@@ -2014,7 +2014,7 @@ else:
                                 column_end: 5
                             }
                         )),
-                        slice: Box::new(SubscriptType::Subscript(Expression::BinaryOp(
+                        slice: Box::new(Expression::BinaryOp(
                             Box::new(Expression::Number(
                                 "1".into(),
                                 Span {
@@ -2040,7 +2040,7 @@ else:
                                 column_start: 7,
                                 column_end: 11
                             }
-                        ))),
+                        )),
                         span: Span {
                             row_start: 1,
                             row_end: 1,
@@ -2306,7 +2306,7 @@ else:
                                         column_end: 33
                                     }
                                 )),
-                                slice: Box::new(SubscriptType::Subscript(Expression::Id(
+                                slice: Box::new(Expression::Id(
                                     "i".into(),
                                     Span {
                                         row_start: 1,
@@ -2314,7 +2314,7 @@ else:
                                         column_start: 35,
                                         column_end: 35
                                     }
-                                ))),
+                                )),
                                 span: Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -2426,7 +2426,7 @@ else:
                                     column_end: 28
                                 }
                             )),
-                            slice: Box::new(SubscriptType::Subscript(Expression::Id(
+                            slice: Box::new(Expression::Id(
                                 "i".into(),
                                 Span {
                                     row_start: 1,
@@ -2434,7 +2434,7 @@ else:
                                     column_start: 30,
                                     column_end: 30
                                 }
-                            ))),
+                            )),
                             span: Span {
                                 row_start: 1,
                                 row_end: 1,
@@ -2549,7 +2549,7 @@ else:
                                         column_end: 33
                                     }
                                 )),
-                                slice: Box::new(SubscriptType::Subscript(Expression::Id(
+                                slice: Box::new(Expression::Id(
                                     "i".into(),
                                     Span {
                                         row_start: 1,
@@ -2557,7 +2557,7 @@ else:
                                         column_start: 35,
                                         column_end: 35
                                     }
-                                ))),
+                                )),
                                 span: Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -5054,8 +5054,7 @@ def x():
             "
 def test():
     yield 1
-    yield 1, 2 + 3, abc
-",
+    yield 1, 2 + 3, abc",
         );
         let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
@@ -5657,8 +5656,7 @@ raise Exception from e
         let mut lexer = Lexer::new(
             "
 del a
-del b, c, d
-",
+del b, c, d",
         );
         let parser = Parser::new(&mut lexer);
         let (parsed_file, errors) = parser.parse();
@@ -5847,7 +5845,7 @@ del b, c, d
                             column_end: 1
                         }
                     )),
-                    slice: Box::new(SubscriptType::Subscript(Expression::String(
+                    slice: Box::new(Expression::String(
                         "x".into(),
                         Span {
                             row_start: 1,
@@ -5855,7 +5853,7 @@ del b, c, d
                             column_start: 3,
                             column_end: 5
                         }
-                    ))),
+                    )),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
@@ -5897,7 +5895,7 @@ l[:]
                                 column_end: 1
                             }
                         )),
-                        slice: Box::new(SubscriptType::Slice {
+                        slice: Box::new(Expression::Slice(Box::new(Slice {
                             lower: Some(Expression::Number(
                                 "1".into(),
                                 Span {
@@ -5908,8 +5906,14 @@ l[:]
                                 }
                             )),
                             upper: None,
-                            step: None
-                        }),
+                            step: None,
+                            span: Span {
+                                row_start: 2,
+                                row_end: 2,
+                                column_start: 3,
+                                column_end: 5
+                            }
+                        }))),
                         span: Span {
                             row_start: 2,
                             row_end: 2,
@@ -5927,7 +5931,7 @@ l[:]
                                 column_end: 1
                             }
                         )),
-                        slice: Box::new(SubscriptType::Slice {
+                        slice: Box::new(Expression::Slice(Box::new(Slice {
                             lower: None,
                             upper: Some(Expression::Number(
                                 "1".into(),
@@ -5938,8 +5942,14 @@ l[:]
                                     column_end: 4
                                 }
                             )),
-                            step: None
-                        }),
+                            step: None,
+                            span: Span {
+                                row_start: 3,
+                                row_end: 3,
+                                column_start: 3,
+                                column_end: 4
+                            }
+                        }))),
                         span: Span {
                             row_start: 3,
                             row_end: 3,
@@ -5957,7 +5967,7 @@ l[:]
                                 column_end: 1
                             }
                         )),
-                        slice: Box::new(SubscriptType::Slice {
+                        slice: Box::new(Expression::Slice(Box::new(Slice {
                             lower: Some(Expression::Number(
                                 "1".into(),
                                 Span {
@@ -5976,8 +5986,14 @@ l[:]
                                     column_end: 5
                                 }
                             )),
-                            step: None
-                        }),
+                            step: None,
+                            span: Span {
+                                row_start: 4,
+                                row_end: 4,
+                                column_start: 3,
+                                column_end: 5
+                            }
+                        }))),
                         span: Span {
                             row_start: 4,
                             row_end: 4,
@@ -5995,7 +6011,7 @@ l[:]
                                 column_end: 1
                             }
                         )),
-                        slice: Box::new(SubscriptType::Slice {
+                        slice: Box::new(Expression::Slice(Box::new(Slice {
                             lower: Some(Expression::Number(
                                 "1".into(),
                                 Span {
@@ -6022,8 +6038,14 @@ l[:]
                                     column_start: 7,
                                     column_end: 7
                                 }
-                            ))
-                        }),
+                            )),
+                            span: Span {
+                                row_start: 5,
+                                row_end: 5,
+                                column_start: 3,
+                                column_end: 7
+                            }
+                        }))),
                         span: Span {
                             row_start: 5,
                             row_end: 5,
@@ -6041,11 +6063,17 @@ l[:]
                                 column_end: 1
                             }
                         )),
-                        slice: Box::new(SubscriptType::Slice {
+                        slice: Box::new(Expression::Slice(Box::new(Slice {
                             lower: None,
                             upper: None,
-                            step: None
-                        }),
+                            step: None,
+                            span: Span {
+                                row_start: 6,
+                                row_end: 6,
+                                column_start: 3,
+                                column_end: 5
+                            }
+                        }))),
                         span: Span {
                             row_start: 6,
                             row_end: 6,
@@ -6063,11 +6091,17 @@ l[:]
                                 column_end: 1
                             }
                         )),
-                        slice: Box::new(SubscriptType::Slice {
+                        slice: Box::new(Expression::Slice(Box::new(Slice {
                             lower: None,
                             upper: None,
-                            step: None
-                        }),
+                            step: None,
+                            span: Span {
+                                row_start: 7,
+                                row_end: 7,
+                                column_start: 3,
+                                column_end: 4
+                            }
+                        }))),
                         span: Span {
                             row_start: 7,
                             row_end: 7,
@@ -6196,7 +6230,7 @@ def test():
                                         column_end: 28
                                     }
                                 )),
-                                slice: Box::new(SubscriptType::Subscript(Expression::Number(
+                                slice: Box::new(Expression::Number(
                                     "0".into(),
                                     Span {
                                         row_start: 1,
@@ -6204,7 +6238,7 @@ def test():
                                         column_start: 30,
                                         column_end: 30
                                     }
-                                ))),
+                                )),
                                 span: Span {
                                     row_start: 1,
                                     row_end: 1,
@@ -8387,7 +8421,7 @@ def test(x: int, y: str, z: list[str]) -> str:
                                         column_end: 32,
                                     },
                                 )),
-                                slice: Box::new(SubscriptType::Subscript(Expression::Id(
+                                slice: Box::new(Expression::Id(
                                     "str".into(),
                                     Span {
                                         row_start: 2,
@@ -8395,7 +8429,7 @@ def test(x: int, y: str, z: list[str]) -> str:
                                         column_start: 34,
                                         column_end: 36,
                                     },
-                                ))),
+                                )),
                                 span: Span {
                                     row_start: 2,
                                     row_end: 2,
@@ -9157,5 +9191,74 @@ func(i async for i in l)
         let (_, errors) = parser.parse();
 
         assert!(errors.is_none());
+    }
+
+    #[test]
+    fn parse_slice_with_comma() {
+        let mut lexer = Lexer::new("x[1, 1:]");
+        let parser = Parser::new(&mut lexer);
+        let (parsed_file, errors) = parser.parse();
+
+        assert!(errors.is_none());
+        assert_eq!(
+            parsed_file,
+            ParsedFile {
+                stmts: vec![Statement::Expression(Expression::Subscript(Subscript {
+                    lhs: Box::new(Expression::Id(
+                        "x".into(),
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 1,
+                            column_end: 1,
+                        },
+                    )),
+                    slice: Box::new(Expression::Tuple(
+                        vec![
+                            Expression::Number(
+                                "1".into(),
+                                Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 3,
+                                    column_end: 3,
+                                },
+                            ),
+                            Expression::Slice(Box::new(Slice {
+                                lower: Some(Expression::Number(
+                                    "1".into(),
+                                    Span {
+                                        row_start: 1,
+                                        row_end: 1,
+                                        column_start: 6,
+                                        column_end: 6,
+                                    },
+                                )),
+                                upper: None,
+                                step: None,
+                                span: Span {
+                                    row_start: 1,
+                                    row_end: 1,
+                                    column_start: 6,
+                                    column_end: 8,
+                                },
+                            }))
+                        ],
+                        Span {
+                            row_start: 1,
+                            row_end: 1,
+                            column_start: 3,
+                            column_end: 8,
+                        },
+                    )),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 8,
+                    },
+                }))]
+            }
+        );
     }
 }

@@ -77,6 +77,7 @@ pub enum Expression<'a> {
     Id(Cow<'a, str>, Span),
     Call(FunctionCall<'a>),
     Subscript(Subscript<'a>),
+    Slice(Box<Slice<'a>>),
     List(Vec<Expression<'a>>, Span),
     ListComp(ListComp<'a>),
     GeneratorComp(GeneratorComp<'a>),
@@ -112,6 +113,7 @@ impl<'a> Expression<'a> {
             Expression::GeneratorComp(gen_comp) => gen_comp.span,
             Expression::SetComp(set_comp) => set_comp.span,
             Expression::DictComp(dict_comp) => dict_comp.span,
+            Expression::Slice(slice) => slice.span,
             Expression::String(_, span)
             | Expression::Number(_, span)
             | Expression::Bool(_, span)
@@ -145,6 +147,8 @@ impl<'a> Expression<'a> {
             Expression::GeneratorComp(gen_comp) => gen_comp.span = new_span,
             Expression::SetComp(set_comp) => set_comp.span = new_span,
             Expression::DictComp(dict_comp) => dict_comp.span = new_span,
+            Expression::Slice(slice_span) => slice_span.as_mut().span = new_span,
+            Expression::Empty => (),
             Expression::String(_, span)
             | Expression::Number(_, span)
             | Expression::Bool(_, span)
@@ -161,7 +165,6 @@ impl<'a> Expression<'a> {
             | Expression::YieldFrom(_, span)
             | Expression::Await(_, span)
             | Expression::None(span) => *span = new_span,
-            Expression::Empty => (),
         }
     }
 }
@@ -511,18 +514,16 @@ pub struct FunctionCall<'a> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Subscript<'a> {
     pub lhs: Box<Expression<'a>>,
-    pub slice: Box<SubscriptType<'a>>,
+    pub slice: Box<Expression<'a>>,
     pub span: Span,
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum SubscriptType<'a> {
-    Slice {
-        lower: Option<Expression<'a>>,
-        upper: Option<Expression<'a>>,
-        step: Option<Expression<'a>>,
-    },
-    Subscript(Expression<'a>),
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct Slice<'a> {
+    pub lower: Option<Expression<'a>>,
+    pub upper: Option<Expression<'a>>,
+    pub step: Option<Expression<'a>>,
+    pub span: Span,
 }
 
 #[derive(Debug, PartialEq, Eq)]

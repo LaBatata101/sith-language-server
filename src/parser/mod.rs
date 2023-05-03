@@ -25,8 +25,8 @@ use self::{
     ast::{
         AnnAssign, AssertStmt, Assign, AugAssign, ClassKeywordArg, ClassStmt, DelStmt, DictComp, ForComp, ForStmt,
         FromImportStmt, FuncParameter, FunctionCall, GeneratorComp, GlobalStmt, IfComp, ImportModule, ImportStmt,
-        LambdaExpr, ListComp, NonLocalStmt, RaiseStmt, ReturnStmt, SetComp, StarParameterType, Subscript,
-        SubscriptType, TryStmt, WithItem, WithStmt,
+        LambdaExpr, ListComp, NonLocalStmt, RaiseStmt, ReturnStmt, SetComp, Slice, StarParameterType, Subscript,
+        TryStmt, WithItem, WithStmt,
     },
     helpers::{BinaryOperationsBitflag, ExprBitflag, ParseExprBitflags, UnaryOperationsBitflag},
 };
@@ -76,12 +76,9 @@ impl<'a> Parser<'a> {
             // consume ,
             *index += 1;
 
-            let (tuple_items, tuple_span, tuple_errors) = self.parse_tuple_items(index, expr.span(), allowed_expr);
+            let (tuple_items, tuple_span, tuple_errors) = self.parse_tuple_items(index, expr, allowed_expr);
 
-            let mut items = vec![expr];
-            items.extend(tuple_items);
-
-            expr = Expression::Tuple(items, tuple_span);
+            expr = Expression::Tuple(tuple_items, tuple_span);
 
             if let Some(tuple_errors) = tuple_errors {
                 if let Some(errors) = expr_errors.as_mut() {
@@ -92,6 +89,18 @@ impl<'a> Parser<'a> {
             }
 
             token = self.tokens.get(*index).unwrap();
+        }
+
+        if allowed_expr.expressions.contains(ExprBitflag::SLICE) && token.kind == TokenType::Colon {
+            let (slice_expr, slice_errors) = self.parse_slice(index, expr.span(), Some(expr), allowed_expr);
+            expr = slice_expr;
+            if let Some(slice_errors) = slice_errors {
+                if let Some(errors) = expr_errors.as_mut() {
+                    errors.extend(slice_errors);
+                } else {
+                    expr_errors = Some(slice_errors);
+                }
+            }
         }
 
         if allowed_expr.expressions.contains(ExprBitflag::ASSIGN)
@@ -218,6 +227,10 @@ impl<'a> Parser<'a> {
             TokenType::OpenBrace if allowed_expr.expressions.contains(ExprBitflag::SET) => {
                 self.parse_bracesized_expr(index, token)
             }
+            // parse slice expressions with no lower bound, e.g. "x[:1]"
+            TokenType::Colon if allowed_expr.expressions.contains(ExprBitflag::SLICE) => {
+                self.parse_slice(index, token.span, None, allowed_expr)
+            }
             _ => {
                 *index += 1;
 
@@ -234,6 +247,13 @@ impl<'a> Parser<'a> {
 
         if let Some(lhs_errors) = lhs_errors {
             errors.extend(lhs_errors);
+        }
+
+        // parse slice expressions with no upper bound, e.g. "x[1:]"
+        if allowed_expr.expressions.contains(ExprBitflag::SLICE)
+            && self.tokens.get(*index).unwrap().kind == TokenType::Colon
+        {
+            return self.parse_slice(index, lhs.span(), Some(lhs), allowed_expr);
         }
 
         if allowed_expr.binary_op.is_empty() || allowed_expr.unary_op.is_empty() {
@@ -953,16 +973,13 @@ impl<'a> Parser<'a> {
         if allowed_expr.expressions.contains(ExprBitflag::TUPLE) && token.kind == TokenType::Comma {
             // consume ,
             *index += 1;
-            let (tuple_items, tuple_span, tuple_errors) = self.parse_tuple_items(index, expr.span(), allowed_expr);
-
-            let mut items = vec![expr];
-            items.extend(tuple_items);
+            let (tuple_items, tuple_span, tuple_errors) = self.parse_tuple_items(index, expr, allowed_expr);
 
             if let Some(tuple_errors) = tuple_errors {
                 errors.extend(tuple_errors);
             }
 
-            expr = Expression::Tuple(items, tuple_span);
+            expr = Expression::Tuple(tuple_items, tuple_span);
         }
 
         if token.kind == TokenType::Keyword(KeywordType::Async) {
@@ -1017,53 +1034,46 @@ impl<'a> Parser<'a> {
     fn parse_tuple_items(
         &self,
         index: &mut usize,
-        tuple_span_start: Span,
+        first_item: Expression<'a>,
         allowed_expr: ParseExprBitflags,
     ) -> (Vec<Expression>, Span, PythonErrors) {
         let mut errors = Vec::new();
-        let mut expressions = vec![];
         let mut tuple_span = Span {
-            row_start: tuple_span_start.row_start,
-            column_start: tuple_span_start.column_start,
-            ..Default::default()
+            row_end: 0,
+            column_end: 0,
+            ..first_item.span()
         };
+        let mut expressions = vec![first_item];
+        let mut state: i8 = 1;
+        const INVALID_STATE: i8 = -1;
+        let allowed_expr = allowed_expr.remove_expression(ExprBitflag::TUPLE_NO_PARENS | ExprBitflag::ASSIGN);
 
-        loop {
-            let mut token = self.tokens.get(*index).unwrap();
-
-            let expr_span = if token.is_start_of_expr() {
-                let (expr, expr_errors) = self.pratt_parsing(index, 0, allowed_expr);
+        while state != INVALID_STATE {
+            let token = self.tokens.get(*index).unwrap();
+            // If the SLICE flag is set, treat ":" as start of expression
+            if state == 1
+                && (token.is_start_of_expr()
+                    || (allowed_expr.expressions.contains(ExprBitflag::SLICE) && token.kind == TokenType::Colon))
+            {
+                let (expr, expr_errors) = self.parse_expression(index, allowed_expr);
                 if let Some(expr_errors) = expr_errors {
                     errors.extend(expr_errors);
                 }
-                let expr_span = expr.span();
+
+                tuple_span.column_end = expr.span().column_end;
                 expressions.push(expr);
 
-                expr_span
-            } else {
-                break;
-            };
-
-            tuple_span.column_end = expr_span.column_end;
-
-            // allow tuples with trailing comma, e.g. "(1, 2, 3,)", "1, 2, 3,"
-            token = self.tokens.get(*index).unwrap();
-            if token.kind == TokenType::Comma {
+                state = 2;
+            } else if state == 2 && token.kind == TokenType::Comma {
                 // Consume ,
                 *index += 1;
                 tuple_span.column_end = token.span.column_end;
-            } else if !token.is_start_of_expr() {
-                break;
+
+                state = 3;
+            } else if state == 3 {
+                state = 1;
             } else {
-                errors.push(PythonError {
-                    error: PythonErrorType::Syntax,
-                    msg: format!("SyntaxError: expected comma, got {:?}", token.kind),
-                    span: Span {
-                        column_start: expr_span.column_end,
-                        column_end: expr_span.column_end + 1,
-                        ..expr_span
-                    },
-                });
+                state = INVALID_STATE;
             }
         }
 
@@ -2930,77 +2940,28 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_subscript(&self, index: &mut usize, lhs: Expression<'a>) -> (Expression, PythonErrors) {
-        // FIXME: handle more syntax errors
-        let mut errors = Vec::new();
-        let mut is_slice = false;
-        let mut column_end_span = 0;
         let allowed_expr_in_slice = ParseExprBitflags::all().remove_expression(ExprBitflag::ASSIGN);
 
-        let token = self.tokens.get(*index).unwrap();
-        let lower = if token.is_start_of_expr() {
-            let (expr, expr_errors) = self.parse_expression(index, allowed_expr_in_slice);
+        // FIXME: handle more syntax errors
+        let mut errors = Vec::new();
 
-            if let Some(expr_errors) = expr_errors {
-                errors.extend(expr_errors);
-            }
-
-            Some(expr)
-        } else {
-            None
-        };
-        let mut upper = None;
-        let mut step = None;
-
-        if self
-            .tokens
-            .get(*index)
-            .map_or(false, |token| token.kind == TokenType::Colon)
-        {
-            // consume ":"
-            *index += 1;
-
-            is_slice = true;
-
-            let token = self.tokens.get(*index).unwrap();
-            if token.is_start_of_expr() {
-                let (upper_expr, upper_errors) = self.parse_expression(index, allowed_expr_in_slice);
-                column_end_span = upper_expr.span().column_end;
-                upper = Some(upper_expr);
-
-                if let Some(upper_errors) = upper_errors {
-                    errors.extend(upper_errors);
-                }
-            }
-
-            if self
-                .tokens
-                .get(*index)
-                .map_or(false, |token| token.kind == TokenType::Colon)
-            {
-                // consume ":"
-                *index += 1;
-
-                let token = self.tokens.get(*index).unwrap();
-                if token.is_start_of_expr() {
-                    let (step_expr, step_errors) = self.parse_expression(index, allowed_expr_in_slice);
-                    column_end_span = step_expr.span().column_end;
-                    step = Some(step_expr);
-
-                    if let Some(step_errors) = step_errors {
-                        errors.extend(step_errors);
-                    }
-                }
-            }
+        let (slice, slice_errors) =
+            self.parse_expression(index, allowed_expr_in_slice.set_expressions(ExprBitflag::SLICE));
+        if let Some(slice_errors) = slice_errors {
+            errors.extend(slice_errors);
         }
 
         let token = self.tokens.get(*index).unwrap();
         if token.kind != TokenType::CloseBrackets {
             errors.push(PythonError {
                 error: PythonErrorType::Syntax,
-                msg: format!("SyntaxError: expecting ']' at position: {}", column_end_span + 1),
+                msg: format!(
+                    "SyntaxError: expecting ']' at position: {}",
+                    token.span.column_start + 1
+                ),
                 span: Span {
                     column_start: lhs.span().column_start,
-                    column_end: column_end_span + 1,
+                    column_end: token.span.column_end + 1,
                     ..lhs.span()
                 },
             })
@@ -3016,12 +2977,63 @@ impl<'a> Parser<'a> {
                     ..token.span
                 },
                 lhs: Box::new(lhs),
-                slice: Box::new(if is_slice {
-                    SubscriptType::Slice { lower, upper, step }
-                } else {
-                    SubscriptType::Subscript(lower.unwrap())
-                }),
+                slice: Box::new(slice),
             }),
+            if errors.is_empty() { None } else { Some(errors) },
+        )
+    }
+
+    fn parse_slice(
+        &self,
+        index: &mut usize,
+        start_span: Span,
+        lower: Option<Expression<'a>>,
+        allowed_expr: ParseExprBitflags,
+    ) -> (Expression, PythonErrors) {
+        let mut errors = vec![];
+        let mut slice = Slice {
+            lower,
+            span: start_span,
+            ..Default::default()
+        };
+        let allowed_expr = allowed_expr.remove_expression(ExprBitflag::SLICE);
+
+        if self.tokens.get(*index).unwrap().kind == TokenType::Colon {
+            // consume ":"
+            *index += 1;
+
+            let token = self.tokens.get(*index).unwrap();
+            slice.span.column_end = token.span.column_end;
+            if token.is_start_of_expr() {
+                let (upper_expr, upper_errors) = self.parse_expression(index, allowed_expr);
+                slice.span.column_end = upper_expr.span().column_end;
+                slice.upper = Some(upper_expr);
+
+                if let Some(upper_errors) = upper_errors {
+                    errors.extend(upper_errors);
+                }
+            }
+
+            if self.tokens.get(*index).unwrap().kind == TokenType::Colon {
+                // consume ":"
+                *index += 1;
+
+                let token = self.tokens.get(*index).unwrap();
+                slice.span.column_end = token.span.column_end;
+                if token.is_start_of_expr() {
+                    let (step_expr, step_errors) = self.parse_expression(index, allowed_expr);
+                    slice.span.column_end = step_expr.span().column_end;
+                    slice.step = Some(step_expr);
+
+                    if let Some(step_errors) = step_errors {
+                        errors.extend(step_errors);
+                    }
+                }
+            }
+        }
+
+        (
+            Expression::Slice(Box::new(slice)),
             if errors.is_empty() { None } else { Some(errors) },
         )
     }

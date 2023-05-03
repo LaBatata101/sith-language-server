@@ -20,7 +20,8 @@ bitflags! {
         const YIELD_FROM = 1 << 12;
         const ASSIGN = 1 << 13;
         const TUPLE_NO_PARENS = 1 << 14;
-        /// Doesn't contain the ASSIGN
+        const SLICE = 1 << 15;
+        /// Doesn't contain the ASSIGN and SLICE
         const ALL = Self::BOOL.bits | Self::DICT.bits | Self::ELLIPSIS.bits | Self::ID.bits | Self::LIST.bits
                     | Self::NONE.bits | Self::NUMBER.bits | Self::SET.bits | Self::STRING.bits | Self::TUPLE.bits
                     | Self::YIELD.bits | Self::YIELD_FROM.bits | Self::PARENTHESIZED.bits | Self::TUPLE_NO_PARENS.bits;
