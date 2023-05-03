@@ -7792,8 +7792,8 @@ with (a if b else
                                 span: Span {
                                     row_start: 2,
                                     row_end: 3,
-                                    column_start: 7,
-                                    column_end: 15,
+                                    column_start: 6,
+                                    column_end: 16,
                                 },
                             }),
                             target: Some(Expression::Id(
@@ -7808,7 +7808,7 @@ with (a if b else
                             span: Span {
                                 row_start: 2,
                                 row_end: 3,
-                                column_start: 7,
+                                column_start: 6,
                                 column_end: 21,
                             },
                         },

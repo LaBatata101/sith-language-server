@@ -2184,17 +2184,11 @@ impl<'a> Parser<'a> {
         // consume "with" keyword
         *index += 1;
         let mut with_stmt = WithStmt::default();
-        let mut expect_close_paren = false;
 
         with_stmt.span.row_start = with_token.span.row_start;
         with_stmt.span.column_start = with_token.span.column_start;
 
         loop {
-            if self.tokens.get(*index).unwrap().kind == TokenType::OpenParenthesis {
-                // Consume (
-                *index += 1;
-                expect_close_paren = true;
-            }
             let (item, item_errors) = self.pratt_parsing(index, 0, ParseExprBitflags::all());
 
             if let Some(item_errors) = item_errors {
@@ -2206,21 +2200,6 @@ impl<'a> Parser<'a> {
                 item,
                 target: None,
             };
-
-            if expect_close_paren {
-                expect_close_paren = false;
-                let token = self.tokens.get(*index).unwrap();
-                if token.kind != TokenType::CloseParenthesis {
-                    errors.push(PythonError {
-                        error: PythonErrorType::Syntax,
-                        msg: format!("SyntaxError: expecting ')' got {:?}", token.kind),
-                        span: token.span,
-                    });
-                } else {
-                    // Consume )
-                    *index += 1;
-                }
-            }
 
             if self.tokens.get(*index).unwrap().kind == TokenType::Keyword(KeywordType::As) {
                 // Consume "as"
