@@ -9261,4 +9261,22 @@ func(i async for i in l)
             }
         );
     }
+
+    #[test]
+    fn parse_match_statement() {
+        let mut lexer = Lexer::new(
+            "
+match x:
+    case 0: x = 1
+    case 'x' if x > 1: 
+        print('')
+    case _:
+        ...
+",
+        );
+        let parser = Parser::new(&mut lexer);
+        let (_, errors) = parser.parse();
+
+        assert!(errors.is_none());
+    }
 }

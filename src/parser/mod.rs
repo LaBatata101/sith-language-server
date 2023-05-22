@@ -13,7 +13,7 @@ use crate::{
         },
         Lexer,
     },
-    parser::ast::{DictItemType, ExceptBlock, ExceptBlockKind, FinallyBlock, IfElseExpr},
+    parser::ast::{DictItemType, ExceptBlock, ExceptBlockKind, FinallyBlock, IfElseExpr, MatchStmt},
 };
 use ast::{
     BinaryOperator, Block, ElIfStmt, ElseStmt, Expression, Function, IfStmt, Operation, ParsedFile, Statement,
@@ -23,10 +23,10 @@ use helpers::{infix_binding_power, postfix_binding_power, prefix_binding_power};
 
 use self::{
     ast::{
-        AnnAssign, AssertStmt, Assign, AugAssign, ClassKeywordArg, ClassStmt, DelStmt, DictComp, ForComp, ForStmt,
-        FromImportStmt, FuncParameter, FunctionCall, GeneratorComp, GlobalStmt, IfComp, ImportModule, ImportStmt,
-        LambdaExpr, ListComp, NonLocalStmt, RaiseStmt, ReturnStmt, SetComp, Slice, StarParameterType, Subscript,
-        TryStmt, WithItem, WithStmt,
+        AnnAssign, AssertStmt, Assign, AugAssign, CasePatternType, ClassKeywordArg, ClassStmt, DelStmt, DictComp,
+        ForComp, ForStmt, FromImportStmt, FuncParameter, FunctionCall, GeneratorComp, GlobalStmt, IfComp, ImportModule,
+        ImportStmt, LambdaExpr, ListComp, MatchCase, NonLocalStmt, RaiseStmt, ReturnStmt, SetComp, Slice,
+        StarParameterType, Subscript, TryStmt, WithItem, WithStmt,
     },
     helpers::{BinaryOperationsBitflag, ExprBitflag, ParseExprBitflags, UnaryOperationsBitflag},
 };
@@ -696,6 +696,22 @@ impl<'a> Parser<'a> {
                 (Statement::NonLocal(nonlocal_stmt), nonlocal_stmt_errors)
             }
             TokenType::Keyword(KeywordType::Async) => self.parse_async_stms(index),
+            TokenType::SoftKeyword(SoftKeywordType::Match) => {
+                // To determine whether the term "match" refers to the statement or the expression,
+                // we begin by searching for the "block" statement within the 'match' statement.
+                // The 'block' statement initiates with two tokens: the `NewLine` token and the `Indent` token.
+                let mut index_copy = *index;
+                while self.tokens.get(index_copy).unwrap().kind != TokenType::NewLine {
+                    index_copy += 1;
+                }
+
+                if self.tokens.get(index_copy + 1).unwrap().kind == TokenType::Indent {
+                    self.parse_match_stmt(index)
+                } else {
+                    let (expr, expr_errors) = self.parse_expression(index, ParseExprBitflags::all());
+                    (Statement::Expression(expr), expr_errors)
+                }
+            }
             _ => {
                 let (expr, expr_errors) = self.parse_expression(index, ParseExprBitflags::all());
                 (Statement::Expression(expr), expr_errors)
@@ -3525,5 +3541,151 @@ impl<'a> Parser<'a> {
                 )
             }
         }
+    }
+
+    fn parse_match_stmt(&self, index: &mut usize) -> (Statement, Option<Vec<PythonError>>) {
+        let mut errors = vec![];
+        let mut match_stmt = MatchStmt::default();
+        let mut match_span = Span {
+            column_end: 0,
+            row_end: 0,
+            ..self.tokens.get(*index).unwrap().span
+        };
+        // consume "match"
+        *index += 1;
+
+        // If we see a colon right after the "match" keyword, it's an error.
+        // After the "match" keyword we expect to see an expression.
+        let token = self.tokens.get(*index).unwrap();
+        if token.kind == TokenType::Colon {
+            errors.push(PythonError {
+                error: PythonErrorType::Syntax,
+                msg: "SyntaxError: expecting an expression, got \":\"".to_string(),
+                span: token.span,
+            });
+        }
+
+        if token.is_start_of_expr() {
+            let (expr, expr_errors) =
+                self.parse_expression(index, ParseExprBitflags::all().remove_expression(ExprBitflag::ASSIGN));
+            if let Some(expr_errors) = expr_errors {
+                errors.extend(expr_errors);
+            }
+
+            match_stmt.expr = expr;
+        }
+
+        if self.tokens.get(*index).unwrap().kind == TokenType::Colon {
+            // consume ":"
+            *index += 1;
+        }
+
+        let (case_block, case_span, case_block_errors) = self.parse_case_block(index);
+        if let Some(case_block_errors) = case_block_errors {
+            errors.extend(case_block_errors);
+        }
+        match_stmt.cases = case_block;
+
+        match_span.row_end = case_span.row_end;
+        match_span.column_end = case_span.column_end;
+
+        match_stmt.span = match_span;
+
+        (
+            Statement::Match(match_stmt),
+            if errors.is_empty() { None } else { Some(errors) },
+        )
+    }
+
+    fn parse_case_block(&self, index: &mut usize) -> (Vec<MatchCase>, Span, PythonErrors) {
+        let mut errors = vec![];
+        let mut cases: Vec<MatchCase> = vec![];
+        let mut case_block_span = Span::default();
+
+        if !matches!(
+            (
+                self.tokens.get(*index).map(|token| &token.kind),
+                self.tokens.get(*index + 1).map(|token| &token.kind)
+            ),
+            (Some(TokenType::NewLine), Some(TokenType::Indent))
+        ) {
+            errors.push(PythonError {
+                error: PythonErrorType::Indentation,
+                msg: "Expected an indented block after function definition".to_string(),
+                span: self.tokens.get(*index).unwrap().span,
+            });
+        } else {
+            // consume "NewLine" and "Indent" token
+            *index += 2;
+        }
+
+        let allowed_expr = ParseExprBitflags::all().remove_expression(ExprBitflag::ASSIGN);
+        while self.tokens.get(*index).unwrap().kind == TokenType::SoftKeyword(SoftKeywordType::Case) {
+            let mut case = MatchCase {
+                span: self.tokens.get(*index).unwrap().span,
+                ..Default::default()
+            };
+            // consume "case" keyword
+            *index += 1;
+
+            case.pattern =
+                if self.tokens.get(*index).unwrap().kind == TokenType::SoftKeyword(SoftKeywordType::Underscore) {
+                    *index += 1;
+                    CasePatternType::Wildcard
+                } else {
+                    let (pattern, pattern_errors) =
+                        self.parse_expression(index, allowed_expr.remove_binary_op(BinaryOperationsBitflag::IF_ELSE));
+                    if let Some(pattern_errors) = pattern_errors {
+                        errors.extend(pattern_errors);
+                    }
+
+                    CasePatternType::Expr(pattern)
+                };
+
+            if self.tokens.get(*index).unwrap().kind == TokenType::Keyword(KeywordType::If) {
+                *index += 1;
+
+                let (guard_expr, guard_expr_errors) = self.parse_expression(index, allowed_expr);
+
+                if let Some(guard_expr_errors) = guard_expr_errors {
+                    errors.extend(guard_expr_errors);
+                }
+
+                case.guard = Some(guard_expr);
+            }
+
+            let token = self.tokens.get(*index).unwrap();
+            if token.kind != TokenType::Colon {
+                errors.push(PythonError {
+                    error: PythonErrorType::Syntax,
+                    msg: format!("SyntaxError: expecting ':' got {:?}", token.kind),
+                    span: token.span,
+                });
+            } else {
+                *index += 1;
+            }
+
+            let (case_block, case_block_errors) = self.parse_block(index);
+            if let Some(case_block_errors) = case_block_errors {
+                errors.extend(case_block_errors);
+            }
+
+            case.span.row_end = case_block.span.row_end;
+            case.span.column_end = case_block.span.column_end;
+            case.block = case_block;
+
+            case_block_span = case.span;
+
+            cases.push(case);
+        }
+
+        // consume DEDENT token
+        *index += 1;
+
+        (
+            cases,
+            case_block_span,
+            if errors.is_empty() { None } else { Some(errors) },
+        )
     }
 }

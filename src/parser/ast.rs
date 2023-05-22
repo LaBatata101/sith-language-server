@@ -27,6 +27,7 @@ pub enum Statement<'a> {
     AsyncFunctionDef(Function<'a>),
     AsyncWith(WithStmt<'a>),
     AsyncFor(ForStmt<'a>),
+    Match(MatchStmt<'a>),
     Invalid(Span),
 
     #[default]
@@ -59,6 +60,7 @@ impl<'a> Statement<'a> {
             Statement::AsyncFunctionDef(async_func) => async_func.span,
             Statement::AsyncWith(async_with) => async_with.span,
             Statement::AsyncFor(async_for) => async_for.span,
+            Statement::Match(match_stmt) => match_stmt.span,
             Statement::None => Span::default(),
         }
     }
@@ -591,4 +593,26 @@ pub struct DictComp<'a> {
     pub ifs: Vec<IfComp<'a>>,
     pub fors: Vec<ForComp<'a>>,
     pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct MatchStmt<'a> {
+    pub expr: Expression<'a>,
+    pub cases: Vec<MatchCase<'a>>,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct MatchCase<'a> {
+    pub pattern: CasePatternType<'a>,
+    pub guard: Option<Expression<'a>>,
+    pub block: Block<'a>,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq, Eq, Default)]
+pub enum CasePatternType<'a> {
+    Expr(Expression<'a>),
+    #[default]
+    Wildcard,
 }
