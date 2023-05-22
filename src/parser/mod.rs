@@ -1867,13 +1867,13 @@ impl<'a> Parser<'a> {
 
         let mut token = self.tokens.get(*index).unwrap();
         match &token.kind {
-            TokenType::Id(name) => {
+            TokenType::Id(_) | TokenType::SoftKeyword(_) => {
                 *index += 1;
-                class.name = Cow::Borrowed(name);
+                class.name = Cow::Borrowed(token.as_str());
             }
             _ => errors.push(PythonError {
                 error: PythonErrorType::Syntax,
-                msg: format!("Syntax Error: expected identifier, got {token:?}"),
+                msg: format!("Syntax Error: expected identifier, got {:?}", token.kind),
                 span: token.span,
             }),
         }
