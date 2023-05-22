@@ -718,6 +718,18 @@ impl<'a> Parser<'a> {
             }
         };
 
+        // FIXME: The consumption of ';' should be restricted to specific statements
+        // such as 'continue', 'break', 'return', 'pass', 'import', and 'from import'.
+        // Most of these statements do not invoke 'parse_expression', which is responsible
+        // for consuming the ';'. However, in the case of 'return' statement with a rhs,
+        // the ';' is consumed.
+        if self.tokens.get(*index).unwrap().kind == TokenType::SemiColon {
+            *index += 1;
+            if self.tokens.get(*index).unwrap().kind == TokenType::NewLine {
+                *index += 1;
+            }
+        }
+
         stmt
     }
 
@@ -2466,7 +2478,7 @@ impl<'a> Parser<'a> {
             },
         };
 
-        if self.tokens.get(*index).map_or(false, |token| token.is_start_of_expr()) {
+        if self.tokens.get(*index).unwrap().is_start_of_expr() {
             let (expr, expr_errors) = self.parse_expression(index, ParseExprBitflags::all());
             if let Some(expr_errors) = expr_errors {
                 errors.extend(expr_errors);
