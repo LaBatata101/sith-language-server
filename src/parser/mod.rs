@@ -3358,9 +3358,19 @@ impl<'a> Parser<'a> {
             span = stmt.span();
             stmts.push(stmt);
 
+            // Since expressions are considered a simple statement and the NewLine
+            // token is consumed in the parse_expression function, it's important
+            // to note that the "case" identifier is only a keyword when used in a
+            // "match" statement. Therefore, we need to check whether the previous
+            // token is a NewLine to avoid treating the "case" block as a simple statement.
+            if self.tokens.get(*index - 1).unwrap().kind == TokenType::NewLine {
+                break;
+            }
+
             token = self.tokens.get(*index).unwrap();
         }
 
+        // consume any NewLine after the last simple statement
         if self.tokens.get(*index).unwrap().kind == TokenType::NewLine {
             *index += 1;
         }
