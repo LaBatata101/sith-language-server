@@ -1,17 +1,15 @@
-mod char_codepoints;
 mod char_stream;
+mod helpers;
 pub mod span;
 pub mod token;
 
 use std::borrow::Cow;
+use unicode_ident::{is_xid_continue, is_xid_start};
 
 pub use char_stream::CharStream;
 use token::Token;
 
-use crate::{
-    error::{PythonError, PythonErrorType},
-    valid_id_initial_chars, valid_id_noninitial_chars,
-};
+use crate::error::{PythonError, PythonErrorType};
 
 use self::{
     span::{Position, Span},
@@ -41,6 +39,7 @@ impl<'a> Lexer<'a> {
         let mut is_beginning_of_line = true;
 
         while !self.cs.is_eof() {
+            // TODO: refactor this
             if is_beginning_of_line {
                 is_beginning_of_line = false;
 
@@ -52,11 +51,7 @@ impl<'a> Lexer<'a> {
 
                 // Skip comments
                 if self.cs.current_char().map_or(false, |char| char == '#') {
-                    self.cs.advance_while(1, |char| char != '\n');
-                }
-
-                if self.cs.is_eof() {
-                    break;
+                    self.skip_comment();
                 }
 
                 // skip lines containing only white spaces or \n, \r, \r\n
@@ -75,152 +70,137 @@ impl<'a> Lexer<'a> {
                 }
             }
 
-            match self.cs.current_char().unwrap() {
-                valid_id_initial_chars!() => self.lex_identifier_or_keyword(),
-                '0'..='9' => {
-                    if let Some(number_errors) = self.lex_number() {
-                        errors.extend(number_errors);
-                    }
-                }
-                '"' | '\'' => {
-                    if let Some(string_errors) = self.lex_string() {
-                        errors.extend(string_errors);
-                    }
-                }
-                '(' => {
-                    self.implicit_line_joining += 1;
+            let Some(char) = self.cs.current_unicode_char() else { break };
 
-                    self.lex_single_char(TokenType::OpenParenthesis);
+            if char == '_' || is_xid_start(char) {
+                self.lex_identifier_or_keyword()
+            } else if char.is_ascii_digit() {
+                if let Some(number_errors) = self.lex_number() {
+                    errors.extend(number_errors);
                 }
-                ')' => {
-                    self.implicit_line_joining -= 1;
+            } else if char == '"' || char == '\'' {
+                if let Some(string_errors) = self.lex_string() {
+                    errors.extend(string_errors);
+                }
+            } else if char == '(' {
+                self.implicit_line_joining += 1;
 
-                    self.lex_single_char(TokenType::CloseParenthesis);
-                }
-                '[' => {
-                    self.implicit_line_joining += 1;
+                self.lex_single_char(TokenType::OpenParenthesis);
+            } else if char == ')' {
+                self.implicit_line_joining -= 1;
 
-                    self.lex_single_char(TokenType::OpenBrackets);
-                }
-                ']' => {
-                    self.implicit_line_joining -= 1;
+                self.lex_single_char(TokenType::CloseParenthesis);
+            } else if char == '[' {
+                self.implicit_line_joining += 1;
 
-                    self.lex_single_char(TokenType::CloseBrackets);
-                }
-                '{' => {
-                    self.implicit_line_joining += 1;
+                self.lex_single_char(TokenType::OpenBrackets);
+            } else if char == ']' {
+                self.implicit_line_joining -= 1;
 
-                    self.lex_single_char(TokenType::OpenBrace);
-                }
-                '}' => {
-                    self.implicit_line_joining -= 1;
+                self.lex_single_char(TokenType::CloseBrackets);
+            } else if char == '{' {
+                self.implicit_line_joining += 1;
 
-                    self.lex_single_char(TokenType::CloseBrace);
-                }
-                '.' => {
-                    if self.cs.next_char().map_or(false, |char| char.is_ascii_digit()) {
-                        self.lex_number();
-                        continue;
-                    }
+                self.lex_single_char(TokenType::OpenBrace);
+            } else if char == '}' {
+                self.implicit_line_joining -= 1;
 
-                    if matches!(
-                        (self.cs.next_char(), self.cs.peek_char(self.cs.pos().index + 2)),
-                        (Some('.'), Some('.'))
-                    ) {
-                        let start = self.cs.pos();
-                        self.cs.advance_by(3);
-                        let end = self.cs.pos();
-                        self.tokens.push(Token {
-                            kind: TokenType::Ellipsis,
-                            span: self.make_span(start, end),
-                        })
-                    } else {
-                        self.lex_single_char(TokenType::Dot)
-                    }
+                self.lex_single_char(TokenType::CloseBrace);
+            } else if char == '.' {
+                if self.cs.next_char().map_or(false, |char| char.is_ascii_digit()) {
+                    self.lex_number();
+                    continue;
                 }
-                ';' => self.lex_single_char(TokenType::SemiColon),
-                ',' => self.lex_single_char(TokenType::Comma),
-                ':' => {
-                    if let Some('=') = self.cs.next_char() {
-                        let start = self.cs.pos();
-                        self.cs.advance_by(2);
-                        let end = self.cs.pos();
-                        self.tokens.push(Token {
-                            kind: TokenType::Operator(OperatorType::ColonEqual),
-                            span: self.make_span(start, end),
-                        })
-                    } else {
-                        self.lex_single_char(TokenType::Colon)
-                    }
-                }
-                '*' | '+' | '=' | '-' | '<' | '>' | '&' | '|' | '%' | '~' | '^' | '!' | '@' | '/' => {
-                    if matches!((self.cs.current_char(), self.cs.next_char()), (Some('-'), Some('>'))) {
-                        let start = self.cs.pos();
-                        self.cs.advance_by(2);
-                        let end = self.cs.pos();
-                        self.tokens.push(Token {
-                            kind: TokenType::RightArrow,
-                            span: self.make_span(start, end),
-                        });
-                    } else {
-                        self.lex_operator();
-                    }
-                }
-                ' ' | '\t' | '\u{0c}' => {
-                    self.cs.skip_whitespace();
-                }
-                '\n' | '\r' => {
-                    is_beginning_of_line = true;
-                    let eol_size = self.cs.is_at_eol().unwrap();
 
+                if let (Some('.'), Some('.')) = (self.cs.next_char(), self.cs.peek_char(self.cs.pos().index + 2)) {
                     let start = self.cs.pos();
-
-                    self.cs.advance_by(eol_size);
-
-                    if self.implicit_line_joining > 0 {
-                        continue;
-                    }
-
-                    let end = Position {
-                        column: start.column + 1,
-                        ..start
-                    };
-
+                    self.cs.advance_by(3);
+                    let end = self.cs.pos();
                     self.tokens.push(Token {
-                        kind: TokenType::NewLine,
+                        kind: TokenType::Ellipsis,
+                        span: self.make_span(start, end),
+                    })
+                } else {
+                    self.lex_single_char(TokenType::Dot)
+                }
+            } else if char == ';' {
+                self.lex_single_char(TokenType::SemiColon)
+            } else if char == ',' {
+                self.lex_single_char(TokenType::Comma)
+            } else if char == ':' {
+                if let Some('=') = self.cs.next_char() {
+                    let start = self.cs.pos();
+                    self.cs.advance_by(2);
+                    let end = self.cs.pos();
+                    self.tokens.push(Token {
+                        kind: TokenType::Operator(OperatorType::ColonEqual),
+                        span: self.make_span(start, end),
+                    })
+                } else {
+                    self.lex_single_char(TokenType::Colon)
+                }
+            } else if let '*' | '+' | '=' | '-' | '<' | '>' | '&' | '|' | '%' | '~' | '^' | '!' | '@' | '/' = char {
+                if let (Some('-'), Some('>')) = (self.cs.current_char(), self.cs.next_char()) {
+                    let start = self.cs.pos();
+                    self.cs.advance_by(2);
+                    let end = self.cs.pos();
+                    self.tokens.push(Token {
+                        kind: TokenType::RightArrow,
+                        span: self.make_span(start, end),
+                    });
+                } else {
+                    self.lex_operator();
+                }
+            } else if let ' ' | '\t' | '\u{0c}' = char {
+                self.cs.skip_whitespace();
+            } else if let '\n' | '\r' = char {
+                is_beginning_of_line = true;
+                let eol_size = self.cs.is_at_eol().unwrap();
+
+                let start = self.cs.pos();
+
+                self.cs.advance_by(eol_size);
+
+                if self.implicit_line_joining > 0 {
+                    continue;
+                }
+
+                let end = Position {
+                    column: start.column + 1,
+                    ..start
+                };
+
+                self.tokens.push(Token {
+                    kind: TokenType::NewLine,
+                    span: self.make_span(start, end),
+                });
+            } else if char == '\\' {
+                let start = self.cs.pos();
+                // consume \
+                self.cs.advance_by(1);
+                let end = self.cs.pos();
+
+                if let Some(offset) = self.cs.is_at_eol() {
+                    self.cs.advance_by(offset);
+                } else {
+                    errors.push(PythonError {
+                        msg: String::from("SyntaxError: unexpected characters after line continuation character"),
+                        error: PythonErrorType::Syntax,
                         span: self.make_span(start, end),
                     });
                 }
-                '\\' => {
-                    let start = self.cs.pos();
-                    // consume \
-                    self.cs.advance_by(1);
-                    let end = self.cs.pos();
+            } else if char == '#' {
+                self.skip_comment();
+            } else {
+                let start = self.cs.pos();
+                self.cs.advance_by(1);
+                let end = self.cs.pos();
 
-                    if self.cs.current_char().map_or(false, |char| char == '\n') {
-                        self.cs.advance_by(1);
-                    } else {
-                        errors.push(PythonError {
-                            msg: String::from("SyntaxError: unexpected characters after line continuation character"),
-                            error: PythonErrorType::Syntax,
-                            span: self.make_span(start, end),
-                        });
-                    }
-                }
-                '#' => {
-                    self.cs.advance_while(1, |char| char != '\n');
-                }
-                _ => {
-                    let start = self.cs.pos();
-                    self.cs.advance_by(1);
-                    let end = self.cs.pos();
-
-                    errors.push(PythonError {
-                        error: PythonErrorType::Syntax,
-                        msg: String::from("SyntaxError: invalid syntax, character only allowed inside string literals"),
-                        span: self.make_span(start, end),
-                    })
-                }
+                errors.push(PythonError {
+                    error: PythonErrorType::Syntax,
+                    msg: format!("SyntaxError: invalid syntax, character '{char}' only allowed inside string literals"),
+                    span: self.make_span(start, end),
+                })
             }
         }
 
@@ -324,62 +304,58 @@ impl<'a> Lexer<'a> {
 
     fn lex_identifier_or_keyword(&mut self) {
         let start = self.cs.pos();
-        while self
-            .cs
-            .current_char()
-            .map_or(false, |char| matches!(char, valid_id_noninitial_chars!()))
-        {
-            self.cs.advance_by(self.cs.current_char().unwrap().len_utf8() as u32);
+        while self.cs.current_unicode_char().map_or(false, is_xid_continue) {
+            self.cs.advance_by(self.cs.current_char_size());
         }
         let end = self.cs.pos();
 
-        let str = self.cs.get_slice(start.index, end.index).unwrap();
+        let str = self.cs.get_str(start.index, end.index).unwrap();
 
-        if self.is_str_prefix(str) && self.cs.current_char().map_or(false, |char| matches!(char, '"' | '\'')) {
+        if self.is_str_prefix(str) && matches!(self.cs.current_char(), Some('"' | '\'')) {
             self.lex_string();
             return;
         }
 
         let token_type = match str {
-            b"and" => TokenType::Keyword(KeywordType::And),
-            b"as" => TokenType::Keyword(KeywordType::As),
-            b"assert" => TokenType::Keyword(KeywordType::Assert),
-            b"async" => TokenType::Keyword(KeywordType::Async),
-            b"await" => TokenType::Keyword(KeywordType::Await),
-            b"break" => TokenType::Keyword(KeywordType::Break),
-            b"case" => TokenType::SoftKeyword(SoftKeywordType::Case),
-            b"class" => TokenType::Keyword(KeywordType::Class),
-            b"continue" => TokenType::Keyword(KeywordType::Continue),
-            b"def" => TokenType::Keyword(KeywordType::Def),
-            b"del" => TokenType::Keyword(KeywordType::Del),
-            b"elif" => TokenType::Keyword(KeywordType::Elif),
-            b"else" => TokenType::Keyword(KeywordType::Else),
-            b"except" => TokenType::Keyword(KeywordType::Except),
-            b"False" => TokenType::Keyword(KeywordType::False),
-            b"finally" => TokenType::Keyword(KeywordType::Finally),
-            b"for" => TokenType::Keyword(KeywordType::For),
-            b"from" => TokenType::Keyword(KeywordType::From),
-            b"global" => TokenType::Keyword(KeywordType::Global),
-            b"if" => TokenType::Keyword(KeywordType::If),
-            b"import" => TokenType::Keyword(KeywordType::Import),
-            b"in" => TokenType::Keyword(KeywordType::In),
-            b"is" => TokenType::Keyword(KeywordType::Is),
-            b"lambda" => TokenType::Keyword(KeywordType::Lambda),
-            b"match" => TokenType::SoftKeyword(SoftKeywordType::Match),
-            b"None" => TokenType::Keyword(KeywordType::None),
-            b"nonlocal" => TokenType::Keyword(KeywordType::NonLocal),
-            b"not" => TokenType::Keyword(KeywordType::Not),
-            b"or" => TokenType::Keyword(KeywordType::Or),
-            b"pass" => TokenType::Keyword(KeywordType::Pass),
-            b"raise" => TokenType::Keyword(KeywordType::Raise),
-            b"return" => TokenType::Keyword(KeywordType::Return),
-            b"True" => TokenType::Keyword(KeywordType::True),
-            b"try" => TokenType::Keyword(KeywordType::Try),
-            b"while" => TokenType::Keyword(KeywordType::While),
-            b"with" => TokenType::Keyword(KeywordType::With),
-            b"yield" => TokenType::Keyword(KeywordType::Yield),
-            b"_" => TokenType::SoftKeyword(SoftKeywordType::Underscore),
-            _ => TokenType::Id(String::from_utf8_lossy(str)),
+            "and" => TokenType::Keyword(KeywordType::And),
+            "as" => TokenType::Keyword(KeywordType::As),
+            "assert" => TokenType::Keyword(KeywordType::Assert),
+            "async" => TokenType::Keyword(KeywordType::Async),
+            "await" => TokenType::Keyword(KeywordType::Await),
+            "break" => TokenType::Keyword(KeywordType::Break),
+            "case" => TokenType::SoftKeyword(SoftKeywordType::Case),
+            "class" => TokenType::Keyword(KeywordType::Class),
+            "continue" => TokenType::Keyword(KeywordType::Continue),
+            "def" => TokenType::Keyword(KeywordType::Def),
+            "del" => TokenType::Keyword(KeywordType::Del),
+            "elif" => TokenType::Keyword(KeywordType::Elif),
+            "else" => TokenType::Keyword(KeywordType::Else),
+            "except" => TokenType::Keyword(KeywordType::Except),
+            "False" => TokenType::Keyword(KeywordType::False),
+            "finally" => TokenType::Keyword(KeywordType::Finally),
+            "for" => TokenType::Keyword(KeywordType::For),
+            "from" => TokenType::Keyword(KeywordType::From),
+            "global" => TokenType::Keyword(KeywordType::Global),
+            "if" => TokenType::Keyword(KeywordType::If),
+            "import" => TokenType::Keyword(KeywordType::Import),
+            "in" => TokenType::Keyword(KeywordType::In),
+            "is" => TokenType::Keyword(KeywordType::Is),
+            "lambda" => TokenType::Keyword(KeywordType::Lambda),
+            "match" => TokenType::SoftKeyword(SoftKeywordType::Match),
+            "None" => TokenType::Keyword(KeywordType::None),
+            "nonlocal" => TokenType::Keyword(KeywordType::NonLocal),
+            "not" => TokenType::Keyword(KeywordType::Not),
+            "or" => TokenType::Keyword(KeywordType::Or),
+            "pass" => TokenType::Keyword(KeywordType::Pass),
+            "raise" => TokenType::Keyword(KeywordType::Raise),
+            "return" => TokenType::Keyword(KeywordType::Return),
+            "True" => TokenType::Keyword(KeywordType::True),
+            "try" => TokenType::Keyword(KeywordType::Try),
+            "while" => TokenType::Keyword(KeywordType::While),
+            "with" => TokenType::Keyword(KeywordType::With),
+            "yield" => TokenType::Keyword(KeywordType::Yield),
+            "_" => TokenType::SoftKeyword(SoftKeywordType::Underscore),
+            _ => TokenType::Id(Cow::Borrowed(str)),
         };
 
         self.tokens.push(Token {
@@ -388,13 +364,13 @@ impl<'a> Lexer<'a> {
         });
     }
 
-    fn is_str_prefix(&self, str: &[u8]) -> bool {
+    fn is_str_prefix(&self, str: &str) -> bool {
         matches!(
             str,
             // string prefixes
-            b"r" | b"u" | b"R" | b"U" | b"f" | b"F" | b"fr" | b"Fr" | b"fR" | b"FR" | b"rf" | b"rF" | b"Rf" | b"RF"
-            // bytes prefixes
-            | b"b" | b"B" | b"br" | b"Br" | b"bR" | b"BR" | b"rb" | b"rB" | b"Rb" | b"RB"
+            "r" | "u" | "R" | "U" | "f" | "F" | "fr" | "Fr" | "fR" | "FR" | "rf" | "rF" | "Rf" | "RF"
+            // byte string prefixes
+            | "b" | "B" | "br" | "Br" | "bR" | "BR" | "rb" | "rB" | "Rb" | "RB"
         )
     }
 
@@ -407,26 +383,25 @@ impl<'a> Lexer<'a> {
         }
 
         let mut errors = vec![];
-        let (mut string, mut str_span, string_errors) = self.process_string();
+        let (string, mut str_span, string_errors) = self.process_string();
+        let mut string = String::from(string);
+
         if let Some(string_errors) = string_errors {
             errors.extend(string_errors);
         }
 
         self.cs.skip_whitespace();
         // check for any string prefix
-        if matches!(
-            self.cs.current_char(),
-            Some('r' | 'b' | 'f' | 'F' | 'R' | 'B' | 'u' | 'U')
-        ) {
-            while matches!(self.cs.current_char(), Some(valid_id_noninitial_chars!())) {
+        if let Some('r' | 'b' | 'f' | 'F' | 'R' | 'B' | 'u' | 'U') = self.cs.current_char() {
+            while self.cs.current_char().map_or(false, is_xid_continue) {
                 self.cs.advance_by(1);
             }
         }
 
-        while matches!(self.cs.current_char(), Some('\'' | '"')) {
+        while let Some('\'' | '"') = self.cs.current_char() {
             let (str, span, str_errors) = self.process_string();
 
-            string.to_mut().push_str(&str);
+            string.push_str(str);
             str_span.column_end = span.column_end;
             str_span.row_end = span.row_end;
 
@@ -436,22 +411,19 @@ impl<'a> Lexer<'a> {
 
             self.cs.skip_whitespace();
 
-            if matches!(self.cs.current_char(), Some('#')) {
-                self.cs.advance_while(1, |char| char != '\n');
+            if let Some('#') = self.cs.current_char() {
+                self.skip_comment();
             }
 
             // check for any string prefix
-            if matches!(
-                self.cs.current_char(),
-                Some('r' | 'b' | 'f' | 'F' | 'R' | 'B' | 'u' | 'U')
-            ) {
-                while matches!(self.cs.current_char(), Some(valid_id_noninitial_chars!())) {
+            if let Some('r' | 'b' | 'f' | 'F' | 'R' | 'B' | 'u' | 'U') = self.cs.current_char() {
+                while self.cs.current_char().map_or(false, is_xid_continue) {
                     self.cs.advance_by(1);
                 }
             }
         }
 
-        // In case we find a '\' (explicit line join char) with a string after it,
+        // If we encounter a '\' (explicit line join char) followed by a string,
         // we need to treat these strings as one Token.
         self.cs.skip_whitespace();
         while self.cs.current_char().map_or(false, |char| char == '\\') {
@@ -459,31 +431,28 @@ impl<'a> Lexer<'a> {
 
             // Skip any whitespace after the "\"
             self.cs.skip_whitespace();
-            if matches!(self.cs.current_char(), Some('#')) {
-                self.cs.advance_while(1, |char| char != '\n');
+            if let Some('#') = self.cs.current_char() {
+                self.skip_comment();
             }
 
-            if matches!(self.cs.current_char(), Some('\n')) {
-                self.cs.advance_by(1);
+            if let Some(offset) = self.cs.is_at_eol() {
+                self.cs.advance_by(offset);
             }
 
             // Skip any whitespace before the string
             self.cs.skip_whitespace();
 
             // check for any string prefix
-            if matches!(
-                self.cs.current_char(),
-                Some('r' | 'b' | 'f' | 'F' | 'R' | 'B' | 'u' | 'U')
-            ) {
-                while matches!(self.cs.current_char(), Some(valid_id_noninitial_chars!())) {
+            if let Some('r' | 'b' | 'f' | 'F' | 'R' | 'B' | 'u' | 'U') = self.cs.current_char() {
+                while self.cs.current_char().map_or(false, is_xid_continue) {
                     self.cs.advance_by(1);
                 }
             }
 
-            if matches!(self.cs.current_char(), Some('"' | '\'')) {
+            if let Some('"' | '\'') = self.cs.current_char() {
                 let (str, span, str_errors) = self.process_string();
 
-                string.to_mut().push_str(&str);
+                string.push_str(str);
                 str_span.column_end = span.column_end;
                 str_span.row_end = span.row_end;
 
@@ -497,7 +466,7 @@ impl<'a> Lexer<'a> {
         }
 
         self.tokens.push(Token {
-            kind: TokenType::String(string),
+            kind: TokenType::String(Cow::Owned(string)),
             span: str_span,
         });
 
@@ -513,59 +482,56 @@ impl<'a> Lexer<'a> {
         let mut out_string: Cow<str> = Cow::default();
 
         let start = self.cs.pos();
-        while self.cs.current_char().map_or(false, |char| matches!(char, '"' | '\'')) {
+        while let Some('"' | '\'') = self.cs.current_char() {
             let (string, _, str_errors) = self.process_string();
-            out_string.to_mut().push_str(&string);
+            out_string.to_mut().push_str(string);
 
             if let Some(str_errors) = str_errors {
                 errors.extend(str_errors);
             }
 
-            // skip comments in the same line of the string
+            // ignore comments in the same line of the string
             self.cs.skip_whitespace();
-            if matches!(self.cs.current_char(), Some('#')) {
-                self.cs.advance_while(1, |char| char != '\n');
+            if let Some('#') = self.cs.current_char() {
+                self.skip_comment();
             }
 
-            if matches!(self.cs.current_char(), Some('\\')) {
+            if let Some('\\') = self.cs.current_char() {
                 self.cs.advance_by(1);
             }
 
-            while self.cs.is_at_eol().is_some() {
-                self.cs.advance_by(1);
+            while let Some(offset) = self.cs.is_at_eol() {
+                self.cs.advance_by(offset);
             }
             self.cs.skip_whitespace();
 
-            while matches!(self.cs.current_char(), Some('#')) {
-                // FIXME: add support for \r, \r\n
-                self.cs.advance_while(1, |char| char != '\n');
-                // skip \n
-                self.cs.advance_by(1);
-                self.cs.skip_whitespace();
+            // ignore comments between strings
+            while let Some('#') = self.cs.current_char() {
+                self.skip_comment();
+
+                while let Some(offset) = self.cs.is_at_eol() {
+                    self.cs.advance_by(offset);
+                    self.cs.skip_whitespace();
+                }
             }
 
             // check for a str prefix and then consume it.
-            if matches!(
-                (self.cs.current_char(), self.cs.next_char()),
-                (
-                    Some('r' | 'b' | 'f' | 'F' | 'R' | 'B' | 'u' | 'U'),
-                    Some('\'' | '"' | 'r' | 'R' | 'f' | 'F' | 'b' | 'B')
-                )
-            ) {
+            if let (
+                Some('r' | 'b' | 'f' | 'F' | 'R' | 'B' | 'u' | 'U'),
+                Some('\'' | '"' | 'r' | 'R' | 'f' | 'F' | 'b' | 'B'),
+            ) = (self.cs.current_char(), self.cs.next_char())
+            {
                 let start = self.cs.pos();
-                while matches!(self.cs.current_char(), Some(valid_id_noninitial_chars!())) {
+                while self.cs.current_char().map_or(false, is_xid_continue) {
                     self.cs.advance_by(1);
                 }
                 let end = self.cs.pos();
 
-                let str_prefix = self.cs.get_slice(start.index, end.index).unwrap();
+                let str_prefix = self.cs.get_str(start.index, end.index).unwrap();
                 if !self.is_str_prefix(str_prefix) {
                     errors.push(PythonError {
                         error: PythonErrorType::Syntax,
-                        msg: format!(
-                            "SyntaxError: Invalid str prefix \"{}\"",
-                            String::from_utf8_lossy(str_prefix)
-                        ),
+                        msg: format!("SyntaxError: Invalid str prefix \"{}\"", str_prefix),
                         span: self.make_span(start, end),
                     });
                 }
@@ -585,11 +551,13 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn process_string(&mut self) -> (Cow<'a, str>, Span, Option<Vec<PythonError>>) {
+    fn process_string(&mut self) -> (&'a str, Span, Option<Vec<PythonError>>) {
         let mut errors: Vec<PythonError> = vec![];
 
-        let mut start_quote_total = 0;
-        let mut end_quote_total = 0;
+        let start_total_quote: u32;
+        let end_total_quote: u32;
+
+        let mut is_missing_close_quote = false;
 
         // Can be `"` or `'`
         let quote_char = self.cs.current_char().unwrap();
@@ -597,11 +565,13 @@ impl<'a> Lexer<'a> {
         let start = self.cs.pos();
 
         if self.is_triple_quote_str_in_pos(start) {
+            start_total_quote = 3;
             self.cs.advance_by(3);
-            start_quote_total = 3;
             let mut pos = self.cs.pos();
 
+            // FIXME: infinite loop when the string is not closed
             while !self.is_triple_quote_str_in_pos(pos) {
+                // consume escaped triple quote
                 if self.cs.current_char().map_or(false, |char| char == '\\')
                     && self.cs.next_char().map_or(false, |char| char == quote_char)
                 {
@@ -618,47 +588,45 @@ impl<'a> Lexer<'a> {
                     pos = self.cs.pos();
                 }
             }
+
+            if self.is_triple_quote_str_in_pos(pos) {
+                end_total_quote = 3;
+                self.cs.advance_by(3);
+            } else {
+                end_total_quote = 0;
+                is_missing_close_quote = true;
+            }
         } else {
+            start_total_quote = 1;
+            // consume " or '
             self.cs.advance_by(1);
-            start_quote_total = 1;
 
-            while self.cs.current_char().map_or(false, |char| char != quote_char) {
-                match (self.cs.current_char(), self.cs.next_char()) {
-                    // FIXME: support \r\n
-                    (Some('\\'), Some('\n' | '\r')) => {
-                        self.cs.advance_by(1);
-                    }
-                    (Some('\\'), Some('\'' | '"' | '\\')) => self.cs.advance_by(2),
-                    (Some('\''), Some('\'')) => self.cs.advance_by(2),
-                    (Some('"'), Some('"')) => self.cs.advance_by(2),
-                    (Some('\\'), _)
-                        if self
-                            .cs
-                            .peek_char(self.cs.pos().index + 2)
-                            .map_or(false, |char| char == '\n' || char == '\r') =>
-                    {
-                        self.cs.advance_by(1);
-                        break;
-                    }
-                    _ => self.cs.advance_by(1),
-                }
-
-                if self.cs.current_char().map_or(false, |char| char == quote_char)
-                    && self.cs.next_char().map_or(false, |char| char == quote_char)
-                {
-                    self.cs.advance_by(2);
+            while self
+                .cs
+                .current_char()
+                .map_or(false, |char| char != quote_char && !(char == '\n' || char == '\r'))
+            {
+                if let (Some('\\'), Some(_)) = (self.cs.current_char(), self.cs.next_char()) {
+                    // FIXME: temporary, if we advance with an offset larger than 1 the code
+                    // that handles the eol in `advance_by` is only executed one time
+                    self.cs.advance_by(1);
+                    self.cs.advance_by(1);
+                } else {
+                    self.cs.advance_by(1);
                 }
             }
-        }
 
-        // Consume `"` or `'`
-        while self.cs.current_char().map_or(false, |char| char == quote_char) {
-            self.cs.advance_by(1);
-            end_quote_total += 1;
+            if self.cs.current_char().map_or(false, |char| char == quote_char) {
+                end_total_quote = 1;
+                self.cs.advance_by(1);
+            } else {
+                end_total_quote = 0;
+                is_missing_close_quote = true;
+            }
         }
         let end = self.cs.pos();
 
-        if start_quote_total != end_quote_total {
+        if is_missing_close_quote {
             errors.push(PythonError {
                 error: PythonErrorType::Syntax,
                 msg: String::from("SyntaxError: unterminated string literal"),
@@ -667,16 +635,14 @@ impl<'a> Lexer<'a> {
         }
 
         (
-            String::from_utf8_lossy(
-                self.cs
-                    .get_slice(start.index + start_quote_total, end.index - end_quote_total)
-                    .unwrap_or_else(|| {
-                        panic!(
-                            "Failed to get the string slice in pos: ({}, {}) -> ({}, {})",
-                            start.row, start.column, end.row, end.column
-                        )
-                    }),
-            ),
+            self.cs
+                .get_str(start.index + start_total_quote, end.index - end_total_quote)
+                .unwrap_or_else(|| {
+                    panic!(
+                        "Failed to get the string slice in pos: ({}, {}) -> ({}, {})",
+                        start.row, start.column, end.row, end.column
+                    )
+                }),
             self.make_span(start, end),
             if errors.is_empty() { None } else { Some(errors) },
         )
@@ -816,8 +782,7 @@ impl<'a> Lexer<'a> {
             number_type = NumberType::Integer(IntegerType::Decimal);
 
             // Check for any character after the digits
-            self.cs
-                .advance_while(1, |char| matches!(char, valid_id_noninitial_chars!()));
+            self.cs.advance_while(1, is_xid_continue);
 
             if let Err(error) = self.check_if_decimal_is_valid_in_pos(start, self.cs.pos()) {
                 errors.push(error);
@@ -837,9 +802,9 @@ impl<'a> Lexer<'a> {
 
         let end = self.cs.pos();
 
-        let number = self.cs.get_slice(start.index, end.index).unwrap();
+        let number = self.cs.get_str(start.index, end.index).unwrap();
         self.tokens.push(Token {
-            kind: TokenType::Number(number_type, String::from_utf8_lossy(number)),
+            kind: TokenType::Number(number_type, Cow::Borrowed(number)),
             span: self.make_span(start, end),
         });
 
@@ -872,19 +837,19 @@ impl<'a> Lexer<'a> {
                     errors.push(error);
                 }
             } else {
-                if matches!(self.cs.current_char(), Some('e' | 'E')) {
+                if let Some('e' | 'E') = self.cs.current_char() {
                     allow_sign = true;
                 }
                 self.cs.advance_by(1);
             }
         }
 
-        if matches!(self.cs.current_char(), Some('j' | 'J')) {
+        if let Some('j' | 'J') = self.cs.current_char() {
             // Consume j or J
             self.cs.advance_by(1);
 
             // In case we have multiple j's, consume all of them.
-            if matches!(self.cs.current_char(), Some('j' | 'J')) {
+            if let Some('j' | 'J') = self.cs.current_char() {
                 self.cs.advance_while(1, |char| matches!(char, 'j' | 'J'));
 
                 if let Err(mut error) = self.check_if_float_number_is_valid_in_pos(float_start, self.cs.pos()) {
@@ -904,7 +869,7 @@ impl<'a> Lexer<'a> {
 
     fn handle_decimal_number(&mut self) -> Option<(Position, Position)> {
         let start = self.cs.pos();
-        if matches!(self.cs.current_char(), Some('+' | '-')) {
+        if let Some('+' | '-') = self.cs.current_char() {
             // Consumer + or -
             self.cs.advance_by(1);
         }
@@ -1007,5 +972,9 @@ impl<'a> Lexer<'a> {
             column_start: start.column + 1,
             column_end: end.column,
         }
+    }
+
+    fn skip_comment(&mut self) {
+        self.cs.advance_while(1, |char| !matches!(char, '\n' | '\r'));
     }
 }

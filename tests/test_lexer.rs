@@ -1303,19 +1303,29 @@ mod tests_lexer {
         let mut lexer = Lexer::new("\"\"\"\"\"\"\"\"\"\"\"\"\"\"");
         let errors = lexer.tokenize();
 
-        assert!(errors.is_some());
+        assert!(errors.is_none());
         assert_eq!(
-            errors.unwrap(),
-            vec![PythonError {
-                error: PythonErrorType::Syntax,
-                msg: "SyntaxError: unterminated string literal".into(),
-                span: Span {
-                    row_start: 1,
-                    row_end: 1,
-                    column_start: 1,
-                    column_end: 14
-                }
-            }]
+            lexer.tokens(),
+            vec![
+                Token {
+                    kind: TokenType::String("".into(),),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 14,
+                    },
+                },
+                Token {
+                    kind: TokenType::Eof,
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 15,
+                        column_end: 15,
+                    },
+                },
+            ]
         );
     }
 
@@ -2092,7 +2102,7 @@ World!\"",
                         row_start: 1,
                         row_end: 1,
                         column_start: 1,
-                        column_end: 8
+                        column_end: 9
                     }
                 },
                 PythonError {
@@ -3245,8 +3255,8 @@ r\"\"\"
     fn lex_string5() {
         let mut lexer = Lexer::new(
             "
-'aa''a'
-\"a\"\"a\"
+'Foo''Bar'
+\"Bar\"\"Foo\"
 \"Hello \" \"World\"
 'Hello ' 'World'\\
 '!'",
@@ -3258,12 +3268,12 @@ r\"\"\"
             lexer.tokens(),
             vec![
                 Token {
-                    kind: TokenType::String("aa''a".into()),
+                    kind: TokenType::String("FooBar".into()),
                     span: Span {
                         row_start: 2,
                         row_end: 2,
                         column_start: 1,
-                        column_end: 7,
+                        column_end: 10,
                     },
                 },
                 Token {
@@ -3271,17 +3281,17 @@ r\"\"\"
                     span: Span {
                         row_start: 2,
                         row_end: 2,
-                        column_start: 8,
-                        column_end: 8,
+                        column_start: 11,
+                        column_end: 11,
                     },
                 },
                 Token {
-                    kind: TokenType::String("a\"\"a".into()),
+                    kind: TokenType::String("BarFoo".into()),
                     span: Span {
                         row_start: 3,
                         row_end: 3,
                         column_start: 1,
-                        column_end: 6,
+                        column_end: 10,
                     },
                 },
                 Token {
@@ -3289,8 +3299,8 @@ r\"\"\"
                     span: Span {
                         row_start: 3,
                         row_end: 3,
-                        column_start: 7,
-                        column_end: 7,
+                        column_start: 11,
+                        column_end: 11,
                     },
                 },
                 Token {
