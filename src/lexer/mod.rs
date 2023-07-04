@@ -551,6 +551,18 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    fn count_quotes_in_current_pos(&self, quote: char) -> u32 {
+        let mut pos = self.cs.pos().index;
+        let mut total_quotes = 0;
+
+        while self.cs.peek_char(pos).map_or(false, |char| char == quote) {
+            total_quotes += 1;
+            pos += 1;
+        }
+
+        total_quotes
+    }
+
     fn process_string(&mut self) -> (&'a str, Span, Option<Vec<PythonError>>) {
         let mut errors: Vec<PythonError> = vec![];
 
@@ -577,12 +589,20 @@ impl<'a> Lexer<'a> {
                 {
                     // consume "\"
                     self.cs.advance_by(1);
-                    if self.is_triple_quote_str_in_pos(self.cs.pos()) {
-                        self.cs.advance_by(3);
-                    }
-                }
 
-                self.cs.advance_by(1);
+                    // FIXME: has to work with single and double quote
+                    let total_quotes = self.count_quotes_in_current_pos(quote_char);
+                    // case when there is a triple escaped quote -> \"""
+                    if total_quotes == 3 {
+                        self.cs.advance_by(3);
+
+                    // case when there is one escaped quote followed by triple quote -> \""""
+                    } else if total_quotes == 4 {
+                        self.cs.advance_by(1);
+                    }
+                } else {
+                    self.cs.advance_by(1);
+                }
 
                 if self.cs.current_char().map_or(false, |char| char == quote_char) {
                     pos = self.cs.pos();
