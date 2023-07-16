@@ -38,13 +38,13 @@ enum ParseAnnotationInFuncParams {
 }
 
 pub struct Parser<'a> {
-    tokens: &'a [Token<'a>],
+    tokens: Vec<Token<'a>>,
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(lexer: &'a mut Lexer) -> Self {
-        lexer.tokenize();
-        Self { tokens: lexer.tokens() }
+    pub fn new(lexer: Lexer<'a>) -> Self {
+        let (tokens, errors) = lexer.tokenize();
+        Self { tokens }
     }
 
     pub fn parse(&self) -> (ParsedFile, PythonErrors) {
@@ -169,9 +169,12 @@ impl<'a> Parser<'a> {
                 *index += 1;
                 (Expression::String(Cow::Borrowed(str), token.span), None)
             }
-            TokenType::Number(_, num) if allowed_expr.expressions.contains(ExprBitflag::NUMBER) => {
+            TokenType::Number(number_type) if allowed_expr.expressions.contains(ExprBitflag::NUMBER) => {
                 *index += 1;
-                (Expression::Number(Cow::Borrowed(num), token.span), None)
+                (
+                    Expression::Number(Cow::Borrowed(number_type.as_str()), token.span),
+                    None,
+                )
             }
             TokenType::Keyword(KeywordType::True) if allowed_expr.expressions.contains(ExprBitflag::BOOL) => {
                 *index += 1;

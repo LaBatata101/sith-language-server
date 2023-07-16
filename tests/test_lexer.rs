@@ -15,1314 +15,1038 @@ mod tests_lexer {
     };
 
     #[test]
-    fn lex_var_assign() {
-        let mut lexer = Lexer::new("test = 12");
-        lexer.tokenize();
+    fn lex_operators() {
+        let (tokens, errors) = Lexer::new(
+            "
+= * *= @ @= & &= << <<= ~ ~= | |= >> >>= ^ ^= := / /= == ** **= // = > >= < <= - -= % %= != + +=",
+        )
+        .tokenize();
+
+        assert!(errors.is_empty());
         assert_eq!(
-            lexer.tokens(),
+            tokens,
             vec![
-                Token {
-                    kind: TokenType::Id("test".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 4
-                    }
-                },
                 Token {
                     kind: TokenType::Operator(OperatorType::Assign),
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 6
-                    }
-                },
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "12".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 8,
-                        column_end: 9
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 10,
-                        column_end: 10
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_invalid_operator() {
-        let mut lexer = Lexer::new("test +! 12");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("test".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
+                        row_start: 2,
+                        row_end: 2,
                         column_start: 1,
-                        column_end: 4
-                    }
-                },
-                Token {
-                    kind: TokenType::Operator(OperatorType::Plus),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 6
-                    }
-                },
-                Token {
-                    kind: TokenType::Invalid('!'),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 7,
-                        column_end: 7
-                    }
-                },
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "12".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 9,
-                        column_end: 10
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 11,
-                        column_end: 11
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_equals_operator() {
-        let mut lexer = Lexer::new("test == 12");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("test".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 4
-                    }
-                },
-                Token {
-                    kind: TokenType::Operator(OperatorType::Equals),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 7
-                    }
-                },
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "12".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 9,
-                        column_end: 10
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 11,
-                        column_end: 11
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_plus_equal_operator() {
-        let mut lexer = Lexer::new("test += 42");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("test".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 4
-                    }
-                },
-                Token {
-                    kind: TokenType::Operator(OperatorType::PlusEqual),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 7
-                    }
-                },
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 9,
-                        column_end: 10
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 11,
-                        column_end: 11
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_multiply_equal_operator() {
-        let mut lexer = Lexer::new("test *= 42");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("test".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 4
-                    }
-                },
-                Token {
-                    kind: TokenType::Operator(OperatorType::AsteriskEqual),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 7
-                    }
-                },
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 9,
-                        column_end: 10
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 11,
-                        column_end: 11
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_multiply_operator() {
-        let mut lexer = Lexer::new("test * 42");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("test".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 4
-                    }
+                        column_end: 2,
+                    },
                 },
                 Token {
                     kind: TokenType::Operator(OperatorType::Asterisk),
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 6
-                    }
-                },
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 8,
-                        column_end: 9
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 10,
-                        column_end: 10
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_plus_operator() {
-        let mut lexer = Lexer::new("test + 42");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("test".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 4
-                    }
-                },
-                Token {
-                    kind: TokenType::Operator(OperatorType::Plus),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 6
-                    }
-                },
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 8,
-                        column_end: 9
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 10,
-                        column_end: 10
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_minus_operator() {
-        let mut lexer = Lexer::new("test - 42");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("test".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 4
-                    }
-                },
-                Token {
-                    kind: TokenType::Operator(OperatorType::Minus),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 6
-                    }
-                },
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 8,
-                        column_end: 9
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 10,
-                        column_end: 10
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_minus_equal_operator() {
-        let mut lexer = Lexer::new("test -= 42");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("test".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 4
-                    }
-                },
-                Token {
-                    kind: TokenType::Operator(OperatorType::MinusEqual),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 7
-                    }
-                },
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 9,
-                        column_end: 10
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 11,
-                        column_end: 11
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_exponentiation_operator() {
-        let mut lexer = Lexer::new("test ** 42");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("test".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 4
-                    }
-                },
-                Token {
-                    kind: TokenType::Operator(OperatorType::Exponent),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 7
-                    }
-                },
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 9,
-                        column_end: 10
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 11,
-                        column_end: 11
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_lessthan_or_equal_operator() {
-        let mut lexer = Lexer::new("test <= 42");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("test".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 4
-                    }
-                },
-                Token {
-                    kind: TokenType::Operator(OperatorType::LessThanOrEqual),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 7
-                    }
-                },
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 9,
-                        column_end: 10
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 11,
-                        column_end: 11
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_lessthan_operator() {
-        let mut lexer = Lexer::new("test < 42");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("test".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 4
-                    }
-                },
-                Token {
-                    kind: TokenType::Operator(OperatorType::LessThan),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 6
-                    }
-                },
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 8,
-                        column_end: 9
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 10,
-                        column_end: 10
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_greaterthan_operator() {
-        let mut lexer = Lexer::new("test > 42");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("test".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 4
-                    }
-                },
-                Token {
-                    kind: TokenType::Operator(OperatorType::GreaterThan),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 6
-                    }
-                },
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 8,
-                        column_end: 9
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 10,
-                        column_end: 10
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_greaterthan_or_equal_operator() {
-        let mut lexer = Lexer::new("test >= 42");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("test".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 4
-                    }
-                },
-                Token {
-                    kind: TokenType::Operator(OperatorType::GreaterThanOrEqual),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 7
-                    }
-                },
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 9,
-                        column_end: 10
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 11,
-                        column_end: 11
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_bitwise_or_operator() {
-        let mut lexer = Lexer::new("test | 42");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("test".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 4
-                    }
-                },
-                Token {
-                    kind: TokenType::Operator(OperatorType::BitwiseOr),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 6
-                    }
-                },
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 8,
-                        column_end: 9
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 10,
-                        column_end: 10
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_bitwise_or_equal_operator() {
-        let mut lexer = Lexer::new("test |= 42");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("test".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 4
-                    }
-                },
-                Token {
-                    kind: TokenType::Operator(OperatorType::BitwiseOrEqual),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 7
-                    }
-                },
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 9,
-                        column_end: 10
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 11,
-                        column_end: 11
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_bitwise_and_operator() {
-        let mut lexer = Lexer::new("test & 42");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("test".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 4
-                    }
-                },
-                Token {
-                    kind: TokenType::Operator(OperatorType::BitwiseAnd),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 6
-                    }
-                },
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 8,
-                        column_end: 9
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 10,
-                        column_end: 10
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_bitwise_and_equal_operator() {
-        let mut lexer = Lexer::new("test &= 42");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("test".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 4
-                    }
-                },
-                Token {
-                    kind: TokenType::Operator(OperatorType::BitwiseAndEqual),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 7
-                    }
-                },
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 9,
-                        column_end: 10
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 11,
-                        column_end: 11
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_leftshift_operator() {
-        let mut lexer = Lexer::new("test << 42");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("test".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 4
-                    }
-                },
-                Token {
-                    kind: TokenType::Operator(OperatorType::BitwiseLeftShift),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 7
-                    }
-                },
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 9,
-                        column_end: 10
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 11,
-                        column_end: 11
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_leftshift_equal_operator() {
-        let mut lexer = Lexer::new("test <<= 42");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("test".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 4
-                    }
-                },
-                Token {
-                    kind: TokenType::Operator(OperatorType::BitwiseLeftShiftEqual),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 8
-                    }
-                },
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 10,
-                        column_end: 11
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 12,
-                        column_end: 12
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_rightshift_operator() {
-        let mut lexer = Lexer::new("test >> 42");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("test".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 4
-                    }
-                },
-                Token {
-                    kind: TokenType::Operator(OperatorType::BitwiseRightShift),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 7
-                    }
-                },
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 9,
-                        column_end: 10
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 11,
-                        column_end: 11
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_rightshift_equal_operator() {
-        let mut lexer = Lexer::new("test >>= 42");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("test".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 4
-                    }
-                },
-                Token {
-                    kind: TokenType::Operator(OperatorType::BitwiseRightShiftEqual),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 8
-                    }
-                },
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 10,
-                        column_end: 11
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 12,
-                        column_end: 12
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_bitwise_not_operator() {
-        let mut lexer = Lexer::new("~test");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Operator(OperatorType::BitwiseNot),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 1
-                    }
-                },
-                Token {
-                    kind: TokenType::Id("test".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 2,
-                        column_end: 5
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 6
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_bitwise_not_equal_operator() {
-        let mut lexer = Lexer::new("test ~= 42");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("test".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 4
-                    }
-                },
-                Token {
-                    kind: TokenType::Operator(OperatorType::BitwiseNotEqual),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 7
-                    }
-                },
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "42".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 9,
-                        column_end: 10
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 11,
-                        column_end: 11
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_at_operator() {
-        let mut lexer = Lexer::new("matrix1 @ matrix2");
-        lexer.tokenize();
-
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("matrix1".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 7
-                    }
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 3,
+                        column_end: 4,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::AsteriskEqual),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 5,
+                        column_end: 7,
+                    },
                 },
                 Token {
                     kind: TokenType::Operator(OperatorType::At),
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 9,
-                        column_end: 9
-                    }
-                },
-                Token {
-                    kind: TokenType::Id("matrix2".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 11,
-                        column_end: 17
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 18,
-                        column_end: 18
-                    }
-                }
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_at_equal_operator() {
-        let mut lexer = Lexer::new("matrix1 @= matrix2");
-        lexer.tokenize();
-
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("matrix1".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 7
-                    }
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 8,
+                        column_end: 9,
+                    },
                 },
                 Token {
                     kind: TokenType::Operator(OperatorType::AtEqual),
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 9,
-                        column_end: 10
-                    }
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 10,
+                        column_end: 12,
+                    },
                 },
                 Token {
-                    kind: TokenType::Id("matrix2".into()),
+                    kind: TokenType::Operator(OperatorType::BitwiseAnd),
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 12,
-                        column_end: 18
-                    }
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 13,
+                        column_end: 14,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::BitwiseAndEqual),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 15,
+                        column_end: 17,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::BitwiseLeftShift),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 18,
+                        column_end: 20,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::BitwiseLeftShiftEqual),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 21,
+                        column_end: 24,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::BitwiseNot),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 25,
+                        column_end: 26,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::BitwiseNotEqual),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 27,
+                        column_end: 29,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::BitwiseOr),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 30,
+                        column_end: 31,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::BitwiseOrEqual),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 32,
+                        column_end: 34,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::BitwiseRightShift),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 35,
+                        column_end: 37,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::BitwiseRightShiftEqual),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 38,
+                        column_end: 41,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::BitwiseXOR),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 42,
+                        column_end: 43,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::BitwiseXOrEqual),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 44,
+                        column_end: 46,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::ColonEqual),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 47,
+                        column_end: 49,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::Divide),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 50,
+                        column_end: 51,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::DivideEqual),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 52,
+                        column_end: 54,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::Equals),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 55,
+                        column_end: 57,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::Exponent),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 58,
+                        column_end: 60,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::ExponentEqual),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 61,
+                        column_end: 64,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::FloorDivision),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 65,
+                        column_end: 67,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::Assign),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 68,
+                        column_end: 69,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::GreaterThan),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 70,
+                        column_end: 71,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::GreaterThanOrEqual),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 72,
+                        column_end: 74,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::LessThan),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 75,
+                        column_end: 76,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::LessThanOrEqual),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 77,
+                        column_end: 79,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::Minus),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 80,
+                        column_end: 81,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::MinusEqual),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 82,
+                        column_end: 84,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::Modulo),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 85,
+                        column_end: 86,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::ModuloEqual),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 87,
+                        column_end: 89,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::NotEquals),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 90,
+                        column_end: 92,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::Plus),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 93,
+                        column_end: 94,
+                    },
+                },
+                Token {
+                    kind: TokenType::Operator(OperatorType::PlusEqual),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 95,
+                        column_end: 97,
+                    },
                 },
                 Token {
                     kind: TokenType::Eof,
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 19,
-                        column_end: 19
-                    }
-                }
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 97,
+                        column_end: 97,
+                    },
+                },
             ]
         )
     }
 
     #[test]
-    fn lex_string() {
-        let mut lexer = Lexer::new("\"Hello World!\"");
-        lexer.tokenize();
+    fn lex_identifiers() {
+        let (tokens, errors) = Lexer::new("x hello_world y1 x_1 _id VAR VAR1 _VAR_2").tokenize();
 
+        assert!(errors.is_empty());
         assert_eq!(
-            lexer.tokens(),
+            tokens,
             vec![
                 Token {
-                    kind: TokenType::String("Hello World!".into()),
+                    kind: TokenType::Id("x"),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
                         column_start: 1,
-                        column_end: 14
-                    }
+                        column_end: 2,
+                    },
                 },
                 Token {
-                    kind: TokenType::Eof,
+                    kind: TokenType::Id("hello_world"),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 3,
+                        column_end: 14,
+                    },
+                },
+                Token {
+                    kind: TokenType::Id("y1"),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
                         column_start: 15,
-                        column_end: 15
-                    }
+                        column_end: 17,
+                    },
                 },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_string2() {
-        let mut lexer = Lexer::new("\"\\\"Hello World❤️\\\"\"");
-        lexer.tokenize();
-
-        assert_eq!(
-            lexer.tokens(),
-            vec![
                 Token {
-                    kind: TokenType::String("\\\"Hello World❤️\\\"".into()),
+                    kind: TokenType::Id("x_1"),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
-                        column_start: 1,
-                        column_end: 23
-                    }
+                        column_start: 18,
+                        column_end: 21,
+                    },
+                },
+                Token {
+                    kind: TokenType::Id("_id"),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 22,
+                        column_end: 25,
+                    },
+                },
+                Token {
+                    kind: TokenType::Id("VAR"),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 26,
+                        column_end: 29,
+                    },
+                },
+                Token {
+                    kind: TokenType::Id("VAR1"),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 30,
+                        column_end: 34,
+                    },
+                },
+                Token {
+                    kind: TokenType::Id("_VAR_2"),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 35,
+                        column_end: 41,
+                    },
                 },
                 Token {
                     kind: TokenType::Eof,
                     span: Span {
                         row_start: 1,
                         row_end: 1,
-                        column_start: 24,
-                        column_end: 24
-                    }
+                        column_start: 41,
+                        column_end: 41,
+                    },
                 },
             ]
-        )
+        );
     }
 
     #[test]
-    fn lex_string3() {
-        let mut lexer = Lexer::new("\"\"\"\"\"\"\"\"\"\"\"\"\"\"");
-        let errors = lexer.tokenize();
+    fn lex_decimal_numbers_literals() {
+        let (tokens, errors) = Lexer::new("10 1_000 0b10 0B1_1 0o77 0O1_6 0Xcafe_BABE 0xCAFE").tokenize();
 
-        assert!(errors.is_none());
+        assert!(dbg!(errors).is_empty());
         assert_eq!(
-            lexer.tokens(),
+            tokens,
             vec![
                 Token {
-                    kind: TokenType::String("".into(),),
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal("10"))),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
+                        column_start: 1,
+                        column_end: 3,
+                    },
+                },
+                Token {
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal("1_000"))),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 4,
+                        column_end: 9,
+                    },
+                },
+                Token {
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Binary("0b10"))),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 10,
+                        column_end: 14,
+                    },
+                },
+                Token {
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Binary("0B1_1"))),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 15,
+                        column_end: 20,
+                    },
+                },
+                Token {
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Octal("0o77"))),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 21,
+                        column_end: 25,
+                    },
+                },
+                Token {
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Octal("0O1_6"))),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 26,
+                        column_end: 31,
+                    },
+                },
+                Token {
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Hex("0Xcafe_BABE"))),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 32,
+                        column_end: 43,
+                    },
+                },
+                Token {
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Hex("0xCAFE"))),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 44,
+                        column_end: 50,
+                    },
+                },
+                Token {
+                    kind: TokenType::Eof,
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 50,
+                        column_end: 50,
+                    },
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn lex_float_numbers_literals() {
+        let (tokens, errors) = Lexer::new("3.14 10. .001 1e100 3.14_15_93 1_000.95 3e-10 3.14E-10").tokenize();
+
+        assert!(errors.is_empty());
+        assert_eq!(
+            tokens,
+            vec![
+                Token {
+                    kind: TokenType::Number(NumberType::Float("3.14")),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 5,
+                    },
+                },
+                Token {
+                    kind: TokenType::Number(NumberType::Float("10.")),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 6,
+                        column_end: 9,
+                    },
+                },
+                Token {
+                    kind: TokenType::Number(NumberType::Float("1e100")),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 15,
+                        column_end: 20,
+                    },
+                },
+                Token {
+                    kind: TokenType::Number(NumberType::Float("3.14_15_93")),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 21,
+                        column_end: 31,
+                    },
+                },
+                Token {
+                    kind: TokenType::Number(NumberType::Float("1_000.95")),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 32,
+                        column_end: 40,
+                    },
+                },
+                Token {
+                    kind: TokenType::Number(NumberType::Float("3e-10")),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 41,
+                        column_end: 46,
+                    },
+                },
+                Token {
+                    kind: TokenType::Number(NumberType::Float("3.14E-10")),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 47,
+                        column_end: 55,
+                    },
+                },
+                Token {
+                    kind: TokenType::Eof,
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 55,
+                        column_end: 55,
+                    },
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn lex_imaginary_numbers_literals() {
+        let (tokens, errors) =
+            Lexer::new("3.14j 10.j .001j 1e100j 3.14_15_93j 1_000.95j 3e-10j 3.14E-10j 1J").tokenize();
+
+        assert!(dbg!(errors).is_empty());
+        assert_eq!(
+            tokens,
+            vec![
+                Token {
+                    kind: TokenType::Number(NumberType::Imaginary("3.14j")),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 5,
+                    },
+                },
+                Token {
+                    kind: TokenType::Number(NumberType::Imaginary("10.j")),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 7,
+                        column_end: 10,
+                    },
+                },
+                Token {
+                    kind: TokenType::Number(NumberType::Imaginary("1e100j")),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 18,
+                        column_end: 23,
+                    },
+                },
+                Token {
+                    kind: TokenType::Number(NumberType::Imaginary("3.14_15_93j")),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 25,
+                        column_end: 35,
+                    },
+                },
+                Token {
+                    kind: TokenType::Number(NumberType::Imaginary("1_000.95j")),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 37,
+                        column_end: 45,
+                    },
+                },
+                Token {
+                    kind: TokenType::Number(NumberType::Imaginary("3e-10j")),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 47,
+                        column_end: 52,
+                    },
+                },
+                Token {
+                    kind: TokenType::Number(NumberType::Imaginary("3.14E-10j")),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 54,
+                        column_end: 62,
+                    },
+                },
+                Token {
+                    kind: TokenType::Number(NumberType::Imaginary("1J")),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 64,
+                        column_end: 65,
+                    },
+                },
+                Token {
+                    kind: TokenType::Eof,
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 66,
+                        column_end: 66,
+                    },
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn lex_single_quote_strings() {
+        let (tokens, errors) = Lexer::new(
+            "
+''
+\"\"
+f'Hello {}'
+F\"Hello {}\"
+'Hello World'
+\"Hello World\"
+'Foo\\
+Bar❤️'
+",
+        )
+        .tokenize();
+
+        assert!(errors.is_empty());
+        assert_eq!(
+            tokens,
+            vec![
+                Token {
+                    kind: TokenType::String("''"),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 1,
+                        column_end: 3,
+                    },
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 3,
+                        column_end: 4,
+                    },
+                },
+                Token {
+                    kind: TokenType::String("\"\""),
+                    span: Span {
+                        row_start: 3,
+                        row_end: 3,
+                        column_start: 1,
+                        column_end: 3,
+                    },
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 3,
+                        row_end: 3,
+                        column_start: 3,
+                        column_end: 4,
+                    },
+                },
+                Token {
+                    kind: TokenType::String("'Hello {}'"),
+                    span: Span {
+                        row_start: 4,
+                        row_end: 4,
+                        column_start: 2,
+                        column_end: 12,
+                    },
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 4,
+                        row_end: 4,
+                        column_start: 12,
+                        column_end: 13,
+                    },
+                },
+                Token {
+                    kind: TokenType::String("\"Hello {}\""),
+                    span: Span {
+                        row_start: 5,
+                        row_end: 5,
+                        column_start: 2,
+                        column_end: 12,
+                    },
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 5,
+                        row_end: 5,
+                        column_start: 12,
+                        column_end: 13,
+                    },
+                },
+                Token {
+                    kind: TokenType::String("'Hello World'"),
+                    span: Span {
+                        row_start: 6,
+                        row_end: 6,
                         column_start: 1,
                         column_end: 14,
                     },
                 },
                 Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 6,
+                        row_end: 6,
+                        column_start: 14,
+                        column_end: 15,
+                    },
+                },
+                Token {
+                    kind: TokenType::String("\"Hello World\""),
+                    span: Span {
+                        row_start: 7,
+                        row_end: 7,
+                        column_start: 1,
+                        column_end: 14,
+                    },
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 7,
+                        row_end: 7,
+                        column_start: 14,
+                        column_end: 15,
+                    },
+                },
+                Token {
+                    kind: TokenType::String("'Foo\\\nBar❤️'"),
+                    span: Span {
+                        row_start: 8,
+                        row_end: 9,
+                        column_start: 1,
+                        column_end: 11,
+                    },
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 9,
+                        row_end: 9,
+                        column_start: 11,
+                        column_end: 12,
+                    },
+                },
+                Token {
                     kind: TokenType::Eof,
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 15,
-                        column_end: 15,
+                        row_start: 10,
+                        row_end: 10,
+                        column_start: 1,
+                        column_end: 1,
+                    },
+                },
+            ]
+        )
+    }
+
+    #[test]
+    fn lex_triple_quote_strings() {
+        let (tokens, errors) = Lexer::new(
+            "
+''''''
+\"\"\"\"\"\"
+'''Hello World'''
+'''
+Hello \\'World\\'
+'''
+'''
+Foo\\
+Bar
+'''
+'''
+Foo\\'''Bar\\'''
+'''
+'''
+Bar 'Foo'
+'''
+",
+        )
+        .tokenize();
+
+        assert!(errors.is_empty());
+        assert_eq!(
+            tokens,
+            vec![
+                Token {
+                    kind: TokenType::String("''''''"),
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 1,
+                        column_end: 7,
+                    },
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 7,
+                        column_end: 8,
+                    },
+                },
+                Token {
+                    kind: TokenType::String("\"\"\"\"\"\""),
+                    span: Span {
+                        row_start: 3,
+                        row_end: 3,
+                        column_start: 1,
+                        column_end: 7,
+                    },
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 3,
+                        row_end: 3,
+                        column_start: 7,
+                        column_end: 8,
+                    },
+                },
+                Token {
+                    kind: TokenType::String("'''Hello World'''"),
+                    span: Span {
+                        row_start: 4,
+                        row_end: 4,
+                        column_start: 1,
+                        column_end: 18,
+                    },
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 4,
+                        row_end: 4,
+                        column_start: 18,
+                        column_end: 19,
+                    },
+                },
+                Token {
+                    kind: TokenType::String("'''\nHello \\'World\\'\n'''"),
+                    span: Span {
+                        row_start: 5,
+                        row_end: 7,
+                        column_start: 1,
+                        column_end: 4,
+                    },
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 7,
+                        row_end: 7,
+                        column_start: 4,
+                        column_end: 5,
+                    },
+                },
+                Token {
+                    kind: TokenType::String("'''\nFoo\\\nBar\n'''"),
+                    span: Span {
+                        row_start: 8,
+                        row_end: 11,
+                        column_start: 1,
+                        column_end: 4,
+                    },
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 11,
+                        row_end: 11,
+                        column_start: 4,
+                        column_end: 5,
+                    },
+                },
+                Token {
+                    kind: TokenType::String("'''\nFoo\\'''Bar\\'''\n'''"),
+                    span: Span {
+                        row_start: 12,
+                        row_end: 14,
+                        column_start: 1,
+                        column_end: 4,
+                    },
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 14,
+                        row_end: 14,
+                        column_start: 4,
+                        column_end: 5,
+                    },
+                },
+                Token {
+                    kind: TokenType::String("'''\nBar 'Foo'\n'''"),
+                    span: Span {
+                        row_start: 15,
+                        row_end: 17,
+                        column_start: 1,
+                        column_end: 4,
+                    },
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 17,
+                        row_end: 17,
+                        column_start: 4,
+                        column_end: 5,
+                    },
+                },
+                Token {
+                    kind: TokenType::Eof,
+                    span: Span {
+                        row_start: 18,
+                        row_end: 18,
+                        column_start: 1,
+                        column_end: 1,
                     },
                 },
             ]
@@ -1330,267 +1054,10 @@ mod tests_lexer {
     }
 
     #[test]
-    fn lex_string4() {
-        let mut lexer = Lexer::new("'Hello World!'");
-        lexer.tokenize();
-
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::String("Hello World!".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 14
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 15,
-                        column_end: 15
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_string_with_prefix() {
-        let mut lexer = Lexer::new("s = f'Hello World!'");
-        lexer.tokenize();
-
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("s".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 1
-                    }
-                },
-                Token {
-                    kind: TokenType::Operator(OperatorType::Assign),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 3,
-                        column_end: 3
-                    }
-                },
-                Token {
-                    kind: TokenType::String("Hello World!".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 19
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 20,
-                        column_end: 20
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_indentation() {
-        let mut lexer = Lexer::new(
-            "if True:
-    print()
-else:
-    pass
-",
-        );
-        lexer.tokenize();
-
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Keyword(KeywordType::If),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 2
-                    }
-                },
-                Token {
-                    kind: TokenType::Keyword(KeywordType::True),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 4,
-                        column_end: 7
-                    }
-                },
-                Token {
-                    kind: TokenType::Colon,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 8,
-                        column_end: 8
-                    }
-                },
-                Token {
-                    kind: TokenType::NewLine,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 9,
-                        column_end: 9
-                    }
-                },
-                Token {
-                    kind: TokenType::Indent,
-                    span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 1,
-                        column_end: 1
-                    }
-                },
-                Token {
-                    kind: TokenType::Id("print".into()),
-                    span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 5,
-                        column_end: 9
-                    }
-                },
-                Token {
-                    kind: TokenType::OpenParenthesis,
-                    span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 10,
-                        column_end: 10
-                    }
-                },
-                Token {
-                    kind: TokenType::CloseParenthesis,
-                    span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 11,
-                        column_end: 11
-                    }
-                },
-                Token {
-                    kind: TokenType::NewLine,
-                    span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 12,
-                        column_end: 12
-                    }
-                },
-                Token {
-                    kind: TokenType::Dedent,
-                    span: Span {
-                        row_start: 3,
-                        row_end: 3,
-                        column_start: 1,
-                        column_end: 1
-                    }
-                },
-                Token {
-                    kind: TokenType::Keyword(KeywordType::Else),
-                    span: Span {
-                        row_start: 3,
-                        row_end: 3,
-                        column_start: 1,
-                        column_end: 4
-                    }
-                },
-                Token {
-                    kind: TokenType::Colon,
-                    span: Span {
-                        row_start: 3,
-                        row_end: 3,
-                        column_start: 5,
-                        column_end: 5
-                    }
-                },
-                Token {
-                    kind: TokenType::NewLine,
-                    span: Span {
-                        row_start: 3,
-                        row_end: 3,
-                        column_start: 6,
-                        column_end: 6
-                    }
-                },
-                Token {
-                    kind: TokenType::Indent,
-                    span: Span {
-                        row_start: 4,
-                        row_end: 4,
-                        column_start: 1,
-                        column_end: 1
-                    }
-                },
-                Token {
-                    kind: TokenType::Keyword(KeywordType::Pass),
-                    span: Span {
-                        row_start: 4,
-                        row_end: 4,
-                        column_start: 5,
-                        column_end: 8
-                    }
-                },
-                Token {
-                    kind: TokenType::NewLine,
-                    span: Span {
-                        row_start: 4,
-                        row_end: 4,
-                        column_start: 9,
-                        column_end: 9
-                    }
-                },
-                Token {
-                    kind: TokenType::Dedent,
-                    span: Span {
-                        row_start: 5,
-                        row_end: 5,
-                        column_start: 1,
-                        column_end: 1
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 5,
-                        row_end: 5,
-                        column_start: 1,
-                        column_end: 1
-                    }
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_indentation2() {
-        let mut lexer = Lexer::new(
-            " def perm(l):          # error: first line indented
+    fn lex_incorrect_indentation() {
+        let lexer = Lexer::new(
+            " 
+ def perm(l):          # error: first line indented
 for i in range(len(l)):             # error: not indented
     s = l[:i] + l[i+1:]
         p = perm(l[:i] + l[i+1:])   # error: unexpected indent
@@ -1599,221 +1066,226 @@ for i in range(len(l)):             # error: not indented
             return r                # error: inconsistent dedent (this is the only error the lexer can find)
 ",
         );
-        let errors = lexer.tokenize();
-        assert!(errors.is_some());
+        let (_, errors) = lexer.tokenize();
+
+        assert!(!errors.is_empty());
         assert_eq!(
-            errors.unwrap(),
+            errors,
             vec![PythonError {
                 error: PythonErrorType::Indentation,
-                msg: "IndentError: indent amount does not match previous indent".into(),
+                msg: "IndentError: current indent amount '12' does not match previous indent '8'".to_string(),
                 span: Span {
-                    row_start: 7,
-                    row_end: 7,
-                    column_start: 1,
-                    column_end: 1
+                    row_start: 8,
+                    row_end: 8,
+                    column_start: 13,
+                    column_end: 13
                 }
             }]
         );
     }
 
     #[test]
-    fn lex_indentation3() {
-        let mut lexer = Lexer::new(
-            "def test(x):
+    fn lex_indentation() {
+        let lexer = Lexer::new(
+            "
+def test(x):
     if x:
         return True
+
     return False
 ",
         );
-        lexer.tokenize();
+        let (tokens, errors) = lexer.tokenize();
+
+        assert!(errors.is_empty());
         assert_eq!(
-            lexer.tokens(),
+            dbg!(tokens),
             vec![
                 Token {
                     kind: TokenType::Keyword(KeywordType::Def),
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
+                        row_start: 2,
+                        row_end: 2,
                         column_start: 1,
-                        column_end: 3
+                        column_end: 4
                     }
                 },
                 Token {
-                    kind: TokenType::Id("test".into()),
+                    kind: TokenType::Id("test"),
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
+                        row_start: 2,
+                        row_end: 2,
                         column_start: 5,
-                        column_end: 8
+                        column_end: 9
                     }
                 },
                 Token {
                     kind: TokenType::OpenParenthesis,
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
+                        row_start: 2,
+                        row_end: 2,
                         column_start: 9,
-                        column_end: 9
+                        column_end: 10
                     }
                 },
                 Token {
-                    kind: TokenType::Id("x".into()),
+                    kind: TokenType::Id("x"),
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
+                        row_start: 2,
+                        row_end: 2,
                         column_start: 10,
-                        column_end: 10
+                        column_end: 11
                     }
                 },
                 Token {
                     kind: TokenType::CloseParenthesis,
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
+                        row_start: 2,
+                        row_end: 2,
                         column_start: 11,
-                        column_end: 11
+                        column_end: 12
                     }
                 },
                 Token {
                     kind: TokenType::Colon,
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
+                        row_start: 2,
+                        row_end: 2,
                         column_start: 12,
-                        column_end: 12
+                        column_end: 13
                     }
                 },
                 Token {
                     kind: TokenType::NewLine,
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
+                        row_start: 2,
+                        row_end: 2,
                         column_start: 13,
-                        column_end: 13
+                        column_end: 14
                     }
                 },
                 Token {
                     kind: TokenType::Indent,
                     span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 1,
-                        column_end: 1
+                        row_start: 3,
+                        row_end: 3,
+                        column_start: 5,
+                        column_end: 5
                     }
                 },
                 Token {
                     kind: TokenType::Keyword(KeywordType::If),
                     span: Span {
-                        row_start: 2,
-                        row_end: 2,
+                        row_start: 3,
+                        row_end: 3,
                         column_start: 5,
-                        column_end: 6
+                        column_end: 7
                     }
                 },
                 Token {
-                    kind: TokenType::Id("x".into()),
+                    kind: TokenType::Id("x"),
                     span: Span {
-                        row_start: 2,
-                        row_end: 2,
+                        row_start: 3,
+                        row_end: 3,
                         column_start: 8,
-                        column_end: 8
+                        column_end: 9
                     }
                 },
                 Token {
                     kind: TokenType::Colon,
                     span: Span {
-                        row_start: 2,
-                        row_end: 2,
+                        row_start: 3,
+                        row_end: 3,
                         column_start: 9,
-                        column_end: 9
+                        column_end: 10
                     }
                 },
                 Token {
                     kind: TokenType::NewLine,
                     span: Span {
-                        row_start: 2,
-                        row_end: 2,
+                        row_start: 3,
+                        row_end: 3,
                         column_start: 10,
-                        column_end: 10
+                        column_end: 11
                     }
                 },
                 Token {
                     kind: TokenType::Indent,
                     span: Span {
-                        row_start: 3,
-                        row_end: 3,
-                        column_start: 1,
-                        column_end: 1
+                        row_start: 4,
+                        row_end: 4,
+                        column_start: 9,
+                        column_end: 9
                     }
                 },
                 Token {
                     kind: TokenType::Keyword(KeywordType::Return),
                     span: Span {
-                        row_start: 3,
-                        row_end: 3,
+                        row_start: 4,
+                        row_end: 4,
                         column_start: 9,
-                        column_end: 14
+                        column_end: 15
                     }
                 },
                 Token {
                     kind: TokenType::Keyword(KeywordType::True),
                     span: Span {
-                        row_start: 3,
-                        row_end: 3,
+                        row_start: 4,
+                        row_end: 4,
                         column_start: 16,
-                        column_end: 19
+                        column_end: 20
                     }
                 },
                 Token {
                     kind: TokenType::NewLine,
                     span: Span {
-                        row_start: 3,
-                        row_end: 3,
+                        row_start: 4,
+                        row_end: 4,
                         column_start: 20,
-                        column_end: 20
+                        column_end: 21
                     }
                 },
                 Token {
                     kind: TokenType::Dedent,
                     span: Span {
-                        row_start: 4,
-                        row_end: 4,
-                        column_start: 1,
-                        column_end: 1
+                        row_start: 6,
+                        row_end: 6,
+                        column_start: 5,
+                        column_end: 5
                     }
                 },
                 Token {
                     kind: TokenType::Keyword(KeywordType::Return),
                     span: Span {
-                        row_start: 4,
-                        row_end: 4,
+                        row_start: 6,
+                        row_end: 6,
                         column_start: 5,
-                        column_end: 10
+                        column_end: 11
                     }
                 },
                 Token {
                     kind: TokenType::Keyword(KeywordType::False),
                     span: Span {
-                        row_start: 4,
-                        row_end: 4,
+                        row_start: 6,
+                        row_end: 6,
                         column_start: 12,
-                        column_end: 16
+                        column_end: 17
                     }
                 },
                 Token {
                     kind: TokenType::NewLine,
                     span: Span {
-                        row_start: 4,
-                        row_end: 4,
+                        row_start: 6,
+                        row_end: 6,
                         column_start: 17,
-                        column_end: 17
+                        column_end: 18
                     }
                 },
                 Token {
                     kind: TokenType::Dedent,
                     span: Span {
-                        row_start: 5,
-                        row_end: 5,
+                        row_start: 8,
+                        row_end: 8,
                         column_start: 1,
                         column_end: 1
                     }
@@ -1821,8 +1293,8 @@ for i in range(len(l)):             # error: not indented
                 Token {
                     kind: TokenType::Eof,
                     span: Span {
-                        row_start: 5,
-                        row_end: 5,
+                        row_start: 8,
+                        row_end: 8,
                         column_start: 1,
                         column_end: 1
                     }
@@ -1833,11 +1305,13 @@ for i in range(len(l)):             # error: not indented
 
     #[test]
     fn lex_implicit_line_joining() {
-        let mut lexer = Lexer::new("\n[\n(\n\r)\r{\n}\r\n]\r");
+        let lexer = Lexer::new("\n[\n(\n\r)\r{\n}\r\n]\r");
 
-        lexer.tokenize();
+        let (tokens, errors) = lexer.tokenize();
+
+        assert!(errors.is_empty());
         assert_eq!(
-            lexer.tokens(),
+            tokens,
             vec![
                 Token {
                     kind: TokenType::OpenBrackets,
@@ -1845,7 +1319,7 @@ for i in range(len(l)):             # error: not indented
                         row_start: 2,
                         row_end: 2,
                         column_start: 1,
-                        column_end: 1
+                        column_end: 2
                     }
                 },
                 Token {
@@ -1854,7 +1328,7 @@ for i in range(len(l)):             # error: not indented
                         row_start: 3,
                         row_end: 3,
                         column_start: 1,
-                        column_end: 1
+                        column_end: 2
                     }
                 },
                 Token {
@@ -1863,7 +1337,7 @@ for i in range(len(l)):             # error: not indented
                         row_start: 5,
                         row_end: 5,
                         column_start: 1,
-                        column_end: 1
+                        column_end: 2
                     }
                 },
                 Token {
@@ -1872,7 +1346,7 @@ for i in range(len(l)):             # error: not indented
                         row_start: 6,
                         row_end: 6,
                         column_start: 1,
-                        column_end: 1
+                        column_end: 2
                     }
                 },
                 Token {
@@ -1881,7 +1355,7 @@ for i in range(len(l)):             # error: not indented
                         row_start: 7,
                         row_end: 7,
                         column_start: 1,
-                        column_end: 1
+                        column_end: 2
                     }
                 },
                 Token {
@@ -1890,7 +1364,7 @@ for i in range(len(l)):             # error: not indented
                         row_start: 8,
                         row_end: 8,
                         column_start: 1,
-                        column_end: 1
+                        column_end: 2
                     }
                 },
                 Token {
@@ -1899,7 +1373,7 @@ for i in range(len(l)):             # error: not indented
                         row_start: 8,
                         row_end: 8,
                         column_start: 2,
-                        column_end: 2
+                        column_end: 3
                     }
                 },
                 Token {
@@ -1917,91 +1391,94 @@ for i in range(len(l)):             # error: not indented
 
     #[test]
     fn lex_explicit_line_joining() {
-        let mut lexer = Lexer::new(
-            "if True and \\
-            True:\n    pass",
+        let lexer = Lexer::new(
+            "
+if True and \\
+ True:
+    pass",
         );
-        lexer.tokenize();
+        let (tokens, errors) = lexer.tokenize();
+        assert!(errors.is_empty());
         assert_eq!(
-            lexer.tokens(),
+            tokens,
             vec![
                 Token {
                     kind: TokenType::Keyword(KeywordType::If),
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
+                        row_start: 2,
+                        row_end: 2,
                         column_start: 1,
-                        column_end: 2
+                        column_end: 3
                     }
                 },
                 Token {
                     kind: TokenType::Keyword(KeywordType::True),
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
+                        row_start: 2,
+                        row_end: 2,
                         column_start: 4,
-                        column_end: 7
+                        column_end: 8
                     }
                 },
                 Token {
                     kind: TokenType::Keyword(KeywordType::And),
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
+                        row_start: 2,
+                        row_end: 2,
                         column_start: 9,
-                        column_end: 11
+                        column_end: 12
                     }
                 },
                 Token {
                     kind: TokenType::Keyword(KeywordType::True),
                     span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 13,
-                        column_end: 16
+                        row_start: 3,
+                        row_end: 3,
+                        column_start: 2,
+                        column_end: 6
                     }
                 },
                 Token {
                     kind: TokenType::Colon,
                     span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 17,
-                        column_end: 17
+                        row_start: 3,
+                        row_end: 3,
+                        column_start: 6,
+                        column_end: 7
                     }
                 },
                 Token {
                     kind: TokenType::NewLine,
                     span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 18,
-                        column_end: 18
+                        row_start: 3,
+                        row_end: 3,
+                        column_start: 7,
+                        column_end: 8
                     }
                 },
                 Token {
                     kind: TokenType::Indent,
                     span: Span {
-                        row_start: 3,
-                        row_end: 3,
-                        column_start: 1,
-                        column_end: 1
+                        row_start: 4,
+                        row_end: 4,
+                        column_start: 5,
+                        column_end: 5
                     }
                 },
                 Token {
                     kind: TokenType::Keyword(KeywordType::Pass),
                     span: Span {
-                        row_start: 3,
-                        row_end: 3,
+                        row_start: 4,
+                        row_end: 4,
                         column_start: 5,
-                        column_end: 8
+                        column_end: 9
                     }
                 },
                 Token {
                     kind: TokenType::Dedent,
                     span: Span {
-                        row_start: 3,
-                        row_end: 3,
+                        row_start: 4,
+                        row_end: 4,
                         column_start: 1,
                         column_end: 1
                     }
@@ -2009,8 +1486,8 @@ for i in range(len(l)):             # error: not indented
                 Token {
                     kind: TokenType::Eof,
                     span: Span {
-                        row_start: 3,
-                        row_end: 3,
+                        row_start: 4,
+                        row_end: 4,
                         column_start: 9,
                         column_end: 9
                     }
@@ -2020,1325 +1497,223 @@ for i in range(len(l)):             # error: not indented
     }
 
     #[test]
-    fn lex_explicit_line_joining_str() {
-        let mut lexer = Lexer::new(
-            "\"Hello \\
-World!\"",
-        );
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::String("Hello \\\nWorld!".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 2,
-                        column_start: 1,
-                        column_end: 7
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 8,
-                        column_end: 8
-                    }
-                }
-            ]
-        );
-    }
-
-    #[test]
-    fn lex_explicit_line_joining_str2() {
-        let mut lexer = Lexer::new(
-            "\"\\\"Hello \\
-World!\\\"\"",
-        );
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::String("\\\"Hello \\\nWorld!\\\"".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 2,
-                        column_start: 1,
-                        column_end: 9
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 10,
-                        column_end: 10
-                    }
-                }
-            ]
-        );
-    }
-
-    #[test]
     fn lex_invalid_explicit_line_joining() {
-        let mut lexer = Lexer::new(
-            "\"Hello \\a
-World!\"",
-        );
+        let lexer = Lexer::new("if True and \\aa True:\n    pass");
 
-        let errors = lexer.tokenize();
-        assert!(errors.is_some());
+        let (_, errors) = lexer.tokenize();
+
+        assert!(!errors.is_empty());
         assert_eq!(
-            errors.unwrap(),
-            vec![
-                PythonError {
-                    error: PythonErrorType::Syntax,
-                    msg: "SyntaxError: unterminated string literal".into(),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 9
-                    }
-                },
-                PythonError {
-                    error: PythonErrorType::Syntax,
-                    msg: "SyntaxError: unterminated string literal".into(),
-                    span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 7,
-                        column_end: 7
-                    }
-                }
-            ]
-        );
-    }
-
-    #[test]
-    fn lex_invalid_explicit_line_joining2() {
-        let mut lexer = Lexer::new("if True and \\aa True:\n    pass");
-
-        let errors = lexer.tokenize();
-        assert!(errors.is_some());
-        assert_eq!(
-            errors.unwrap(),
+            errors,
             vec![PythonError {
                 error: PythonErrorType::Syntax,
-                msg: "SyntaxError: unexpected characters after line continuation character".into(),
+                msg: "SyntaxError: unexpected character 'a' after line continuation character".into(),
                 span: Span {
                     row_start: 1,
                     row_end: 1,
                     column_start: 13,
-                    column_end: 13
+                    column_end: 14
                 }
             },]
         );
     }
 
     #[test]
-    fn lex_binary_number() {
-        let mut lexer = Lexer::new("0b_1_1_0");
-        lexer.tokenize();
+    fn lex_whitespaces() {
+        let lexer = Lexer::new(" \t\u{0c}");
+        let (tokens, errors) = lexer.tokenize();
+
+        assert!(errors.is_empty());
         assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Binary), "0b_1_1_0".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 8
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 9,
-                        column_end: 9
-                    }
-                }
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_hex_number() {
-        let mut lexer = Lexer::new("0xdeadbeef");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Hex), "0xdeadbeef".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 10
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 11,
-                        column_end: 11
-                    }
-                }
-            ]
-        );
-    }
-
-    #[test]
-    fn lex_octal_number() {
-        let mut lexer = Lexer::new("0o177");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Octal), "0o177".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 5
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 6
-                    }
-                }
-            ]
-        );
-    }
-
-    #[test]
-    fn lex_float_number() {
-        let mut lexer = Lexer::new("3.14");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Number(NumberType::Float, "3.14".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 4
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 5,
-                        column_end: 5
-                    }
-                }
-            ]
-        );
-    }
-
-    #[test]
-    fn lex_float_number2() {
-        let mut lexer = Lexer::new("3.");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Number(NumberType::Float, "3.".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 2
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 3,
-                        column_end: 3
-                    }
-                }
-            ]
-        );
-    }
-
-    #[test]
-    fn lex_float_number3() {
-        let mut lexer = Lexer::new("1.001");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Number(NumberType::Float, "1.001".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 5
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 6
-                    }
-                }
-            ]
-        );
-    }
-
-    #[test]
-    fn lex_float_number4() {
-        let mut lexer = Lexer::new("1.001E-10");
-        assert!(lexer.tokenize().is_none());
-
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Number(NumberType::Float, "1.001E-10".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 9
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 10,
-                        column_end: 10
-                    }
-                }
-            ]
-        );
-    }
-
-    #[test]
-    fn lex_imaginary_number() {
-        let mut lexer = Lexer::new(".001E-10j");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Number(NumberType::Imaginary, ".001E-10j".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 9
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 10,
-                        column_end: 10
-                    }
-                }
-            ]
-        );
-    }
-
-    #[test]
-    fn lex_incorrect_float_number() {
-        let mut lexer = Lexer::new("1.123.21");
-        let errors = lexer.tokenize();
-
-        assert!(errors.is_some());
-        assert_eq!(
-            errors.unwrap(),
-            vec![PythonError {
-                error: PythonErrorType::Syntax,
-                msg: "SyntaxError: invalid float literal".into(),
+            tokens,
+            vec![Token {
+                kind: TokenType::Eof,
                 span: Span {
                     row_start: 1,
                     row_end: 1,
-                    column_start: 1,
-                    column_end: 8
-                }
-            }]
+                    column_start: 4,
+                    column_end: 4,
+                },
+            },]
         );
     }
 
     #[test]
-    fn lex_float_number5() {
-        let mut lexer = Lexer::new("2.0-5");
-        let errors = lexer.tokenize();
+    fn lex_comment() {
+        let lexer = Lexer::new(
+            "
+if x:           # comment
+                       # comment
+    # comment
+    return 42 # comment
+",
+        );
+        let (tokens, errors) = lexer.tokenize();
 
-        assert!(errors.is_none());
+        assert!(errors.is_empty());
         assert_eq!(
-            lexer.tokens(),
+            tokens,
             vec![
                 Token {
-                    kind: TokenType::Number(NumberType::Float, "2.0".into()),
+                    kind: TokenType::Keyword(KeywordType::If),
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
+                        row_start: 2,
+                        row_end: 2,
                         column_start: 1,
                         column_end: 3,
                     },
                 },
                 Token {
-                    kind: TokenType::Operator(OperatorType::Minus),
+                    kind: TokenType::Id("x"),
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
+                        row_start: 2,
+                        row_end: 2,
                         column_start: 4,
-                        column_end: 4,
+                        column_end: 5,
                     },
                 },
                 Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "5".into()),
+                    kind: TokenType::Colon,
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 5,
+                        column_end: 6,
+                    },
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 2,
+                        row_end: 2,
+                        column_start: 26,
+                        column_end: 27,
+                    },
+                },
+                Token {
+                    kind: TokenType::Indent,
+                    span: Span {
+                        row_start: 5,
+                        row_end: 5,
                         column_start: 5,
                         column_end: 5,
                     },
                 },
                 Token {
-                    kind: TokenType::Eof,
+                    kind: TokenType::Keyword(KeywordType::Return),
                     span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 6,
-                        column_end: 6,
-                    },
-                }
-            ]
-        );
-    }
-
-    #[test]
-    fn lex_incorrect_float_number2() {
-        let mut lexer = Lexer::new("112_3.23e4E-56");
-        let errors = lexer.tokenize();
-
-        assert!(errors.is_some());
-        assert_eq!(
-            errors.unwrap(),
-            vec![PythonError {
-                error: PythonErrorType::Syntax,
-                msg: "SyntaxError: invalid float literal".into(),
-                span: Span {
-                    row_start: 1,
-                    row_end: 1,
-                    column_start: 1,
-                    column_end: 14
-                }
-            }]
-        );
-    }
-
-    #[test]
-    fn lex_incorrect_imaginary_number() {
-        let mut lexer = Lexer::new("3.2_10jJj");
-        let errors = lexer.tokenize();
-
-        assert!(errors.is_some());
-        assert_eq!(
-            errors.unwrap(),
-            vec![PythonError {
-                error: PythonErrorType::Syntax,
-                msg: "SyntaxError: invalid imaginary literal".into(),
-                span: Span {
-                    row_start: 1,
-                    row_end: 1,
-                    column_start: 1,
-                    column_end: 9
-                }
-            }]
-        );
-    }
-
-    #[test]
-    fn lex_decimal_number() {
-        let mut lexer = Lexer::new("10_000_000");
-        lexer.tokenize();
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal), "10_000_000".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 10
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 11,
-                        column_end: 11
-                    }
-                }
-            ]
-        );
-    }
-
-    #[test]
-    fn lex_invalid_decimal_number() {
-        let mut lexer = Lexer::new("12_5__0");
-        let errors = lexer.tokenize();
-        assert!(errors.is_some());
-        assert_eq!(
-            errors.unwrap(),
-            vec![PythonError {
-                error: PythonErrorType::Syntax,
-                msg: "SyntaxError: invalid decimal literal".into(),
-                span: Span {
-                    row_start: 1,
-                    row_end: 1,
-                    column_start: 1,
-                    column_end: 7
-                }
-            }]
-        );
-    }
-
-    #[test]
-    fn lex_invalid_decimal_number2() {
-        let mut lexer = Lexer::new("10_");
-        let errors = lexer.tokenize();
-        assert!(errors.is_some());
-        assert_eq!(
-            errors.unwrap(),
-            vec![PythonError {
-                error: PythonErrorType::Syntax,
-                msg: "SyntaxError: invalid decimal literal".into(),
-                span: Span {
-                    row_start: 1,
-                    row_end: 1,
-                    column_start: 1,
-                    column_end: 3
-                }
-            }]
-        );
-    }
-
-    #[test]
-    fn lex_invalid_decimal_number3() {
-        let mut lexer = Lexer::new("10abc");
-        let errors = lexer.tokenize();
-        assert!(errors.is_some());
-        assert_eq!(
-            errors.unwrap(),
-            vec![PythonError {
-                error: PythonErrorType::Syntax,
-                msg: "SyntaxError: invalid decimal literal".into(),
-                span: Span {
-                    row_start: 1,
-                    row_end: 1,
-                    column_start: 1,
-                    column_end: 5
-                }
-            }]
-        );
-    }
-
-    #[test]
-    fn lex_triple_quote_string() {
-        let mut lexer = Lexer::new(
-            "
-r\"\"\"Multiline text
-\\
-Multiline text
-Multiline text
-\"\"\"
-",
-        );
-        let errors = lexer.tokenize();
-
-        assert!(errors.is_none());
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::String("Multiline text\n\\\nMultiline text\nMultiline text\n".into()),
-                    span: Span {
-                        row_start: 2,
-                        row_end: 6,
-                        column_start: 2,
-                        column_end: 3
-                    }
-                },
-                Token {
-                    kind: TokenType::NewLine,
-                    span: Span {
-                        row_start: 6,
-                        row_end: 6,
-                        column_start: 4,
-                        column_end: 4
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 7,
-                        row_end: 7,
-                        column_start: 1,
-                        column_end: 1
-                    }
-                }
-            ]
-        );
-    }
-
-    #[test]
-    fn lex_parenthesized_string() {
-        let mut lexer = Lexer::new(
-            "
-(\"Hello \"
- \"World\")",
-        );
-        let errors = lexer.tokenize();
-
-        assert!(errors.is_none());
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::OpenParenthesis,
-                    span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 1,
-                        column_end: 1
-                    }
-                },
-                Token {
-                    kind: TokenType::String("Hello World".into()),
-                    span: Span {
-                        row_start: 2,
-                        row_end: 3,
-                        column_start: 2,
-                        column_end: 8
-                    }
-                },
-                Token {
-                    kind: TokenType::CloseParenthesis,
-                    span: Span {
-                        row_start: 3,
-                        row_end: 3,
-                        column_start: 9,
-                        column_end: 9
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 3,
-                        row_end: 3,
-                        column_start: 10,
-                        column_end: 10
-                    }
-                }
-            ]
-        );
-    }
-
-    #[test]
-    fn lex_parenthesized_string2() {
-        let mut lexer = Lexer::new("(\"Hello\" % world)");
-        let errors = lexer.tokenize();
-
-        assert!(errors.is_none());
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::OpenParenthesis,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 1,
-                        column_end: 1
-                    }
-                },
-                Token {
-                    kind: TokenType::String("Hello".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 2,
-                        column_end: 9
-                    }
-                },
-                Token {
-                    kind: TokenType::Operator(OperatorType::Modulo),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 10,
-                        column_end: 10
-                    }
-                },
-                Token {
-                    kind: TokenType::Id("world".into()),
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 12,
-                        column_end: 16
-                    }
-                },
-                Token {
-                    kind: TokenType::CloseParenthesis,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 17,
-                        column_end: 17
-                    }
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 18,
-                        column_end: 18
-                    }
-                }
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_parenthesized_string3() {
-        let mut lexer = Lexer::new(
-            "
-x(help='output only error messages; -qq will suppress '
-     'the error messages as well.')
-",
-        );
-        let errors = lexer.tokenize();
-
-        assert!(errors.is_none());
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("x".into(),),
-                    span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 1,
-                        column_end: 1,
-                    },
-                },
-                Token {
-                    kind: TokenType::OpenParenthesis,
-                    span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 2,
-                        column_end: 2,
-                    },
-                },
-                Token {
-                    kind: TokenType::Id("help".into(),),
-                    span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 3,
-                        column_end: 6,
-                    },
-                },
-                Token {
-                    kind: TokenType::Operator(OperatorType::Assign,),
-                    span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 7,
-                        column_end: 7,
-                    },
-                },
-                Token {
-                    kind: TokenType::String(
-                        "output only error messages; -qq will suppress the error messages as well.".into(),
-                    ),
-                    span: Span {
-                        row_start: 2,
-                        row_end: 3,
-                        column_start: 8,
-                        column_end: 34,
-                    },
-                },
-                Token {
-                    kind: TokenType::CloseParenthesis,
-                    span: Span {
-                        row_start: 3,
-                        row_end: 3,
-                        column_start: 35,
-                        column_end: 35,
-                    },
-                },
-                Token {
-                    kind: TokenType::NewLine,
-                    span: Span {
-                        row_start: 3,
-                        row_end: 3,
-                        column_start: 36,
-                        column_end: 36,
-                    },
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 4,
-                        row_end: 4,
-                        column_start: 1,
-                        column_end: 1,
-                    },
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_parenthesized_string4() {
-        let mut lexer = Lexer::new(
-            "
-(f'{}'
-f'World {}')",
-        );
-        let errors = lexer.tokenize();
-
-        assert!(errors.is_none());
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::OpenParenthesis,
-                    span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 1,
-                        column_end: 1,
-                    },
-                },
-                Token {
-                    kind: TokenType::String("{}World {}".into(),),
-                    span: Span {
-                        row_start: 2,
-                        row_end: 3,
-                        column_start: 3,
+                        row_start: 5,
+                        row_end: 5,
+                        column_start: 5,
                         column_end: 11,
                     },
                 },
                 Token {
-                    kind: TokenType::CloseParenthesis,
+                    kind: TokenType::Number(NumberType::Integer(IntegerType::Decimal("42"))),
                     span: Span {
-                        row_start: 3,
-                        row_end: 3,
+                        row_start: 5,
+                        row_end: 5,
                         column_start: 12,
-                        column_end: 12,
+                        column_end: 14,
+                    },
+                },
+                Token {
+                    kind: TokenType::NewLine,
+                    span: Span {
+                        row_start: 5,
+                        row_end: 5,
+                        column_start: 24,
+                        column_end: 25,
+                    },
+                },
+                Token {
+                    kind: TokenType::Dedent,
+                    span: Span {
+                        row_start: 6,
+                        row_end: 6,
+                        column_start: 1,
+                        column_end: 1,
                     },
                 },
                 Token {
                     kind: TokenType::Eof,
                     span: Span {
-                        row_start: 3,
-                        row_end: 3,
-                        column_start: 13,
+                        row_start: 6,
+                        row_end: 6,
+                        column_start: 1,
+                        column_end: 1,
+                    },
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn lex_invalid_float_and_imaginary_numbers() {
+        let (_, errors) = Lexer::new("3._14 3.__14 3E1_4_ 3.14e10e-10 3._14j 3.__14J 3E1_4_J 3.14e10e-10J").tokenize();
+        assert_eq!(
+            dbg!(errors),
+            vec![
+                PythonError {
+                    error: PythonErrorType::Syntax,
+                    msg: "SyntaxError: invalid float number literal \"3._14\"".to_string(),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 1,
+                        column_end: 6,
+                    },
+                },
+                PythonError {
+                    error: PythonErrorType::Syntax,
+                    msg: "SyntaxError: invalid float number literal \"3.__14\"".to_string(),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 7,
                         column_end: 13,
                     },
                 },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_parenthesized_string5() {
-        let mut lexer = Lexer::new(
-            "
-(get_str() + 'hello ' \\
-
-  # this is a comment
-# this is a comment
-            'world')
-",
-        );
-        let errors = lexer.tokenize();
-
-        assert!(errors.is_none());
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::OpenParenthesis,
+                PythonError {
+                    error: PythonErrorType::Syntax,
+                    msg: "SyntaxError: invalid float number literal \"3E1_4_\"".to_string(),
                     span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 1,
-                        column_end: 1,
-                    },
-                },
-                Token {
-                    kind: TokenType::Id("get_str".into(),),
-                    span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 2,
-                        column_end: 8,
-                    },
-                },
-                Token {
-                    kind: TokenType::OpenParenthesis,
-                    span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 9,
-                        column_end: 9,
-                    },
-                },
-                Token {
-                    kind: TokenType::CloseParenthesis,
-                    span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 10,
-                        column_end: 10,
-                    },
-                },
-                Token {
-                    kind: TokenType::Operator(OperatorType::Plus),
-                    span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 12,
-                        column_end: 12,
-                    },
-                },
-                Token {
-                    kind: TokenType::String("hello world".into()),
-                    span: Span {
-                        row_start: 2,
-                        row_end: 6,
+                        row_start: 1,
+                        row_end: 1,
                         column_start: 14,
-                        column_end: 19,
-                    },
-                },
-                Token {
-                    kind: TokenType::CloseParenthesis,
-                    span: Span {
-                        row_start: 6,
-                        row_end: 6,
-                        column_start: 20,
                         column_end: 20,
                     },
                 },
-                Token {
-                    kind: TokenType::NewLine,
-                    span: Span {
-                        row_start: 6,
-                        row_end: 6,
-                        column_start: 21,
-                        column_end: 21,
-                    },
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 7,
-                        row_end: 7,
-                        column_start: 1,
-                        column_end: 1,
-                    },
-                }
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_explict_splited_string() {
-        let mut lexer = Lexer::new(
-            "
-'hello' \\ # this is a comment
-  ' ' \\ 
-'World' \\
-fr'{x}' \\
-+ '!'
-",
-        );
-        let errors = lexer.tokenize();
-
-        assert!(errors.is_none());
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::String("hello World{x}".into(),),
-                    span: Span {
-                        row_start: 2,
-                        row_end: 5,
-                        column_start: 1,
-                        column_end: 7,
-                    },
-                },
-                Token {
-                    kind: TokenType::Operator(OperatorType::Plus,),
-                    span: Span {
-                        row_start: 6,
-                        row_end: 6,
-                        column_start: 1,
-                        column_end: 1,
-                    },
-                },
-                Token {
-                    kind: TokenType::String("!".into(),),
-                    span: Span {
-                        row_start: 6,
-                        row_end: 6,
-                        column_start: 3,
-                        column_end: 5,
-                    },
-                },
-                Token {
-                    kind: TokenType::NewLine,
-                    span: Span {
-                        row_start: 6,
-                        row_end: 6,
-                        column_start: 6,
-                        column_end: 6,
-                    },
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 7,
-                        row_end: 7,
-                        column_start: 1,
-                        column_end: 1,
-                    },
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_empty_strings() {
-        let mut lexer = Lexer::new(
-            "
-''
-\"\"
-''''''
-\"\"\"\"\"\"
-",
-        );
-        let errors = lexer.tokenize();
-
-        assert!(errors.is_none());
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::String("".into()),
-                    span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 1,
-                        column_end: 2,
-                    },
-                },
-                Token {
-                    kind: TokenType::NewLine,
-                    span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 3,
-                        column_end: 3,
-                    },
-                },
-                Token {
-                    kind: TokenType::String("".into()),
-                    span: Span {
-                        row_start: 3,
-                        row_end: 3,
-                        column_start: 1,
-                        column_end: 2,
-                    },
-                },
-                Token {
-                    kind: TokenType::NewLine,
-                    span: Span {
-                        row_start: 3,
-                        row_end: 3,
-                        column_start: 3,
-                        column_end: 3,
-                    },
-                },
-                Token {
-                    kind: TokenType::String("".into()),
-                    span: Span {
-                        row_start: 4,
-                        row_end: 4,
-                        column_start: 1,
-                        column_end: 6,
-                    },
-                },
-                Token {
-                    kind: TokenType::NewLine,
-                    span: Span {
-                        row_start: 4,
-                        row_end: 4,
-                        column_start: 7,
-                        column_end: 7,
-                    },
-                },
-                Token {
-                    kind: TokenType::String("".into()),
-                    span: Span {
-                        row_start: 5,
-                        row_end: 5,
-                        column_start: 1,
-                        column_end: 6,
-                    },
-                },
-                Token {
-                    kind: TokenType::NewLine,
-                    span: Span {
-                        row_start: 5,
-                        row_end: 5,
-                        column_start: 7,
-                        column_end: 7,
-                    },
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 6,
-                        row_end: 6,
-                        column_start: 1,
-                        column_end: 1,
-                    },
-                }
-            ]
-        );
-    }
-
-    #[test]
-    fn lex_whitespaces() {
-        let mut lexer = Lexer::new("a \tb\u{0c}c");
-        let errors = lexer.tokenize();
-
-        assert!(errors.is_none());
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::Id("a".into(),),
+                PythonError {
+                    error: PythonErrorType::Syntax,
+                    msg: "SyntaxError: invalid imaginary number literal \"3._14j\"".to_string(),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
-                        column_start: 1,
-                        column_end: 1,
+                        column_start: 33,
+                        column_end: 38,
                     },
                 },
-                Token {
-                    kind: TokenType::Id("b".into(),),
+                PythonError {
+                    error: PythonErrorType::Syntax,
+                    msg: "SyntaxError: invalid imaginary number literal \"3.__14J\"".to_string(),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
-                        column_start: 4,
-                        column_end: 4,
+                        column_start: 40,
+                        column_end: 46,
                     },
                 },
-                Token {
-                    kind: TokenType::Id("c".into(),),
+                PythonError {
+                    error: PythonErrorType::Syntax,
+                    msg: "SyntaxError: invalid imaginary number literal \"3E1_4_J\"".to_string(),
                     span: Span {
                         row_start: 1,
                         row_end: 1,
-                        column_start: 6,
-                        column_end: 6,
+                        column_start: 48,
+                        column_end: 54,
                     },
                 },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 1,
-                        row_end: 1,
-                        column_start: 7,
-                        column_end: 7,
-                    },
-                },
-            ]
-        );
-    }
-
-    #[test]
-    fn lex_triple_quote_string_with_escaped_triple_quote() {
-        let mut lexer = Lexer::new(
-            "
-r\"\"\"
-\\\"\"\"
-\"\"\"
-",
-        );
-        let errors = lexer.tokenize();
-
-        assert!(errors.is_none());
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::String("\n\\\"\"\"\n".into(),),
-                    span: Span {
-                        row_start: 2,
-                        row_end: 4,
-                        column_start: 2,
-                        column_end: 3,
-                    },
-                },
-                Token {
-                    kind: TokenType::NewLine,
-                    span: Span {
-                        row_start: 4,
-                        row_end: 4,
-                        column_start: 4,
-                        column_end: 4,
-                    },
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 5,
-                        row_end: 5,
-                        column_start: 1,
-                        column_end: 1,
-                    },
-                },
-            ]
-        )
-    }
-
-    #[test]
-    fn lex_string5() {
-        let mut lexer = Lexer::new(
-            "
-'Foo''Bar'
-\"Bar\"\"Foo\"
-\"Hello \" \"World\"
-'Hello ' 'World'\\
-'!'",
-        );
-        let errors = lexer.tokenize();
-
-        assert!(errors.is_none());
-        assert_eq!(
-            lexer.tokens(),
-            vec![
-                Token {
-                    kind: TokenType::String("FooBar".into()),
-                    span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 1,
-                        column_end: 10,
-                    },
-                },
-                Token {
-                    kind: TokenType::NewLine,
-                    span: Span {
-                        row_start: 2,
-                        row_end: 2,
-                        column_start: 11,
-                        column_end: 11,
-                    },
-                },
-                Token {
-                    kind: TokenType::String("BarFoo".into()),
-                    span: Span {
-                        row_start: 3,
-                        row_end: 3,
-                        column_start: 1,
-                        column_end: 10,
-                    },
-                },
-                Token {
-                    kind: TokenType::NewLine,
-                    span: Span {
-                        row_start: 3,
-                        row_end: 3,
-                        column_start: 11,
-                        column_end: 11,
-                    },
-                },
-                Token {
-                    kind: TokenType::String("Hello World".into()),
-                    span: Span {
-                        row_start: 4,
-                        row_end: 4,
-                        column_start: 1,
-                        column_end: 16,
-                    },
-                },
-                Token {
-                    kind: TokenType::NewLine,
-                    span: Span {
-                        row_start: 4,
-                        row_end: 4,
-                        column_start: 17,
-                        column_end: 17,
-                    },
-                },
-                Token {
-                    kind: TokenType::String("Hello World!".into()),
-                    span: Span {
-                        row_start: 5,
-                        row_end: 6,
-                        column_start: 1,
-                        column_end: 3,
-                    },
-                },
-                Token {
-                    kind: TokenType::Eof,
-                    span: Span {
-                        row_start: 6,
-                        row_end: 6,
-                        column_start: 4,
-                        column_end: 4,
-                    },
-                }
             ]
         );
     }

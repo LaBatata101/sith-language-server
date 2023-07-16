@@ -13,4 +13,5 @@ pub struct PythonError {
 pub enum PythonErrorType {
     Syntax,
     Indentation,
+    InvalidToken,
 }

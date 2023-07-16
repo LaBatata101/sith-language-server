@@ -1,6 +1,4 @@
-use std::borrow::Cow;
-
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum TokenType<'a> {
     CloseBrace,
     CloseBrackets,
@@ -11,37 +9,37 @@ pub enum TokenType<'a> {
     Dot,
     Eof,
     Ellipsis,
-    Id(Cow<'a, str>),
+    Id(&'a str),
     Indent,
     Invalid(char),
     Keyword(KeywordType),
     NewLine,
-    Number(NumberType, Cow<'a, str>),
+    Number(NumberType<'a>),
     OpenBrace,
     OpenBrackets,
     OpenParenthesis,
     Operator(OperatorType),
     SemiColon,
+    String(&'a str),
+    RightArrow,
     /// These are only keywords under specific contexts
     SoftKeyword(SoftKeywordType),
-    String(Cow<'a, str>),
-    RightArrow,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum NumberType {
-    Float,
-    Integer(IntegerType),
-    Imaginary,
+#[derive(Debug, PartialEq, Eq)]
+pub enum NumberType<'a> {
+    Float(&'a str),
+    Integer(IntegerType<'a>),
+    Imaginary(&'a str),
     Invalid,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum IntegerType {
-    Decimal,
-    Binary,
-    Octal,
-    Hex,
+#[derive(Debug, PartialEq, Eq)]
+pub enum IntegerType<'a> {
+    Hex(&'a str),
+    Binary(&'a str),
+    Octal(&'a str),
+    Decimal(&'a str),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -82,49 +80,7 @@ pub enum OperatorType {
     NotEquals,
     Plus,
     PlusEqual,
-}
-
-impl OperatorType {
-    pub fn as_str(&self) -> &str {
-        match self {
-            OperatorType::Assign => "=",
-            OperatorType::Asterisk => "*",
-            OperatorType::AsteriskEqual => "*=",
-            OperatorType::At => "@",
-            OperatorType::AtEqual => "@=",
-            OperatorType::BitwiseAnd => "&",
-            OperatorType::BitwiseAndEqual => "&=",
-            OperatorType::BitwiseLeftShift => "<<",
-            OperatorType::BitwiseLeftShiftEqual => "<<=",
-            OperatorType::BitwiseNot => "~",
-            OperatorType::BitwiseNotEqual => "~=",
-            OperatorType::BitwiseOr => "|",
-            OperatorType::BitwiseOrEqual => "|=",
-            OperatorType::BitwiseRightShift => ">>",
-            OperatorType::BitwiseRightShiftEqual => ">>=",
-            OperatorType::BitwiseXOR => "^",
-            OperatorType::BitwiseXOrEqual => "^=",
-            OperatorType::ColonEqual => ":=",
-            OperatorType::Divide => "/",
-            OperatorType::DivideEqual => "/=",
-            OperatorType::Equals => "==",
-            OperatorType::Exponent => "**",
-            OperatorType::ExponentEqual => "**=",
-            OperatorType::FloorDivision => "//",
-            OperatorType::FloorDivisionEqual => "//=",
-            OperatorType::GreaterThan => ">",
-            OperatorType::GreaterThanOrEqual => ">=",
-            OperatorType::LessThan => "<",
-            OperatorType::LessThanOrEqual => "<=",
-            OperatorType::Minus => "-",
-            OperatorType::MinusEqual => "-=",
-            OperatorType::Modulo => "%",
-            OperatorType::ModuloEqual => "%=",
-            OperatorType::NotEquals => "!=",
-            OperatorType::Plus => "+",
-            OperatorType::PlusEqual => "+=",
-        }
-    }
+    Invalid,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -164,6 +120,24 @@ pub enum KeywordType {
     While,
     With,
     Yield,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum SoftKeywordType {
+    Match,
+    Case,
+    /// The char "_"
+    Underscore,
+}
+
+impl SoftKeywordType {
+    pub fn as_str(&self) -> &str {
+        match self {
+            SoftKeywordType::Match => "match",
+            SoftKeywordType::Case => "case",
+            SoftKeywordType::Underscore => "_",
+        }
+    }
 }
 
 impl KeywordType {
@@ -208,20 +182,98 @@ impl KeywordType {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum SoftKeywordType {
-    Match,
-    Case,
-    /// The char "_"
-    Underscore,
-}
-
-impl SoftKeywordType {
+impl OperatorType {
     pub fn as_str(&self) -> &str {
         match self {
-            SoftKeywordType::Match => "match",
-            SoftKeywordType::Case => "case",
-            SoftKeywordType::Underscore => "_",
+            OperatorType::Assign => "=",
+            OperatorType::Asterisk => "*",
+            OperatorType::AsteriskEqual => "*=",
+            OperatorType::At => "@",
+            OperatorType::AtEqual => "@=",
+            OperatorType::BitwiseAnd => "&",
+            OperatorType::BitwiseAndEqual => "&=",
+            OperatorType::BitwiseLeftShift => "<<",
+            OperatorType::BitwiseLeftShiftEqual => "<<=",
+            OperatorType::BitwiseNot => "~",
+            OperatorType::BitwiseNotEqual => "~=",
+            OperatorType::BitwiseOr => "|",
+            OperatorType::BitwiseOrEqual => "|=",
+            OperatorType::BitwiseRightShift => ">>",
+            OperatorType::BitwiseRightShiftEqual => ">>=",
+            OperatorType::BitwiseXOR => "^",
+            OperatorType::BitwiseXOrEqual => "^=",
+            OperatorType::ColonEqual => ":=",
+            OperatorType::Divide => "/",
+            OperatorType::DivideEqual => "/=",
+            OperatorType::Equals => "==",
+            OperatorType::Exponent => "**",
+            OperatorType::ExponentEqual => "**=",
+            OperatorType::FloorDivision => "//",
+            OperatorType::FloorDivisionEqual => "//=",
+            OperatorType::GreaterThan => ">",
+            OperatorType::GreaterThanOrEqual => ">=",
+            OperatorType::LessThan => "<",
+            OperatorType::LessThanOrEqual => "<=",
+            OperatorType::Minus => "-",
+            OperatorType::MinusEqual => "-=",
+            OperatorType::Modulo => "%",
+            OperatorType::ModuloEqual => "%=",
+            OperatorType::NotEquals => "!=",
+            OperatorType::Plus => "+",
+            OperatorType::PlusEqual => "+=",
+            OperatorType::Invalid => "OP INVALID",
+        }
+    }
+}
+
+impl<'a> IntegerType<'a> {
+    pub fn as_str(&self) -> &str {
+        match self {
+            IntegerType::Hex(hex) => hex,
+            IntegerType::Binary(binary) => binary,
+            IntegerType::Octal(octal) => octal,
+            IntegerType::Decimal(decimal) => decimal,
+        }
+    }
+}
+
+impl<'a> NumberType<'a> {
+    pub fn as_str(&self) -> &str {
+        match self {
+            NumberType::Float(float) => float,
+            NumberType::Integer(int) => int.as_str(),
+            NumberType::Imaginary(imaginary) => imaginary,
+            NumberType::Invalid => "INVALID NUMBER",
+        }
+    }
+}
+
+impl<'a> TokenType<'a> {
+    pub fn as_str(&self) -> &str {
+        match self {
+            TokenType::OpenBrace => "{",
+            TokenType::OpenBrackets => "[",
+            TokenType::OpenParenthesis => "(",
+            TokenType::CloseBrace => "}",
+            TokenType::CloseBrackets => "]",
+            TokenType::CloseParenthesis => ")",
+            TokenType::Colon => ":",
+            TokenType::Comma => ",",
+            TokenType::SemiColon => ";",
+            TokenType::Dot => ".",
+            TokenType::Eof => "EOF",
+            TokenType::Ellipsis => "...",
+            TokenType::RightArrow => "->",
+            TokenType::Dedent => "",
+            TokenType::Indent => "    ",
+            TokenType::NewLine => "\n",
+            TokenType::Invalid(_) => "INVALID TOKEN",
+            TokenType::Id(name) => name,
+            TokenType::String(str) => str,
+            TokenType::Number(number) => number.as_str(),
+            TokenType::Keyword(keyword) => keyword.as_str(),
+            TokenType::Operator(operator) => operator.as_str(),
+            TokenType::SoftKeyword(soft_keyword) => soft_keyword.as_str(),
         }
     }
 }

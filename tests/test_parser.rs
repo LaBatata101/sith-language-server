@@ -19,8 +19,8 @@ mod tests_parser {
 
     #[test]
     fn parse_string_assignment() {
-        let mut lexer = Lexer::new("test = \"Hello World!\"");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("test = \"Hello World!\"");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -59,8 +59,8 @@ mod tests_parser {
 
     #[test]
     fn parse_multiple_numbers_assignment() {
-        let mut lexer = Lexer::new("test = 42; x = 12");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("test = 42; x = 12");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -127,8 +127,8 @@ mod tests_parser {
 
     #[test]
     fn parse_boolean_assignment() {
-        let mut lexer = Lexer::new("x = True\ny = False");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x = True\ny = False");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -195,8 +195,8 @@ mod tests_parser {
 
     #[test]
     fn parse_incorrect_assignment() {
-        let mut lexer = Lexer::new("test =");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("test =");
+        let parser = Parser::new(lexer);
         let (_, errors) = parser.parse();
 
         assert!(errors.is_some());
@@ -217,8 +217,8 @@ mod tests_parser {
 
     #[test]
     fn parse_assignment_with_typehint() {
-        let mut lexer = Lexer::new("x: int = 0");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x: int = 0");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -266,8 +266,8 @@ mod tests_parser {
 
     #[test]
     fn parse_tuple_unpacking_assignment() {
-        let mut lexer = Lexer::new("a, b, c = 1, 2, 3");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("a, b, c = 1, 2, 3");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -362,8 +362,8 @@ mod tests_parser {
 
     #[test]
     fn parse_invalid_tuple_assignment_with_typehint() {
-        let mut lexer = Lexer::new("a, b, c: tuple[int, int, int] = 1, 2, 3");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("a, b, c: tuple[int, int, int] = 1, 2, 3");
+        let parser = Parser::new(lexer);
         let (_, errors) = parser.parse();
 
         assert!(errors.is_some());
@@ -384,8 +384,8 @@ mod tests_parser {
 
     #[test]
     fn parse_list_unpacking_assignment() {
-        let mut lexer = Lexer::new("[a, b, c] = 1, 2, 3");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("[a, b, c] = 1, 2, 3");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -480,8 +480,8 @@ mod tests_parser {
 
     #[test]
     fn parse_assignment_wiht_only_typehint() {
-        let mut lexer = Lexer::new("x: int");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x: int");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -521,8 +521,8 @@ mod tests_parser {
 
     #[test]
     fn parse_aug_assignment() {
-        let mut lexer = Lexer::new("x += 1");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x += 1");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -562,8 +562,8 @@ mod tests_parser {
 
     #[test]
     fn parse_invalid_aug_assignment() {
-        let mut lexer = Lexer::new("x: int += 1");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x: int += 1");
+        let parser = Parser::new(lexer);
         let (_, errors) = parser.parse();
 
         assert!(errors.is_some());
@@ -584,11 +584,11 @@ mod tests_parser {
 
     #[test]
     fn parse_function() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "def x():
     pass",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, parser_errors) = parser.parse();
 
         assert!(parser_errors.is_none());
@@ -627,13 +627,13 @@ mod tests_parser {
 
     #[test]
     fn parse_function2() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "def x():
     pass
     pass
     pass",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -686,11 +686,11 @@ mod tests_parser {
 
     #[test]
     fn parse_function3() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "def test(x, y = 42):
     pass",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
 
         let (parsed_file, errors) = parser.parse();
 
@@ -767,11 +767,11 @@ mod tests_parser {
 
     #[test]
     fn parse_function4() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "def test(*kargs, **kwargs):
     pass",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -839,12 +839,12 @@ mod tests_parser {
 
     #[test]
     fn parse_if() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "if True:
     pass
     ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -890,13 +890,13 @@ mod tests_parser {
 
     #[test]
     fn parse_if_else() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "if True:
     pass
 else:
     pass",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -963,7 +963,7 @@ else:
 
     #[test]
     fn parse_if_elif() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "if True:
     pass
 elif True:
@@ -971,7 +971,7 @@ elif True:
 elif True:
     pass",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -1080,7 +1080,7 @@ elif True:
 
     #[test]
     fn parse_if_elif_else() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "if True:
     pass
 elif True:
@@ -1090,7 +1090,7 @@ elif True:
 else:
     pass",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -1220,12 +1220,12 @@ else:
 
     #[test]
     fn parse_while() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "while True:
     pass
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -1270,13 +1270,13 @@ else:
 
     #[test]
     fn parse_while_else() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "while True:
     pass
 else:
     pass",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -1342,8 +1342,8 @@ else:
 
     #[test]
     fn parse_expression() {
-        let mut lexer = Lexer::new("x = 1 + 2 + 3");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x = 1 + 2 + 3");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -1418,8 +1418,8 @@ else:
 
     #[test]
     fn parse_expression2() {
-        let mut lexer = Lexer::new("x = 1 + 2 * 3 / 2");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x = 1 + 2 * 3 / 2");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -1512,8 +1512,8 @@ else:
 
     #[test]
     fn parse_expression3() {
-        let mut lexer = Lexer::new("x = 3 + -5");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x = 3 + -5");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -1579,8 +1579,8 @@ else:
 
     #[test]
     fn parse_expression4() {
-        let mut lexer = Lexer::new("x = not 3 + -5");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x = not 3 + -5");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -1655,8 +1655,8 @@ else:
 
     #[test]
     fn parse_expression5() {
-        let mut lexer = Lexer::new("x = x + +5");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x = x + +5");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -1722,8 +1722,8 @@ else:
 
     #[test]
     fn parse_expression6() {
-        let mut lexer = Lexer::new("a = x < y or 69 > 9 and not 101 >> 666");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("a = x < y or 69 > 9 and not 101 >> 666");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -1861,8 +1861,8 @@ else:
 
     #[test]
     fn parse_expression7() {
-        let mut lexer = Lexer::new("x = a.b.c");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x = a.b.c");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -1937,8 +1937,8 @@ else:
 
     #[test]
     fn parse_expression8() {
-        let mut lexer = Lexer::new("x = hello();");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x = hello();");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -1986,8 +1986,8 @@ else:
 
     #[test]
     fn parse_expression9() {
-        let mut lexer = Lexer::new("x = l[1 + 2]");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x = l[1 + 2]");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -2061,8 +2061,8 @@ else:
 
     #[test]
     fn parse_expression10() {
-        let mut lexer = Lexer::new("x = a not in b");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x = a not in b");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -2119,8 +2119,8 @@ else:
 
     #[test]
     fn parse_expression11() {
-        let mut lexer = Lexer::new("x = ((1 + 2) * 54) / 3");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x = ((1 + 2) * 54) / 3");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -2213,8 +2213,8 @@ else:
 
     #[test]
     fn parse_tuple_expression() {
-        let mut lexer = Lexer::new("x = (1 + 2, True, y(), \"Hello\", l[i],)");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x = (1 + 2, True, y(), \"Hello\", l[i],)");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -2343,8 +2343,8 @@ else:
 
     #[test]
     fn parse_tuple_expression_with_no_parens() {
-        let mut lexer = Lexer::new("1 + 2, True, y(), \"Hello\", l[i],");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("1 + 2, True, y(), \"Hello\", l[i],");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -2456,8 +2456,8 @@ else:
 
     #[test]
     fn parse_list_expression() {
-        let mut lexer = Lexer::new("x = [1 + 2, True, y(), \"Hello\", l[i],]");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x = [1 + 2, True, y(), \"Hello\", l[i],]");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -2586,8 +2586,8 @@ else:
 
     #[test]
     fn parse_list_expression2() {
-        let mut lexer = Lexer::new("x = [*l, *[1,2,3], True]");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x = [*l, *[1,2,3], True]");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -2700,8 +2700,8 @@ else:
 
     #[test]
     fn parse_invalid_list_expression() {
-        let mut lexer = Lexer::new("[**d, x]");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("[**d, x]");
+        let parser = Parser::new(lexer);
         let (_, errors) = parser.parse();
 
         assert!(errors.is_some());
@@ -2722,8 +2722,8 @@ else:
 
     #[test]
     fn parse_empty_list_expression() {
-        let mut lexer = Lexer::new("[]");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("[]");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -2745,8 +2745,8 @@ else:
 
     #[test]
     fn parse_unpack_iterable_assignment() {
-        let mut lexer = Lexer::new("x = *iterable");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x = *iterable");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -2794,8 +2794,8 @@ else:
 
     #[test]
     fn parse_set_expression() {
-        let mut lexer = Lexer::new("x = {1, True, \"hello\", *l,}");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x = {1, True, \"hello\", *l,}");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -2880,8 +2880,8 @@ else:
 
     #[test]
     fn parse_dict_expression() {
-        let mut lexer = Lexer::new("x = {1: \"Hello\", 1 + 3: True, (6, 6): False,}");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x = {1: \"Hello\", 1 + 3: True, (6, 6): False,}");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -3018,8 +3018,8 @@ else:
 
     #[test]
     fn parse_dict_expression2() {
-        let mut lexer = Lexer::new("x = {**d, 2: 5, **x,}");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x = {**d, 2: 5, **x,}");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -3115,8 +3115,8 @@ else:
 
     #[test]
     fn parse_invalid_dict_expression() {
-        let mut lexer = Lexer::new("x = {**d, *x}");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x = {**d, *x}");
+        let parser = Parser::new(lexer);
         let (_, errors) = parser.parse();
 
         assert!(errors.is_some());
@@ -3137,8 +3137,8 @@ else:
 
     #[test]
     fn parse_if_else_expression() {
-        let mut lexer = Lexer::new("x = 15 if 5 < x else 45");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x = 15 if 5 < x else 45");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -3221,8 +3221,8 @@ else:
 
     #[test]
     fn parse_if_else_expression2() {
-        let mut lexer = Lexer::new("x = func() if (5 < x or x >= y) and is_id else func2() * 5");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x = func() if (5 < x or x >= y) and is_id else func2() * 5");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -3395,8 +3395,8 @@ else:
 
     #[test]
     fn parse_single_expression() {
-        let mut lexer = Lexer::new("1 + 2; 3 + 4, 7, 8");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("1 + 2; 3 + 4, 7, 8");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -3493,8 +3493,8 @@ else:
 
     #[test]
     fn parse_single_expression2() {
-        let mut lexer = Lexer::new("x");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -3516,11 +3516,11 @@ else:
 
     #[test]
     fn parse_walrus_operator() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "if (x := 15) > 5:
     x",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -3606,8 +3606,8 @@ else:
     #[test]
     #[ignore = "Handle invalid walrus assignment in statement"]
     fn parse_invalid_walrus_operator() {
-        let mut lexer = Lexer::new("x := 5 + 5");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x := 5 + 5");
+        let parser = Parser::new(lexer);
         let (_, errors) = parser.parse();
 
         assert!(errors.is_some());
@@ -3628,8 +3628,8 @@ else:
 
     #[test]
     fn parse_await_expr() {
-        let mut lexer = Lexer::new("await func() * x ** 5 / 3");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("await func() * x ** 5 / 3");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -3722,8 +3722,8 @@ else:
 
     #[test]
     fn parse_lambda_expr() {
-        let mut lexer = Lexer::new("lambda x: x + 1");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("lambda x: x + 1");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -3785,8 +3785,8 @@ else:
 
     #[test]
     fn parse_lambda_expr2() {
-        let mut lexer = Lexer::new("(lambda x: x + 1)()");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("(lambda x: x + 1)()");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -3857,12 +3857,12 @@ else:
 
     #[test]
     fn parse_class() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "class Test:
     def __init__(self):
         pass",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -3934,12 +3934,12 @@ else:
 
     #[test]
     fn parse_class2() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "class Dog(Animal):
     def __init__(self):
         pass",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4019,8 +4019,8 @@ else:
 
     #[test]
     fn parse_import() {
-        let mut lexer = Lexer::new("import os");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("import os");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4045,8 +4045,8 @@ else:
 
     #[test]
     fn parse_import2() {
-        let mut lexer = Lexer::new("import os.walk as O, sys as S");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("import os.walk as O, sys as S");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4077,8 +4077,8 @@ else:
 
     #[test]
     fn parse_from_import() {
-        let mut lexer = Lexer::new("from os import *");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("from os import *");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4105,8 +4105,8 @@ else:
 
     #[test]
     fn parse_from_import2() {
-        let mut lexer = Lexer::new("from ... import *");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("from ... import *");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4133,8 +4133,8 @@ else:
 
     #[test]
     fn parse_from_import3() {
-        let mut lexer = Lexer::new("from .subpackage.module1 import func as fn");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("from .subpackage.module1 import func as fn");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4161,8 +4161,8 @@ else:
 
     #[test]
     fn parse_from_import4() {
-        let mut lexer = Lexer::new("from .subpackage.module1 import (func, func2, func3)");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("from .subpackage.module1 import (func, func2, func3)");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4199,11 +4199,11 @@ else:
 
     #[test]
     fn parse_with() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "with open() as file:
     pass",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4273,12 +4273,12 @@ else:
 
     #[test]
     fn parse_with2() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 with t() as (a, b), t1():
     ...",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4396,13 +4396,13 @@ with t() as (a, b), t1():
 
     #[test]
     fn parse_try_except() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "try:
     pass
 except:
     pass",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4464,13 +4464,13 @@ except:
 
     #[test]
     fn parse_try_except_as() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "try:
     pass
 except Except as e:
     pass",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4540,13 +4540,13 @@ except Except as e:
 
     #[test]
     fn parse_try_finally() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "try:
     pass
 finally:
     pass",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4605,7 +4605,7 @@ finally:
 
     #[test]
     fn parse_try_except_finally() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "try:
     pass
 except:
@@ -4613,7 +4613,7 @@ except:
 finally:
     pass",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4696,7 +4696,7 @@ finally:
 
     #[test]
     fn parse_try_except_else_finally() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "try:
     pass
 except:
@@ -4706,7 +4706,7 @@ else:
 finally:
     pass",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4810,7 +4810,7 @@ finally:
 
     #[test]
     fn parse_try_with_multiple_excepts() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 try:
     pass
@@ -4820,7 +4820,7 @@ except:
     pass
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -4930,13 +4930,13 @@ except:
 
     #[test]
     fn parse_return_stmt() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 def x():
     return
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
         assert!(errors.is_none());
         assert_eq!(
@@ -4977,13 +4977,13 @@ def x():
 
     #[test]
     fn parse_return_stmt2() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 def x():
     return 2 + 2
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
         assert!(errors.is_none());
         assert_eq!(
@@ -5050,13 +5050,13 @@ def x():
 
     #[test]
     fn parse_yield_expr() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 def test():
     yield 1
     yield 1, 2 + 3, abc",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -5171,13 +5171,13 @@ def test():
 
     #[test]
     fn parse_yield_from() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 def test():
     yield from func()
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -5236,14 +5236,14 @@ def test():
 
     #[test]
     fn parse_for_stmt() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 for i in [1, 2, 3]:
     yield i
     yield i + 1
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -5373,13 +5373,13 @@ for i in [1, 2, 3]:
 
     #[test]
     fn parse_for_stmt2() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 for a, b in ((1, 2, 3)):
     ...
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -5480,13 +5480,13 @@ for a, b in ((1, 2, 3)):
 
     #[test]
     fn parse_for_stmt3() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 for *a in ((1, 2, 3)):
     ...
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -5577,14 +5577,14 @@ for *a in ((1, 2, 3)):
 
     #[test]
     fn parse_raise_stmt() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 raise
 raise Exception
 raise Exception from e
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -5653,12 +5653,12 @@ raise Exception from e
 
     #[test]
     fn parse_del_stmt() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 del a
 del b, c, d",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -5735,8 +5735,8 @@ del b, c, d",
 
     #[test]
     fn parse_function_call_with_arguments() {
-        let mut lexer = Lexer::new("hello(1 + 2, True, y = None)");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("hello(1 + 2, True, y = None)");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -5827,8 +5827,8 @@ del b, c, d",
 
     #[test]
     fn parse_subscript_with_string() {
-        let mut lexer = Lexer::new("l[\"x\"]");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("l[\"x\"]");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -5867,7 +5867,7 @@ del b, c, d",
 
     #[test]
     fn parse_subscript_with_slice() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 l[1:]
 l[:1]
@@ -5877,7 +5877,7 @@ l[::]
 l[:]
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -6116,7 +6116,7 @@ l[:]
 
     #[test]
     fn parse_function_with_decorators() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 @abc
 @abc.cde
@@ -6124,7 +6124,7 @@ def test():
    ...
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -6200,8 +6200,8 @@ def test():
 
     #[test]
     fn parse_list_comprehension() {
-        let mut lexer = Lexer::new("[n for n in dir(module) if n[0] != \"_\"]");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("[n for n in dir(module) if n[0] != \"_\"]");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -6327,8 +6327,8 @@ def test():
 
     #[test]
     fn parse_list_comprehension2() {
-        let mut lexer = Lexer::new("[i for i in l for j in l if i > 0 if j > 1 for x in l]");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("[i for i in l for j in l if i > 0 if j > 1 for x in l]");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -6513,12 +6513,12 @@ def test():
 
     #[test]
     fn parse_function_with_kw_only_parameters() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 def test(x=0, *, y=0):
     ...",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -6602,12 +6602,12 @@ def test(x=0, *, y=0):
 
     #[test]
     fn parse_function_with_kw_only_and_pos_only_parameters() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 def test(x, /, *, y):
     ...",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -6675,8 +6675,8 @@ def test(x, /, *, y):
 
     #[test]
     fn parse_assert_stmt() {
-        let mut lexer = Lexer::new("assert 1 > x");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("assert 1 > x");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -6725,8 +6725,8 @@ def test(x, /, *, y):
 
     #[test]
     fn parse_assert_stmt_with_message() {
-        let mut lexer = Lexer::new("assert 1 > x, 'error message'");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("assert 1 > x, 'error message'");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -6783,8 +6783,8 @@ def test(x, /, *, y):
 
     #[test]
     fn parse_generator_comprehension() {
-        let mut lexer = Lexer::new("(i for i in l if i % 2 == 0)");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("(i for i in l if i % 2 == 0)");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -6894,8 +6894,8 @@ def test(x, /, *, y):
 
     #[test]
     fn parse_invalid_global_statement() {
-        let mut lexer = Lexer::new("global 1 + 1");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("global 1 + 1");
+        let parser = Parser::new(lexer);
         let (_, errors) = parser.parse();
 
         assert!(errors.is_some());
@@ -6916,8 +6916,8 @@ def test(x, /, *, y):
 
     #[test]
     fn parse_global_statement() {
-        let mut lexer = Lexer::new("global x, z, y");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("global x, z, y");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -6967,8 +6967,8 @@ def test(x, /, *, y):
 
     #[test]
     fn parse_nonlocal_statement() {
-        let mut lexer = Lexer::new("nonlocal x");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("nonlocal x");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -6998,12 +6998,12 @@ def test(x, /, *, y):
 
     #[test]
     fn parse_function_with_simple_stmts() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 def t(): x = 1; return x
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -7084,12 +7084,12 @@ def t(): x = 1; return x
     fn parse_function_with_invalid_simple_stmts() {
         // FIXME: the `parse_simple_stmts` function is creating the AST for the "while" statement,
         // when it should be creating an invalid AST node
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 def t(): x = 1; while x > 1: x -= 1
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (_, errors) = parser.parse();
 
         assert!(errors.is_some());
@@ -7110,12 +7110,12 @@ def t(): x = 1; while x > 1: x -= 1
 
     #[test]
     fn parse_function_with_invalid_simple_stmts2() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 def t(): ;
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (_, errors) = parser.parse();
 
         assert!(errors.is_some());
@@ -7136,8 +7136,8 @@ def t(): ;
 
     #[test]
     fn parse_invalid_await_expr() {
-        let mut lexer = Lexer::new("await");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("await");
+        let parser = Parser::new(lexer);
         let (_, errors) = parser.parse();
 
         assert_eq!(
@@ -7157,7 +7157,7 @@ def t(): ;
 
     #[test]
     fn parse_class_with_decorators() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 @abc
 @abc.cde
@@ -7165,7 +7165,7 @@ class Test:
    ...
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -7241,13 +7241,13 @@ class Test:
 
     #[test]
     fn parse_async_function() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 async def t():
    ...
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -7286,13 +7286,13 @@ async def t():
 
     #[test]
     fn parse_async_with() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 async with T():
    ...
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -7354,13 +7354,13 @@ async with T():
 
     #[test]
     fn parse_async_for() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 async for i in l:
    ...
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -7414,13 +7414,13 @@ async for i in l:
 
     #[test]
     fn parse_invalid_async() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 async class Test:
    ...
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (_, errors) = parser.parse();
 
         assert!(errors.is_some());
@@ -7441,8 +7441,8 @@ async class Test:
 
     #[test]
     fn parse_is_not_operator() {
-        let mut lexer = Lexer::new("object.attr is not None");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("object.attr is not None");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -7497,8 +7497,8 @@ async class Test:
 
     #[test]
     fn parse_not_in_operator() {
-        let mut lexer = Lexer::new("object.attr not in list");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("object.attr not in list");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -7556,13 +7556,13 @@ async class Test:
 
     #[test]
     fn parse_simple_statements_in_try() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 try: return 2
 finally: pass
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -7632,8 +7632,8 @@ finally: pass
 
     #[test]
     fn parse_function_call() {
-        let mut lexer = Lexer::new("print('%s%s%s%s' % (a, b, c, d))");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("print('%s%s%s%s' % (a, b, c, d))");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -7727,14 +7727,14 @@ finally: pass
 
     #[test]
     fn parse_with_stmt_with_multiple_items() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 with (a if b else
         open(c)) as f, open(d) as e:
     ...
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -7883,13 +7883,13 @@ with (a if b else
 
     #[test]
     fn parse_class_with_multiple_base_classes() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 class Test(A, B, C):
     ...
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -7956,8 +7956,8 @@ class Test(A, B, C):
 
     #[test]
     fn parse_set_comprehension() {
-        let mut lexer = Lexer::new("{i for i in list}");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("{i for i in list}");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -8015,8 +8015,8 @@ class Test(A, B, C):
 
     #[test]
     fn parse_generator_comprehension2() {
-        let mut lexer = Lexer::new("set(i, x for x in l)");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("set(i, x for x in l)");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -8102,8 +8102,8 @@ class Test(A, B, C):
 
     #[test]
     fn parse_dict_comprehension() {
-        let mut lexer = Lexer::new("{i:i + 1 for i in list}");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("{i:i + 1 for i in list}");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -8161,13 +8161,13 @@ class Test(A, B, C):
 
     #[test]
     fn parse_import3() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 from a import *
 import a
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -8208,13 +8208,13 @@ import a
 
     #[test]
     fn parse_function_with_pos_only_parameters() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 def test(a, b, c, /):
     ...
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -8296,8 +8296,8 @@ def test(a, b, c, /):
 
     #[test]
     fn parse_empty_tuple() {
-        let mut lexer = Lexer::new("()");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("()");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -8319,8 +8319,8 @@ def test(a, b, c, /):
 
     #[test]
     fn parse_lambda_with_no_params() {
-        let mut lexer = Lexer::new("lambda: ...");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("lambda: ...");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -8348,13 +8348,13 @@ def test(a, b, c, /):
 
     #[test]
     fn parse_function_with_type_annotation() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 def test(x: int, y: str, z: list[str]) -> str:
     ...
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -8485,14 +8485,14 @@ def test(x: int, y: str, z: list[str]) -> str:
 
     #[test]
     fn parse_async_func_with_decorator() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 @decorator
 async def test():
     ...
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -8539,8 +8539,8 @@ async def test():
 
     #[test]
     fn parse_lambda_expr3() {
-        let mut lexer = Lexer::new("lambda y, x=x: ...");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("lambda y, x=x: ...");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -8605,7 +8605,7 @@ async def test():
 
     #[test]
     fn parse_from_import5() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 from abc import (
     z, x, y,
@@ -8613,7 +8613,7 @@ from abc import (
 )
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -8654,13 +8654,13 @@ from abc import (
 
     #[test]
     fn parse_class_with_keyword_args() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 class T(a, x='hello', y='world'):
     ...
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -8748,14 +8748,14 @@ class T(a, x='hello', y='world'):
 
     #[test]
     fn parse_invalid_use_of_unpacking() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 (*a)
 (*a,) # this is valid because is creating a tuple
 (**b)
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (_, errors) = parser.parse();
 
         assert!(errors.is_some());
@@ -8788,7 +8788,7 @@ class T(a, x='hello', y='world'):
 
     #[test]
     fn parse_dict_expression3() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 {'a': 1, 'b': 2,
     **{'a':i for i in l},
@@ -8796,7 +8796,7 @@ class T(a, x='hello', y='world'):
     **{'c':x for x in l}}
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -9021,8 +9021,8 @@ class T(a, x='hello', y='world'):
 
     #[test]
     fn parse_matrix_multiplication_operator() {
-        let mut lexer = Lexer::new("a @ b");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("a @ b");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -9062,8 +9062,8 @@ class T(a, x='hello', y='world'):
 
     #[test]
     fn parse_list_comprehension3() {
-        let mut lexer = Lexer::new("[f for f in l if (a if b is None else c)]");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("[f for f in l if (a if b is None else c)]");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -9178,7 +9178,7 @@ class T(a, x='hello', y='world'):
 
     #[test]
     fn parse_async_comprehensions() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 [i async for i in l]
 {i async for i in l}
@@ -9187,7 +9187,7 @@ class T(a, x='hello', y='world'):
 func(i async for i in l)
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (_, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -9195,8 +9195,8 @@ func(i async for i in l)
 
     #[test]
     fn parse_slice_with_comma() {
-        let mut lexer = Lexer::new("x[1, 1:]");
-        let parser = Parser::new(&mut lexer);
+        let lexer = Lexer::new("x[1, 1:]");
+        let parser = Parser::new(lexer);
         let (parsed_file, errors) = parser.parse();
 
         assert!(errors.is_none());
@@ -9264,7 +9264,7 @@ func(i async for i in l)
 
     #[test]
     fn parse_match_statement() {
-        let mut lexer = Lexer::new(
+        let lexer = Lexer::new(
             "
 match x:
     case 0: x = 1
@@ -9274,7 +9274,7 @@ match x:
         ...
 ",
         );
-        let parser = Parser::new(&mut lexer);
+        let parser = Parser::new(lexer);
         let (_, errors) = parser.parse();
 
         assert!(errors.is_none());
