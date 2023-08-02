@@ -190,11 +190,8 @@ impl<'src> Lexer<'src> {
                     .get(self.current_pos.read_pos + 1)
                     .map_or(false, |char| char.is_ascii_digit())
                 {
-                    self.consume_float(self.current_pos);
-                    continue;
-                }
-
-                if let (Some(b'.'), Some(b'.')) = (
+                    self.consume_float(self.current_pos)
+                } else if let (Some(b'.'), Some(b'.')) = (
                     self.text_bytes.get(self.current_pos.read_pos + 1),
                     self.text_bytes.get(self.current_pos.read_pos + 2),
                 ) {
@@ -510,13 +507,13 @@ impl<'src> Lexer<'src> {
     }
 
     fn consume_float(&mut self, float_start: Position) -> Token<'src> {
-        if !self.is_eof() && matches!(self.text_bytes[self.current_pos.read_pos], b'e' | b'E') {
+        if matches!(self.text_bytes[self.current_pos.read_pos], b'e' | b'E') {
             self.advance_pos(1);
             // after consuming the 'e'/'E', we may see a '+' or '-'
             if !self.is_eof() && matches!(self.text_bytes[self.current_pos.read_pos], b'-' | b'+') {
                 self.advance_pos(1);
             }
-        } else {
+        } else if self.text_bytes[self.current_pos.read_pos] == b'.' {
             // consume '.'
             self.advance_pos(1);
         }

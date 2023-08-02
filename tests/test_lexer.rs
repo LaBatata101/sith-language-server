@@ -460,7 +460,7 @@ mod tests_lexer {
     fn lex_decimal_numbers_literals() {
         let (tokens, errors) = Lexer::new("10 1_000 0b10 0B1_1 0o77 0O1_6 0Xcafe_BABE 0xCAFE").tokenize();
 
-        assert!(dbg!(errors).is_empty());
+        assert!(errors.is_empty());
         assert_eq!(
             tokens,
             vec![
@@ -576,6 +576,15 @@ mod tests_lexer {
                     },
                 },
                 Token {
+                    kind: TokenType::Number(NumberType::Float(".001")),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 10,
+                        column_end: 14,
+                    },
+                },
+                Token {
                     kind: TokenType::Number(NumberType::Float("1e100")),
                     span: Span {
                         row_start: 1,
@@ -638,7 +647,7 @@ mod tests_lexer {
         let (tokens, errors) =
             Lexer::new("3.14j 10.j .001j 1e100j 3.14_15_93j 1_000.95j 3e-10j 3.14E-10j 1J").tokenize();
 
-        assert!(dbg!(errors).is_empty());
+        assert!(errors.is_empty());
         assert_eq!(
             tokens,
             vec![
@@ -658,6 +667,15 @@ mod tests_lexer {
                         row_end: 1,
                         column_start: 7,
                         column_end: 10,
+                    },
+                },
+                Token {
+                    kind: TokenType::Number(NumberType::Imaginary(".001j")),
+                    span: Span {
+                        row_start: 1,
+                        row_end: 1,
+                        column_start: 12,
+                        column_end: 16,
                     },
                 },
                 Token {
@@ -1093,13 +1111,14 @@ def test(x):
         return True
 
     return False
+        
 ",
         );
         let (tokens, errors) = lexer.tokenize();
 
         assert!(errors.is_empty());
         assert_eq!(
-            dbg!(tokens),
+            tokens,
             vec![
                 Token {
                     kind: TokenType::Keyword(KeywordType::Def),
@@ -1652,7 +1671,7 @@ if x:           # comment
     fn lex_invalid_float_and_imaginary_numbers() {
         let (_, errors) = Lexer::new("3._14 3.__14 3E1_4_ 3.14e10e-10 3._14j 3.__14J 3E1_4_J 3.14e10e-10J").tokenize();
         assert_eq!(
-            dbg!(errors),
+            errors,
             vec![
                 PythonError {
                     error: PythonErrorType::Syntax,
