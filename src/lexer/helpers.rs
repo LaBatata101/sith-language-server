@@ -1,79 +1,26 @@
-pub fn is_string_prefix(prefix: &str) -> bool {
-    matches!(
-        prefix,
-        "r" | "u"
-            | "R"
-            | "U"
-            | "f"
-            | "F"
-            | "fr"
-            | "Fr"
-            | "fR"
-            | "FR"
-            | "rf"
-            | "rF"
-            | "Rf"
-            | "RF"
-            | "b"
-            | "B"
-            | "br"
-            | "Br"
-            | "bR"
-            | "BR"
-            | "rb"
-            | "rB"
-            | "Rb"
-            | "RB"
-    )
+use unicode_ident::{is_xid_continue, is_xid_start};
+
+pub const fn is_quote(c: char) -> bool {
+    matches!(c, '\'' | '"')
 }
 
-pub fn is_eol(char: u8) -> bool {
-    char == b'\n' || char == b'\r'
+pub const fn is_ascii_identifier_start(c: char) -> bool {
+    matches!(c, 'a'..='z' | 'A'..='Z' | '_')
 }
 
-pub fn is_whitespace(char: u8) -> bool {
-    matches!(char, b' ' | b'\t' | 0x0C)
+// Checks if the character c is a valid starting character as described
+// in https://docs.python.org/3/reference/lexical_analysis.html#identifiers
+pub fn is_unicode_identifier_start(c: char) -> bool {
+    is_xid_start(c)
 }
 
-pub fn is_char_operator(char: u8) -> bool {
-    matches!(
-        char as char,
-        '*' | '+' | '=' | '-' | '<' | '>' | '&' | '|' | '%' | '~' | '^' | '!' | '@' | '/'
-    )
-}
-
-pub fn unicode_char_size(char: u8) -> usize {
-    if (char & 0xE0) == 0xC0 {
-        2
-    } else if (char & 0xF0) == 0xE0 {
-        3
-    } else if (char & 0xF8) == 0xF0 {
-        4
-    } else {
-        1
+// Checks if the character c is a valid continuation character as described
+// in https://docs.python.org/3/reference/lexical_analysis.html#identifiers
+pub fn is_identifier_continuation(c: char) -> bool {
+    match c {
+        'a'..='z' | 'A'..='Z' | '_' | '0'..='9' => true,
+        c => is_xid_continue(c),
     }
-}
-
-fn convert_slice_to_unicode_codepoint(bytes: &[u8]) -> u32 {
-    assert!(!bytes.is_empty() && bytes.len() <= 4, "Invalid slice size!");
-
-    if bytes.len() == 1 {
-        bytes[0] as u32
-    } else if bytes.len() == 2 {
-        ((bytes[0] & 0x1F) as u32) << 6 | ((bytes[1] & 0x3F) as u32)
-    } else if bytes.len() == 3 {
-        ((bytes[0] & 0x0F) as u32) << 12 | ((bytes[1] & 0x3F) as u32) << 6 | ((bytes[2] & 0x3F) as u32)
-    } else {
-        ((bytes[0] & 0x07) as u32) << 18
-            | ((bytes[1] & 0x3F) as u32) << 12
-            | ((bytes[2] & 0x3F) as u32) << 6
-            | ((bytes[3] & 0x3F) as u32)
-    }
-}
-
-pub fn convert_byte_to_unicode_codepoint(bytes: &[u8], char: u8, pos: usize) -> u32 {
-    let char_size = unicode_char_size(char);
-    convert_slice_to_unicode_codepoint(&bytes[pos..pos + char_size])
 }
 
 macro_rules! StateMachine {
@@ -96,22 +43,6 @@ macro_rules! StateMachine {
     };
 }
 
-/// Verify if `str` is a valid decimal literal accordingly to the Python Lexer specification.
-///
-/// References:
-///     - [https://docs.python.org/3/reference/lexical_analysis.html#integer-literals]
-///
-/// # Examples:
-///
-/// ```
-///  assert!(is_integer_number_valid("1"));
-///  assert!(is_integer_number_valid("123"));
-///  assert!(is_integer_number_valid("1_2_3"));
-///  assert!(!is_integer_number_valid("12_"));
-///  assert!(!is_integer_number_valid("_12"));
-///  assert!(!is_integer_number_valid("1_2_3__"));
-///  assert!(!is_integer_number_valid("1_2__3"));
-/// ```
 pub fn is_decimal_number_valid(str: &str) -> bool {
     StateMachine!(str,
         START: 0,
@@ -125,46 +56,6 @@ pub fn is_decimal_number_valid(str: &str) -> bool {
     )
 }
 
-/// Verify if `str` is a valid float literal accordingly to the Python Lexer specification.
-/// **NOTE**: This function also verifies if `str` is a valid imaginary literal.
-///
-/// References:
-///     - [https://docs.python.org/3/reference/lexical_analysis.html#floating-point-literals]
-///     - [https://docs.python.org/3/reference/lexical_analysis.html#imaginary-literals]
-///
-/// # Examples:
-///
-/// ```
-///  assert!(is_float_number_valid("3.14"));
-///  assert!(is_float_number_valid("10."));
-///  assert!(is_float_number_valid(".001"));
-///  assert!(is_float_number_valid("1e100"));
-///  assert!(is_float_number_valid("0e0"));
-///  assert!(is_float_number_valid("3.14_15_93"));
-///  assert!(is_float_number_valid("1_000.95"));
-///  assert!(is_float_number_valid("3e-10"));
-///  assert!(is_float_number_valid("3.14E-10"));
-///  assert!(!is_float_number_valid("3._14"));
-///  assert!(!is_float_number_valid("3.__14"));
-///  assert!(!is_float_number_valid("3E1_4_"));
-///  assert!(!is_float_number_valid("3.14e10e-10"));
-///
-///  // Imaginary Number
-///     
-///  assert!(is_float_number_valid("3.14j"));
-///  assert!(is_float_number_valid("10.j"));
-///  assert!(is_float_number_valid(".001J"));
-///  assert!(is_float_number_valid("1e100j"));
-///  assert!(is_float_number_valid("0e0j"));
-///  assert!(is_float_number_valid("3.14_15_93J"));
-///  assert!(is_float_number_valid("1_000.95J"));
-///  assert!(is_float_number_valid("3e-10j"));
-///  assert!(is_float_number_valid("3.14E+10J"));
-///  assert!(!is_float_number_valid("3._14j"));
-///  assert!(!is_float_number_valid("3.__14J"));
-///  assert!(!is_float_number_valid("3E1_4_J"));
-///  assert!(!is_float_number_valid("3.14e10e-10J"));
-/// ```
 pub fn is_float_number_valid(str: &str) -> bool {
     StateMachine!(str,
         START: 0,
@@ -200,22 +91,6 @@ pub fn is_float_number_valid(str: &str) -> bool {
     )
 }
 
-/// Verify if `str` is a valid octal literal accordingly to the Python Lexer specification.
-///
-/// References:
-///     - [https://docs.python.org/3/reference/lexical_analysis.html#integer-literals]
-///
-/// # Examples:
-///
-/// ```
-///  assert!(is_octal_number_valid("0o1"));
-///  assert!(is_octal_number_valid("0O1_0"));
-///  assert!(is_octal_number_valid("0o_1_2_7"));
-///  assert!(is_octal_number_valid("0o_1_2_3_4_5_6_7"));
-///  assert!(!is_octal_number_valid("0O__0_1_2_34567"));
-///  assert!(!is_octal_number_valid("0o_"));
-///  assert!(!is_octal_number_valid("0o77__"));
-/// ```
 pub fn is_octal_number_valid(str: &str) -> bool {
     StateMachine!(str,
         START: 0,
@@ -235,22 +110,6 @@ pub fn is_octal_number_valid(str: &str) -> bool {
     )
 }
 
-/// Verify if `str` is a valid binary literal accordingly to the Python Lexer specification.
-///
-/// References:
-///     - [https://docs.python.org/3/reference/lexical_analysis.html#integer-literals]
-///
-/// # Examples:
-///
-/// ```
-///  assert!(is_binary_number_valid("0b1"));
-///  assert!(is_binary_number_valid("0B1_0"));
-///  assert!(is_binary_number_valid("0b_1_0_1"));
-///  assert!(!is_binary_number_valid("0b__1_0_1"));
-///  assert!(!is_binary_number_valid("0b_"));
-///  assert!(!is_binary_number_valid("0b01__"));
-///  assert!(!is_binary_number_valid("0b02"));
-/// ```
 pub fn is_binary_number_valid(str: &str) -> bool {
     StateMachine!(str,
         START: 0,
@@ -270,24 +129,6 @@ pub fn is_binary_number_valid(str: &str) -> bool {
     )
 }
 
-/// Verify if `str` is a valid hexadecimal literal accordingly to the Python Lexer specification.
-///
-/// References:
-///     - [https://docs.python.org/3/reference/lexical_analysis.html#integer-literals]
-///
-/// # Examples:
-///
-/// ```
-///  assert!(is_hex_number_valid("0x0123456789"));
-///  assert!(is_hex_number_valid("0Xabcdef"));
-///  assert!(is_hex_number_valid("0x0123456789_abcdef_ABCDEF"));
-///  assert!(is_hex_number_valid("0x_a_B_c_D_e"));
-///  assert!(is_hex_number_valid("0xDEAD_beef"));
-///  assert!(is_hex_number_valid("0Xcafe_BABE"));
-///  assert!(!is_hex_number_valid("0x__cafe_babe"));
-///  assert!(!is_hex_number_valid("0x_"));
-///  assert!(!is_hex_number_valid("0x_c_a_f_e_b_a_b_e_"));
-/// ```
 pub fn is_hex_number_valid(str: &str) -> bool {
     StateMachine!(str,
         START: 0,

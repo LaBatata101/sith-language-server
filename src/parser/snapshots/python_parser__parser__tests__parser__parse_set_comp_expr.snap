@@ -1,0 +1,371 @@
+---
+source: src/parser/tests.rs
+expression: "parse(\"\n{x for i in ll}\n{b for c in d if x in w if y and yy if z}\n{a for b in c if d and e for f in j if k > h}\n{a for b in c if d and e async for f in j if k > h}\n{a for a, b in G}\n\")"
+---
+ParsedFile {
+    ast: Module {
+        body: [
+            Expression(
+                ExpressionStmt {
+                    value: SetComp(
+                        SetCompExpr {
+                            element: Id(
+                                Identifier {
+                                    id: "x",
+                                    range: 2..3,
+                                },
+                            ),
+                            generators: [
+                                Comprehension {
+                                    target: Id(
+                                        Identifier {
+                                            id: "i",
+                                            range: 8..9,
+                                        },
+                                    ),
+                                    iter: Id(
+                                        Identifier {
+                                            id: "ll",
+                                            range: 13..15,
+                                        },
+                                    ),
+                                    ifs: [],
+                                    is_async: false,
+                                    range: 4..15,
+                                },
+                            ],
+                            range: 2..15,
+                        },
+                    ),
+                    range: 1..16,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: SetComp(
+                        SetCompExpr {
+                            element: Id(
+                                Identifier {
+                                    id: "b",
+                                    range: 18..19,
+                                },
+                            ),
+                            generators: [
+                                Comprehension {
+                                    target: Id(
+                                        Identifier {
+                                            id: "c",
+                                            range: 24..25,
+                                        },
+                                    ),
+                                    iter: Id(
+                                        Identifier {
+                                            id: "d",
+                                            range: 29..30,
+                                        },
+                                    ),
+                                    ifs: [
+                                        Compare(
+                                            CompareExpr {
+                                                left: Id(
+                                                    Identifier {
+                                                        id: "x",
+                                                        range: 34..35,
+                                                    },
+                                                ),
+                                                ops: [
+                                                    In,
+                                                ],
+                                                comparators: [
+                                                    Id(
+                                                        Identifier {
+                                                            id: "w",
+                                                            range: 39..40,
+                                                        },
+                                                    ),
+                                                ],
+                                                range: 34..40,
+                                            },
+                                        ),
+                                        BoolOp(
+                                            BoolOpExpr {
+                                                op: And,
+                                                values: [
+                                                    Id(
+                                                        Identifier {
+                                                            id: "y",
+                                                            range: 44..45,
+                                                        },
+                                                    ),
+                                                    Id(
+                                                        Identifier {
+                                                            id: "yy",
+                                                            range: 50..52,
+                                                        },
+                                                    ),
+                                                ],
+                                                range: 44..52,
+                                            },
+                                        ),
+                                        Id(
+                                            Identifier {
+                                                id: "z",
+                                                range: 56..57,
+                                            },
+                                        ),
+                                    ],
+                                    is_async: false,
+                                    range: 20..57,
+                                },
+                            ],
+                            range: 18..57,
+                        },
+                    ),
+                    range: 17..58,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: SetComp(
+                        SetCompExpr {
+                            element: Id(
+                                Identifier {
+                                    id: "a",
+                                    range: 60..61,
+                                },
+                            ),
+                            generators: [
+                                Comprehension {
+                                    target: Id(
+                                        Identifier {
+                                            id: "b",
+                                            range: 66..67,
+                                        },
+                                    ),
+                                    iter: Id(
+                                        Identifier {
+                                            id: "c",
+                                            range: 71..72,
+                                        },
+                                    ),
+                                    ifs: [
+                                        BoolOp(
+                                            BoolOpExpr {
+                                                op: And,
+                                                values: [
+                                                    Id(
+                                                        Identifier {
+                                                            id: "d",
+                                                            range: 76..77,
+                                                        },
+                                                    ),
+                                                    Id(
+                                                        Identifier {
+                                                            id: "e",
+                                                            range: 82..83,
+                                                        },
+                                                    ),
+                                                ],
+                                                range: 76..83,
+                                            },
+                                        ),
+                                    ],
+                                    is_async: false,
+                                    range: 62..83,
+                                },
+                                Comprehension {
+                                    target: Id(
+                                        Identifier {
+                                            id: "f",
+                                            range: 88..89,
+                                        },
+                                    ),
+                                    iter: Id(
+                                        Identifier {
+                                            id: "j",
+                                            range: 93..94,
+                                        },
+                                    ),
+                                    ifs: [
+                                        Compare(
+                                            CompareExpr {
+                                                left: Id(
+                                                    Identifier {
+                                                        id: "k",
+                                                        range: 98..99,
+                                                    },
+                                                ),
+                                                ops: [
+                                                    Gt,
+                                                ],
+                                                comparators: [
+                                                    Id(
+                                                        Identifier {
+                                                            id: "h",
+                                                            range: 102..103,
+                                                        },
+                                                    ),
+                                                ],
+                                                range: 98..103,
+                                            },
+                                        ),
+                                    ],
+                                    is_async: false,
+                                    range: 84..103,
+                                },
+                            ],
+                            range: 60..103,
+                        },
+                    ),
+                    range: 59..104,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: SetComp(
+                        SetCompExpr {
+                            element: Id(
+                                Identifier {
+                                    id: "a",
+                                    range: 106..107,
+                                },
+                            ),
+                            generators: [
+                                Comprehension {
+                                    target: Id(
+                                        Identifier {
+                                            id: "b",
+                                            range: 112..113,
+                                        },
+                                    ),
+                                    iter: Id(
+                                        Identifier {
+                                            id: "c",
+                                            range: 117..118,
+                                        },
+                                    ),
+                                    ifs: [
+                                        BoolOp(
+                                            BoolOpExpr {
+                                                op: And,
+                                                values: [
+                                                    Id(
+                                                        Identifier {
+                                                            id: "d",
+                                                            range: 122..123,
+                                                        },
+                                                    ),
+                                                    Id(
+                                                        Identifier {
+                                                            id: "e",
+                                                            range: 128..129,
+                                                        },
+                                                    ),
+                                                ],
+                                                range: 122..129,
+                                            },
+                                        ),
+                                    ],
+                                    is_async: false,
+                                    range: 108..129,
+                                },
+                                Comprehension {
+                                    target: Id(
+                                        Identifier {
+                                            id: "f",
+                                            range: 140..141,
+                                        },
+                                    ),
+                                    iter: Id(
+                                        Identifier {
+                                            id: "j",
+                                            range: 145..146,
+                                        },
+                                    ),
+                                    ifs: [
+                                        Compare(
+                                            CompareExpr {
+                                                left: Id(
+                                                    Identifier {
+                                                        id: "k",
+                                                        range: 150..151,
+                                                    },
+                                                ),
+                                                ops: [
+                                                    Gt,
+                                                ],
+                                                comparators: [
+                                                    Id(
+                                                        Identifier {
+                                                            id: "h",
+                                                            range: 154..155,
+                                                        },
+                                                    ),
+                                                ],
+                                                range: 150..155,
+                                            },
+                                        ),
+                                    ],
+                                    is_async: true,
+                                    range: 130..155,
+                                },
+                            ],
+                            range: 106..155,
+                        },
+                    ),
+                    range: 105..156,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: SetComp(
+                        SetCompExpr {
+                            element: Id(
+                                Identifier {
+                                    id: "a",
+                                    range: 158..159,
+                                },
+                            ),
+                            generators: [
+                                Comprehension {
+                                    target: Tuple(
+                                        TupleExpr {
+                                            elements: [
+                                                Id(
+                                                    Identifier {
+                                                        id: "a",
+                                                        range: 164..165,
+                                                    },
+                                                ),
+                                                Id(
+                                                    Identifier {
+                                                        id: "b",
+                                                        range: 167..168,
+                                                    },
+                                                ),
+                                            ],
+                                            range: 164..169,
+                                        },
+                                    ),
+                                    iter: Id(
+                                        Identifier {
+                                            id: "G",
+                                            range: 172..173,
+                                        },
+                                    ),
+                                    ifs: [],
+                                    is_async: false,
+                                    range: 160..173,
+                                },
+                            ],
+                            range: 158..173,
+                        },
+                    ),
+                    range: 157..174,
+                },
+            ),
+        ],
+        range: 0..174,
+    },
+    parse_errors: [],
+}

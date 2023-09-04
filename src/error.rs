@@ -1,4 +1,4 @@
-use crate::lexer::span::Span;
+// use crate::lexer2::Span;
 
 pub type PythonErrors = Option<Vec<PythonError>>;
 
@@ -6,7 +6,7 @@ pub type PythonErrors = Option<Vec<PythonError>>;
 pub struct PythonError {
     pub error: PythonErrorType,
     pub msg: String,
-    pub span: Span,
+    // pub span: Span,
 }
 
 #[derive(Debug, PartialEq)]

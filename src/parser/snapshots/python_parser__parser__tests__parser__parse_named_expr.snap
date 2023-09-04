@@ -1,0 +1,326 @@
+---
+source: src/parser/tests.rs
+expression: "parse(\"\n(x:=1)\n{ x := 1 }\n[x := 1]\n(x := 1 + 1)\n(x,y := a and b)\n{ x,y := a < b }\n[x,y := ...]\nf(a:=b, c:=d)\n\")"
+---
+ParsedFile {
+    ast: Module {
+        body: [
+            Expression(
+                ExpressionStmt {
+                    value: Named(
+                        NamedExpr {
+                            target: Id(
+                                Identifier {
+                                    id: "x",
+                                    range: 2..3,
+                                },
+                            ),
+                            value: Literal(
+                                LiteralExpr {
+                                    value: Int(
+                                        "1",
+                                    ),
+                                    range: 5..6,
+                                },
+                            ),
+                            range: 2..6,
+                        },
+                    ),
+                    range: 1..7,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Set(
+                        SetExpr {
+                            elements: [
+                                Named(
+                                    NamedExpr {
+                                        target: Id(
+                                            Identifier {
+                                                id: "x",
+                                                range: 10..11,
+                                            },
+                                        ),
+                                        value: Literal(
+                                            LiteralExpr {
+                                                value: Int(
+                                                    "1",
+                                                ),
+                                                range: 15..16,
+                                            },
+                                        ),
+                                        range: 10..16,
+                                    },
+                                ),
+                            ],
+                            range: 8..18,
+                        },
+                    ),
+                    range: 8..18,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: List(
+                        ListExpr {
+                            elements: [
+                                Named(
+                                    NamedExpr {
+                                        target: Id(
+                                            Identifier {
+                                                id: "x",
+                                                range: 20..21,
+                                            },
+                                        ),
+                                        value: Literal(
+                                            LiteralExpr {
+                                                value: Int(
+                                                    "1",
+                                                ),
+                                                range: 25..26,
+                                            },
+                                        ),
+                                        range: 20..26,
+                                    },
+                                ),
+                            ],
+                            range: 19..27,
+                        },
+                    ),
+                    range: 19..27,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Named(
+                        NamedExpr {
+                            target: Id(
+                                Identifier {
+                                    id: "x",
+                                    range: 29..30,
+                                },
+                            ),
+                            value: BinaryOp(
+                                BinaryOpExpr {
+                                    left: Literal(
+                                        LiteralExpr {
+                                            value: Int(
+                                                "1",
+                                            ),
+                                            range: 34..35,
+                                        },
+                                    ),
+                                    op: Add,
+                                    right: Literal(
+                                        LiteralExpr {
+                                            value: Int(
+                                                "1",
+                                            ),
+                                            range: 38..39,
+                                        },
+                                    ),
+                                    range: 34..39,
+                                },
+                            ),
+                            range: 29..39,
+                        },
+                    ),
+                    range: 28..40,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Tuple(
+                        TupleExpr {
+                            elements: [
+                                Id(
+                                    Identifier {
+                                        id: "x",
+                                        range: 42..43,
+                                    },
+                                ),
+                                Named(
+                                    NamedExpr {
+                                        target: Id(
+                                            Identifier {
+                                                id: "y",
+                                                range: 44..45,
+                                            },
+                                        ),
+                                        value: BoolOp(
+                                            BoolOpExpr {
+                                                op: And,
+                                                values: [
+                                                    Id(
+                                                        Identifier {
+                                                            id: "a",
+                                                            range: 49..50,
+                                                        },
+                                                    ),
+                                                    Id(
+                                                        Identifier {
+                                                            id: "b",
+                                                            range: 55..56,
+                                                        },
+                                                    ),
+                                                ],
+                                                range: 49..56,
+                                            },
+                                        ),
+                                        range: 44..56,
+                                    },
+                                ),
+                            ],
+                            range: 41..57,
+                        },
+                    ),
+                    range: 41..57,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Set(
+                        SetExpr {
+                            elements: [
+                                Id(
+                                    Identifier {
+                                        id: "x",
+                                        range: 60..61,
+                                    },
+                                ),
+                                Named(
+                                    NamedExpr {
+                                        target: Id(
+                                            Identifier {
+                                                id: "y",
+                                                range: 62..63,
+                                            },
+                                        ),
+                                        value: Compare(
+                                            CompareExpr {
+                                                left: Id(
+                                                    Identifier {
+                                                        id: "a",
+                                                        range: 67..68,
+                                                    },
+                                                ),
+                                                ops: [
+                                                    Lt,
+                                                ],
+                                                comparators: [
+                                                    Id(
+                                                        Identifier {
+                                                            id: "b",
+                                                            range: 71..72,
+                                                        },
+                                                    ),
+                                                ],
+                                                range: 67..72,
+                                            },
+                                        ),
+                                        range: 62..72,
+                                    },
+                                ),
+                            ],
+                            range: 58..74,
+                        },
+                    ),
+                    range: 58..74,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: List(
+                        ListExpr {
+                            elements: [
+                                Id(
+                                    Identifier {
+                                        id: "x",
+                                        range: 76..77,
+                                    },
+                                ),
+                                Named(
+                                    NamedExpr {
+                                        target: Id(
+                                            Identifier {
+                                                id: "y",
+                                                range: 78..79,
+                                            },
+                                        ),
+                                        value: Ellipsis(
+                                            EllipsisExpr {
+                                                range: 83..86,
+                                            },
+                                        ),
+                                        range: 78..86,
+                                    },
+                                ),
+                            ],
+                            range: 75..87,
+                        },
+                    ),
+                    range: 75..87,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Call(
+                        CallExpr {
+                            lhs: Id(
+                                Identifier {
+                                    id: "f",
+                                    range: 88..89,
+                                },
+                            ),
+                            args: Arguments {
+                                args: [
+                                    Named(
+                                        NamedExpr {
+                                            target: Id(
+                                                Identifier {
+                                                    id: "a",
+                                                    range: 90..91,
+                                                },
+                                            ),
+                                            value: Id(
+                                                Identifier {
+                                                    id: "b",
+                                                    range: 93..94,
+                                                },
+                                            ),
+                                            range: 90..94,
+                                        },
+                                    ),
+                                    Named(
+                                        NamedExpr {
+                                            target: Id(
+                                                Identifier {
+                                                    id: "c",
+                                                    range: 96..97,
+                                                },
+                                            ),
+                                            value: Id(
+                                                Identifier {
+                                                    id: "d",
+                                                    range: 99..100,
+                                                },
+                                            ),
+                                            range: 96..100,
+                                        },
+                                    ),
+                                ],
+                                kw_args: [],
+                                range: 89..101,
+                            },
+                            range: 88..101,
+                        },
+                    ),
+                    range: 88..101,
+                },
+            ),
+        ],
+        range: 0..101,
+    },
+    parse_errors: [],
+}

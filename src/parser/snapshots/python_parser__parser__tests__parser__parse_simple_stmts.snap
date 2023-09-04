@@ -1,0 +1,1107 @@
+---
+source: src/parser/tests.rs
+expression: "parse(\"\nif x: ...\nif True: pass\n1; 2; pass\n1; ...; a if b else c\n\ncontinue\n\nbreak\n\ndel a\ndel a, b, 1, 1 + 2,\n\nassert 1 < 2\nassert f()\nassert a and b\nassert x, 'error'\n\nglobal a\nglobal a, b, c\n\nreturn\nreturn a and b\nreturn 1 < 2\nreturn None\nreturn 1, 2,\nreturn x\nreturn f()\nreturn a.f()\n\nnonlocal a\nnonlocal a, b, c\n\nraise\nraise a\nraise 1 < 2\nraise a and b\nraise a from b\n\nimport a\nimport a.b.c\nimport a.b.c as d\nimport a, b, c\nimport foo.bar as a, a.b.c.d as abcd\n\nfrom a import b\nfrom . import a\nfrom foo.bar import baz as b, FooBar as fb\nfrom .a import b\nfrom ... import c\nfrom .......................... import d\nfrom ..........................a.b.c import d\nfrom module import (a, b as B, c,)\nfrom a import *\n\nif c: B; del A\nelse: C\nif x: yield x;\n\")"
+---
+ParsedFile {
+    ast: Module {
+        body: [
+            If(
+                IfStmt {
+                    test: Id(
+                        Identifier {
+                            id: "x",
+                            range: 4..5,
+                        },
+                    ),
+                    body: [
+                        Expression(
+                            ExpressionStmt {
+                                value: Ellipsis(
+                                    EllipsisExpr {
+                                        range: 7..10,
+                                    },
+                                ),
+                                range: 7..10,
+                            },
+                        ),
+                    ],
+                    elif_else_clauses: [],
+                    range: 1..10,
+                },
+            ),
+            If(
+                IfStmt {
+                    test: Literal(
+                        LiteralExpr {
+                            value: Bool(
+                                True,
+                            ),
+                            range: 14..18,
+                        },
+                    ),
+                    body: [
+                        Pass(
+                            PassStmt {
+                                range: 20..24,
+                            },
+                        ),
+                    ],
+                    elif_else_clauses: [],
+                    range: 11..24,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Literal(
+                        LiteralExpr {
+                            value: Int(
+                                "1",
+                            ),
+                            range: 25..26,
+                        },
+                    ),
+                    range: 25..26,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Literal(
+                        LiteralExpr {
+                            value: Int(
+                                "2",
+                            ),
+                            range: 28..29,
+                        },
+                    ),
+                    range: 28..29,
+                },
+            ),
+            Pass(
+                PassStmt {
+                    range: 31..35,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Literal(
+                        LiteralExpr {
+                            value: Int(
+                                "1",
+                            ),
+                            range: 36..37,
+                        },
+                    ),
+                    range: 36..37,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Ellipsis(
+                        EllipsisExpr {
+                            range: 39..42,
+                        },
+                    ),
+                    range: 39..42,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: IfElse(
+                        IfElseExpr {
+                            body: Id(
+                                Identifier {
+                                    id: "a",
+                                    range: 44..45,
+                                },
+                            ),
+                            test: Id(
+                                Identifier {
+                                    id: "b",
+                                    range: 49..50,
+                                },
+                            ),
+                            orelse: Id(
+                                Identifier {
+                                    id: "c",
+                                    range: 56..57,
+                                },
+                            ),
+                            range: 44..57,
+                        },
+                    ),
+                    range: 44..57,
+                },
+            ),
+            Continue(
+                ContinueStmt {
+                    range: 59..67,
+                },
+            ),
+            Break(
+                BreakStmt {
+                    range: 69..74,
+                },
+            ),
+            Del(
+                DelStmt {
+                    targets: [
+                        Id(
+                            Identifier {
+                                id: "a",
+                                range: 80..81,
+                            },
+                        ),
+                    ],
+                    range: 76..81,
+                },
+            ),
+            Del(
+                DelStmt {
+                    targets: [
+                        Id(
+                            Identifier {
+                                id: "a",
+                                range: 86..87,
+                            },
+                        ),
+                        Id(
+                            Identifier {
+                                id: "b",
+                                range: 89..90,
+                            },
+                        ),
+                        Literal(
+                            LiteralExpr {
+                                value: Int(
+                                    "1",
+                                ),
+                                range: 92..93,
+                            },
+                        ),
+                        BinaryOp(
+                            BinaryOpExpr {
+                                left: Literal(
+                                    LiteralExpr {
+                                        value: Int(
+                                            "1",
+                                        ),
+                                        range: 95..96,
+                                    },
+                                ),
+                                op: Add,
+                                right: Literal(
+                                    LiteralExpr {
+                                        value: Int(
+                                            "2",
+                                        ),
+                                        range: 99..100,
+                                    },
+                                ),
+                                range: 95..100,
+                            },
+                        ),
+                    ],
+                    range: 82..101,
+                },
+            ),
+            Assert(
+                AssertStmt {
+                    test: Compare(
+                        CompareExpr {
+                            left: Literal(
+                                LiteralExpr {
+                                    value: Int(
+                                        "1",
+                                    ),
+                                    range: 110..111,
+                                },
+                            ),
+                            ops: [
+                                Lt,
+                            ],
+                            comparators: [
+                                Literal(
+                                    LiteralExpr {
+                                        value: Int(
+                                            "2",
+                                        ),
+                                        range: 114..115,
+                                    },
+                                ),
+                            ],
+                            range: 110..115,
+                        },
+                    ),
+                    message: None,
+                    range: 103..115,
+                },
+            ),
+            Assert(
+                AssertStmt {
+                    test: Call(
+                        CallExpr {
+                            lhs: Id(
+                                Identifier {
+                                    id: "f",
+                                    range: 123..124,
+                                },
+                            ),
+                            args: Arguments {
+                                args: [],
+                                kw_args: [],
+                                range: 124..126,
+                            },
+                            range: 123..126,
+                        },
+                    ),
+                    message: None,
+                    range: 116..126,
+                },
+            ),
+            Assert(
+                AssertStmt {
+                    test: BoolOp(
+                        BoolOpExpr {
+                            op: And,
+                            values: [
+                                Id(
+                                    Identifier {
+                                        id: "a",
+                                        range: 134..135,
+                                    },
+                                ),
+                                Id(
+                                    Identifier {
+                                        id: "b",
+                                        range: 140..141,
+                                    },
+                                ),
+                            ],
+                            range: 134..141,
+                        },
+                    ),
+                    message: None,
+                    range: 127..141,
+                },
+            ),
+            Assert(
+                AssertStmt {
+                    test: Id(
+                        Identifier {
+                            id: "x",
+                            range: 149..150,
+                        },
+                    ),
+                    message: Some(
+                        Literal(
+                            LiteralExpr {
+                                value: String(
+                                    "error",
+                                ),
+                                range: 152..159,
+                            },
+                        ),
+                    ),
+                    range: 142..159,
+                },
+            ),
+            Global(
+                GlobalStmt {
+                    names: [
+                        Valid(
+                            Identifier {
+                                id: "a",
+                                range: 168..169,
+                            },
+                        ),
+                    ],
+                    range: 161..169,
+                },
+            ),
+            Global(
+                GlobalStmt {
+                    names: [
+                        Valid(
+                            Identifier {
+                                id: "a",
+                                range: 177..178,
+                            },
+                        ),
+                        Valid(
+                            Identifier {
+                                id: "b",
+                                range: 180..181,
+                            },
+                        ),
+                        Valid(
+                            Identifier {
+                                id: "c",
+                                range: 183..184,
+                            },
+                        ),
+                    ],
+                    range: 170..184,
+                },
+            ),
+            Return(
+                ReturnStmt {
+                    value: None,
+                    range: 186..192,
+                },
+            ),
+            Return(
+                ReturnStmt {
+                    value: Some(
+                        BoolOp(
+                            BoolOpExpr {
+                                op: And,
+                                values: [
+                                    Id(
+                                        Identifier {
+                                            id: "a",
+                                            range: 200..201,
+                                        },
+                                    ),
+                                    Id(
+                                        Identifier {
+                                            id: "b",
+                                            range: 206..207,
+                                        },
+                                    ),
+                                ],
+                                range: 200..207,
+                            },
+                        ),
+                    ),
+                    range: 193..207,
+                },
+            ),
+            Return(
+                ReturnStmt {
+                    value: Some(
+                        Compare(
+                            CompareExpr {
+                                left: Literal(
+                                    LiteralExpr {
+                                        value: Int(
+                                            "1",
+                                        ),
+                                        range: 215..216,
+                                    },
+                                ),
+                                ops: [
+                                    Lt,
+                                ],
+                                comparators: [
+                                    Literal(
+                                        LiteralExpr {
+                                            value: Int(
+                                                "2",
+                                            ),
+                                            range: 219..220,
+                                        },
+                                    ),
+                                ],
+                                range: 215..220,
+                            },
+                        ),
+                    ),
+                    range: 208..220,
+                },
+            ),
+            Return(
+                ReturnStmt {
+                    value: Some(
+                        Literal(
+                            LiteralExpr {
+                                value: None,
+                                range: 228..232,
+                            },
+                        ),
+                    ),
+                    range: 221..232,
+                },
+            ),
+            Return(
+                ReturnStmt {
+                    value: Some(
+                        Tuple(
+                            TupleExpr {
+                                elements: [
+                                    Literal(
+                                        LiteralExpr {
+                                            value: Int(
+                                                "1",
+                                            ),
+                                            range: 240..241,
+                                        },
+                                    ),
+                                    Literal(
+                                        LiteralExpr {
+                                            value: Int(
+                                                "2",
+                                            ),
+                                            range: 243..244,
+                                        },
+                                    ),
+                                ],
+                                range: 240..245,
+                            },
+                        ),
+                    ),
+                    range: 233..245,
+                },
+            ),
+            Return(
+                ReturnStmt {
+                    value: Some(
+                        Id(
+                            Identifier {
+                                id: "x",
+                                range: 253..254,
+                            },
+                        ),
+                    ),
+                    range: 246..254,
+                },
+            ),
+            Return(
+                ReturnStmt {
+                    value: Some(
+                        Call(
+                            CallExpr {
+                                lhs: Id(
+                                    Identifier {
+                                        id: "f",
+                                        range: 262..263,
+                                    },
+                                ),
+                                args: Arguments {
+                                    args: [],
+                                    kw_args: [],
+                                    range: 263..265,
+                                },
+                                range: 262..265,
+                            },
+                        ),
+                    ),
+                    range: 255..265,
+                },
+            ),
+            Return(
+                ReturnStmt {
+                    value: Some(
+                        Call(
+                            CallExpr {
+                                lhs: Attribute(
+                                    AttributeExpr {
+                                        value: Id(
+                                            Identifier {
+                                                id: "a",
+                                                range: 273..274,
+                                            },
+                                        ),
+                                        attr: Valid(
+                                            Identifier {
+                                                id: "f",
+                                                range: 275..276,
+                                            },
+                                        ),
+                                        range: 273..276,
+                                    },
+                                ),
+                                args: Arguments {
+                                    args: [],
+                                    kw_args: [],
+                                    range: 276..278,
+                                },
+                                range: 273..278,
+                            },
+                        ),
+                    ),
+                    range: 266..278,
+                },
+            ),
+            NonLocal(
+                NonLocalStmt {
+                    names: [
+                        Valid(
+                            Identifier {
+                                id: "a",
+                                range: 289..290,
+                            },
+                        ),
+                    ],
+                    range: 280..290,
+                },
+            ),
+            NonLocal(
+                NonLocalStmt {
+                    names: [
+                        Valid(
+                            Identifier {
+                                id: "a",
+                                range: 300..301,
+                            },
+                        ),
+                        Valid(
+                            Identifier {
+                                id: "b",
+                                range: 303..304,
+                            },
+                        ),
+                        Valid(
+                            Identifier {
+                                id: "c",
+                                range: 306..307,
+                            },
+                        ),
+                    ],
+                    range: 291..307,
+                },
+            ),
+            Raise(
+                RaiseStmt {
+                    exc: None,
+                    cause: None,
+                    range: 309..314,
+                },
+            ),
+            Raise(
+                RaiseStmt {
+                    exc: Some(
+                        Id(
+                            Identifier {
+                                id: "a",
+                                range: 321..322,
+                            },
+                        ),
+                    ),
+                    cause: None,
+                    range: 315..322,
+                },
+            ),
+            Raise(
+                RaiseStmt {
+                    exc: Some(
+                        Compare(
+                            CompareExpr {
+                                left: Literal(
+                                    LiteralExpr {
+                                        value: Int(
+                                            "1",
+                                        ),
+                                        range: 329..330,
+                                    },
+                                ),
+                                ops: [
+                                    Lt,
+                                ],
+                                comparators: [
+                                    Literal(
+                                        LiteralExpr {
+                                            value: Int(
+                                                "2",
+                                            ),
+                                            range: 333..334,
+                                        },
+                                    ),
+                                ],
+                                range: 329..334,
+                            },
+                        ),
+                    ),
+                    cause: None,
+                    range: 323..334,
+                },
+            ),
+            Raise(
+                RaiseStmt {
+                    exc: Some(
+                        BoolOp(
+                            BoolOpExpr {
+                                op: And,
+                                values: [
+                                    Id(
+                                        Identifier {
+                                            id: "a",
+                                            range: 341..342,
+                                        },
+                                    ),
+                                    Id(
+                                        Identifier {
+                                            id: "b",
+                                            range: 347..348,
+                                        },
+                                    ),
+                                ],
+                                range: 341..348,
+                            },
+                        ),
+                    ),
+                    cause: None,
+                    range: 335..348,
+                },
+            ),
+            Raise(
+                RaiseStmt {
+                    exc: Some(
+                        Id(
+                            Identifier {
+                                id: "a",
+                                range: 355..356,
+                            },
+                        ),
+                    ),
+                    cause: Some(
+                        Id(
+                            Identifier {
+                                id: "b",
+                                range: 362..363,
+                            },
+                        ),
+                    ),
+                    range: 349..363,
+                },
+            ),
+            Import(
+                ImportStmt {
+                    names: [
+                        Alias {
+                            name: Identifier {
+                                id: "a",
+                                range: 372..373,
+                            },
+                            asname: None,
+                            range: 372..373,
+                        },
+                    ],
+                    range: 365..373,
+                },
+            ),
+            Import(
+                ImportStmt {
+                    names: [
+                        Alias {
+                            name: Identifier {
+                                id: "a.b.c",
+                                range: 381..386,
+                            },
+                            asname: None,
+                            range: 381..386,
+                        },
+                    ],
+                    range: 374..386,
+                },
+            ),
+            Import(
+                ImportStmt {
+                    names: [
+                        Alias {
+                            name: Identifier {
+                                id: "a.b.c",
+                                range: 394..404,
+                            },
+                            asname: Some(
+                                Valid(
+                                    Identifier {
+                                        id: "d",
+                                        range: 403..404,
+                                    },
+                                ),
+                            ),
+                            range: 394..404,
+                        },
+                    ],
+                    range: 387..404,
+                },
+            ),
+            Import(
+                ImportStmt {
+                    names: [
+                        Alias {
+                            name: Identifier {
+                                id: "a",
+                                range: 412..413,
+                            },
+                            asname: None,
+                            range: 412..413,
+                        },
+                        Alias {
+                            name: Identifier {
+                                id: "b",
+                                range: 415..416,
+                            },
+                            asname: None,
+                            range: 415..416,
+                        },
+                        Alias {
+                            name: Identifier {
+                                id: "c",
+                                range: 418..419,
+                            },
+                            asname: None,
+                            range: 418..419,
+                        },
+                    ],
+                    range: 405..419,
+                },
+            ),
+            Import(
+                ImportStmt {
+                    names: [
+                        Alias {
+                            name: Identifier {
+                                id: "foo.bar",
+                                range: 427..439,
+                            },
+                            asname: Some(
+                                Valid(
+                                    Identifier {
+                                        id: "a",
+                                        range: 438..439,
+                                    },
+                                ),
+                            ),
+                            range: 427..439,
+                        },
+                        Alias {
+                            name: Identifier {
+                                id: "a.b.c.d",
+                                range: 441..456,
+                            },
+                            asname: Some(
+                                Valid(
+                                    Identifier {
+                                        id: "abcd",
+                                        range: 452..456,
+                                    },
+                                ),
+                            ),
+                            range: 441..456,
+                        },
+                    ],
+                    range: 420..456,
+                },
+            ),
+            ImportFrom(
+                ImportFromStmt {
+                    module: Some(
+                        Identifier {
+                            id: "a",
+                            range: 463..464,
+                        },
+                    ),
+                    names: [
+                        Alias {
+                            name: Identifier {
+                                id: "b",
+                                range: 472..473,
+                            },
+                            asname: None,
+                            range: 472..473,
+                        },
+                    ],
+                    level: 0,
+                    range: 458..473,
+                },
+            ),
+            ImportFrom(
+                ImportFromStmt {
+                    module: None,
+                    names: [
+                        Alias {
+                            name: Identifier {
+                                id: "a",
+                                range: 488..489,
+                            },
+                            asname: None,
+                            range: 488..489,
+                        },
+                    ],
+                    level: 1,
+                    range: 474..489,
+                },
+            ),
+            ImportFrom(
+                ImportFromStmt {
+                    module: Some(
+                        Identifier {
+                            id: "foo.bar",
+                            range: 495..502,
+                        },
+                    ),
+                    names: [
+                        Alias {
+                            name: Identifier {
+                                id: "baz",
+                                range: 510..518,
+                            },
+                            asname: Some(
+                                Valid(
+                                    Identifier {
+                                        id: "b",
+                                        range: 517..518,
+                                    },
+                                ),
+                            ),
+                            range: 510..518,
+                        },
+                        Alias {
+                            name: Identifier {
+                                id: "FooBar",
+                                range: 520..532,
+                            },
+                            asname: Some(
+                                Valid(
+                                    Identifier {
+                                        id: "fb",
+                                        range: 530..532,
+                                    },
+                                ),
+                            ),
+                            range: 520..532,
+                        },
+                    ],
+                    level: 0,
+                    range: 490..532,
+                },
+            ),
+            ImportFrom(
+                ImportFromStmt {
+                    module: Some(
+                        Identifier {
+                            id: "a",
+                            range: 539..540,
+                        },
+                    ),
+                    names: [
+                        Alias {
+                            name: Identifier {
+                                id: "b",
+                                range: 548..549,
+                            },
+                            asname: None,
+                            range: 548..549,
+                        },
+                    ],
+                    level: 1,
+                    range: 533..549,
+                },
+            ),
+            ImportFrom(
+                ImportFromStmt {
+                    module: None,
+                    names: [
+                        Alias {
+                            name: Identifier {
+                                id: "c",
+                                range: 566..567,
+                            },
+                            asname: None,
+                            range: 566..567,
+                        },
+                    ],
+                    level: 3,
+                    range: 550..567,
+                },
+            ),
+            ImportFrom(
+                ImportFromStmt {
+                    module: None,
+                    names: [
+                        Alias {
+                            name: Identifier {
+                                id: "d",
+                                range: 607..608,
+                            },
+                            asname: None,
+                            range: 607..608,
+                        },
+                    ],
+                    level: 26,
+                    range: 568..608,
+                },
+            ),
+            ImportFrom(
+                ImportFromStmt {
+                    module: Some(
+                        Identifier {
+                            id: "a.b.c",
+                            range: 640..645,
+                        },
+                    ),
+                    names: [
+                        Alias {
+                            name: Identifier {
+                                id: "d",
+                                range: 653..654,
+                            },
+                            asname: None,
+                            range: 653..654,
+                        },
+                    ],
+                    level: 26,
+                    range: 609..654,
+                },
+            ),
+            ImportFrom(
+                ImportFromStmt {
+                    module: Some(
+                        Identifier {
+                            id: "module",
+                            range: 660..666,
+                        },
+                    ),
+                    names: [
+                        Alias {
+                            name: Identifier {
+                                id: "a",
+                                range: 675..676,
+                            },
+                            asname: None,
+                            range: 675..676,
+                        },
+                        Alias {
+                            name: Identifier {
+                                id: "b",
+                                range: 678..684,
+                            },
+                            asname: Some(
+                                Valid(
+                                    Identifier {
+                                        id: "B",
+                                        range: 683..684,
+                                    },
+                                ),
+                            ),
+                            range: 678..684,
+                        },
+                        Alias {
+                            name: Identifier {
+                                id: "c",
+                                range: 686..687,
+                            },
+                            asname: None,
+                            range: 686..687,
+                        },
+                    ],
+                    level: 0,
+                    range: 655..689,
+                },
+            ),
+            ImportFrom(
+                ImportFromStmt {
+                    module: Some(
+                        Identifier {
+                            id: "a",
+                            range: 695..696,
+                        },
+                    ),
+                    names: [
+                        Alias {
+                            name: Identifier {
+                                id: "*",
+                                range: 704..705,
+                            },
+                            asname: None,
+                            range: 704..705,
+                        },
+                    ],
+                    level: 0,
+                    range: 690..705,
+                },
+            ),
+            If(
+                IfStmt {
+                    test: Id(
+                        Identifier {
+                            id: "c",
+                            range: 710..711,
+                        },
+                    ),
+                    body: [
+                        Expression(
+                            ExpressionStmt {
+                                value: Id(
+                                    Identifier {
+                                        id: "B",
+                                        range: 713..714,
+                                    },
+                                ),
+                                range: 713..714,
+                            },
+                        ),
+                        Del(
+                            DelStmt {
+                                targets: [
+                                    Id(
+                                        Identifier {
+                                            id: "A",
+                                            range: 720..721,
+                                        },
+                                    ),
+                                ],
+                                range: 716..721,
+                            },
+                        ),
+                    ],
+                    elif_else_clauses: [
+                        ElifElseClause {
+                            test: None,
+                            body: [
+                                Expression(
+                                    ExpressionStmt {
+                                        value: Id(
+                                            Identifier {
+                                                id: "C",
+                                                range: 728..729,
+                                            },
+                                        ),
+                                        range: 728..729,
+                                    },
+                                ),
+                            ],
+                            range: 722..729,
+                        },
+                    ],
+                    range: 707..729,
+                },
+            ),
+            If(
+                IfStmt {
+                    test: Id(
+                        Identifier {
+                            id: "x",
+                            range: 733..734,
+                        },
+                    ),
+                    body: [
+                        Expression(
+                            ExpressionStmt {
+                                value: Yield(
+                                    YieldExpr {
+                                        value: Some(
+                                            Id(
+                                                Identifier {
+                                                    id: "x",
+                                                    range: 742..743,
+                                                },
+                                            ),
+                                        ),
+                                        range: 736..743,
+                                    },
+                                ),
+                                range: 736..743,
+                            },
+                        ),
+                    ],
+                    elif_else_clauses: [],
+                    range: 730..743,
+                },
+            ),
+        ],
+        range: 0..743,
+    },
+    parse_errors: [],
+}

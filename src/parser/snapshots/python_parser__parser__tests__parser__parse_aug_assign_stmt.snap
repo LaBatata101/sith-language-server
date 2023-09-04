@@ -1,0 +1,308 @@
+---
+source: src/parser/tests.rs
+expression: "parse(\"\na += 1\na *= b\na -= 1\na /= a + 1\na //= (a + b) - c ** 2\na @= [1,2] \na %= x\na |= 1\na <<= 2\na >>= 2\na ^= ...\na **= 42\n\")"
+---
+ParsedFile {
+    ast: Module {
+        body: [
+            AugAssing(
+                AugAssignStmt {
+                    target: Id(
+                        Identifier {
+                            id: "a",
+                            range: 1..2,
+                        },
+                    ),
+                    op: Add,
+                    value: Literal(
+                        LiteralExpr {
+                            value: Int(
+                                "1",
+                            ),
+                            range: 6..7,
+                        },
+                    ),
+                    range: 1..7,
+                },
+            ),
+            AugAssing(
+                AugAssignStmt {
+                    target: Id(
+                        Identifier {
+                            id: "a",
+                            range: 8..9,
+                        },
+                    ),
+                    op: Mult,
+                    value: Id(
+                        Identifier {
+                            id: "b",
+                            range: 13..14,
+                        },
+                    ),
+                    range: 8..14,
+                },
+            ),
+            AugAssing(
+                AugAssignStmt {
+                    target: Id(
+                        Identifier {
+                            id: "a",
+                            range: 15..16,
+                        },
+                    ),
+                    op: Sub,
+                    value: Literal(
+                        LiteralExpr {
+                            value: Int(
+                                "1",
+                            ),
+                            range: 20..21,
+                        },
+                    ),
+                    range: 15..21,
+                },
+            ),
+            AugAssing(
+                AugAssignStmt {
+                    target: Id(
+                        Identifier {
+                            id: "a",
+                            range: 22..23,
+                        },
+                    ),
+                    op: Div,
+                    value: BinaryOp(
+                        BinaryOpExpr {
+                            left: Id(
+                                Identifier {
+                                    id: "a",
+                                    range: 27..28,
+                                },
+                            ),
+                            op: Add,
+                            right: Literal(
+                                LiteralExpr {
+                                    value: Int(
+                                        "1",
+                                    ),
+                                    range: 31..32,
+                                },
+                            ),
+                            range: 27..32,
+                        },
+                    ),
+                    range: 22..32,
+                },
+            ),
+            AugAssing(
+                AugAssignStmt {
+                    target: Id(
+                        Identifier {
+                            id: "a",
+                            range: 33..34,
+                        },
+                    ),
+                    op: FloorDiv,
+                    value: BinaryOp(
+                        BinaryOpExpr {
+                            left: BinaryOp(
+                                BinaryOpExpr {
+                                    left: Id(
+                                        Identifier {
+                                            id: "a",
+                                            range: 40..41,
+                                        },
+                                    ),
+                                    op: Add,
+                                    right: Id(
+                                        Identifier {
+                                            id: "b",
+                                            range: 44..45,
+                                        },
+                                    ),
+                                    range: 40..45,
+                                },
+                            ),
+                            op: Sub,
+                            right: BinaryOp(
+                                BinaryOpExpr {
+                                    left: Id(
+                                        Identifier {
+                                            id: "c",
+                                            range: 49..50,
+                                        },
+                                    ),
+                                    op: Pow,
+                                    right: Literal(
+                                        LiteralExpr {
+                                            value: Int(
+                                                "2",
+                                            ),
+                                            range: 54..55,
+                                        },
+                                    ),
+                                    range: 49..55,
+                                },
+                            ),
+                            range: 39..55,
+                        },
+                    ),
+                    range: 33..55,
+                },
+            ),
+            AugAssing(
+                AugAssignStmt {
+                    target: Id(
+                        Identifier {
+                            id: "a",
+                            range: 56..57,
+                        },
+                    ),
+                    op: MatMult,
+                    value: List(
+                        ListExpr {
+                            elements: [
+                                Literal(
+                                    LiteralExpr {
+                                        value: Int(
+                                            "1",
+                                        ),
+                                        range: 62..63,
+                                    },
+                                ),
+                                Literal(
+                                    LiteralExpr {
+                                        value: Int(
+                                            "2",
+                                        ),
+                                        range: 64..65,
+                                    },
+                                ),
+                            ],
+                            range: 61..66,
+                        },
+                    ),
+                    range: 56..66,
+                },
+            ),
+            AugAssing(
+                AugAssignStmt {
+                    target: Id(
+                        Identifier {
+                            id: "a",
+                            range: 68..69,
+                        },
+                    ),
+                    op: Mod,
+                    value: Id(
+                        Identifier {
+                            id: "x",
+                            range: 73..74,
+                        },
+                    ),
+                    range: 68..74,
+                },
+            ),
+            AugAssing(
+                AugAssignStmt {
+                    target: Id(
+                        Identifier {
+                            id: "a",
+                            range: 75..76,
+                        },
+                    ),
+                    op: BitOr,
+                    value: Literal(
+                        LiteralExpr {
+                            value: Int(
+                                "1",
+                            ),
+                            range: 80..81,
+                        },
+                    ),
+                    range: 75..81,
+                },
+            ),
+            AugAssing(
+                AugAssignStmt {
+                    target: Id(
+                        Identifier {
+                            id: "a",
+                            range: 82..83,
+                        },
+                    ),
+                    op: LShift,
+                    value: Literal(
+                        LiteralExpr {
+                            value: Int(
+                                "2",
+                            ),
+                            range: 88..89,
+                        },
+                    ),
+                    range: 82..89,
+                },
+            ),
+            AugAssing(
+                AugAssignStmt {
+                    target: Id(
+                        Identifier {
+                            id: "a",
+                            range: 90..91,
+                        },
+                    ),
+                    op: RShift,
+                    value: Literal(
+                        LiteralExpr {
+                            value: Int(
+                                "2",
+                            ),
+                            range: 96..97,
+                        },
+                    ),
+                    range: 90..97,
+                },
+            ),
+            AugAssing(
+                AugAssignStmt {
+                    target: Id(
+                        Identifier {
+                            id: "a",
+                            range: 98..99,
+                        },
+                    ),
+                    op: BitXor,
+                    value: Ellipsis(
+                        EllipsisExpr {
+                            range: 103..106,
+                        },
+                    ),
+                    range: 98..106,
+                },
+            ),
+            AugAssing(
+                AugAssignStmt {
+                    target: Id(
+                        Identifier {
+                            id: "a",
+                            range: 107..108,
+                        },
+                    ),
+                    op: Pow,
+                    value: Literal(
+                        LiteralExpr {
+                            value: Int(
+                                "42",
+                            ),
+                            range: 113..115,
+                        },
+                    ),
+                    range: 107..115,
+                },
+            ),
+        ],
+        range: 0..115,
+    },
+    parse_errors: [],
+}

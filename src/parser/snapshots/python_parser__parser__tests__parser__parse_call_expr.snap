@@ -1,0 +1,490 @@
+---
+source: src/parser/tests.rs
+expression: "parse(\"\nl()\nx(1, 2)\nx(1, 2, x=3, y=4)\nf(*l)\nf(**a)\nf(*a, b, **l)\nf(*a, *b)\nf(\n    [\n        [a]\n        for d in f\n    ],\n)\nf(\n    {\n        [a]\n        for d in f\n    },\n)\nf(\n    {\n        A: [a]\n        for d in f\n    },\n)\n\")"
+---
+ParsedFile {
+    ast: Module {
+        body: [
+            Expression(
+                ExpressionStmt {
+                    value: Call(
+                        CallExpr {
+                            lhs: Id(
+                                Identifier {
+                                    id: "l",
+                                    range: 1..2,
+                                },
+                            ),
+                            args: Arguments {
+                                args: [],
+                                kw_args: [],
+                                range: 2..4,
+                            },
+                            range: 1..4,
+                        },
+                    ),
+                    range: 1..4,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Call(
+                        CallExpr {
+                            lhs: Id(
+                                Identifier {
+                                    id: "x",
+                                    range: 5..6,
+                                },
+                            ),
+                            args: Arguments {
+                                args: [
+                                    Literal(
+                                        LiteralExpr {
+                                            value: Int(
+                                                "1",
+                                            ),
+                                            range: 7..8,
+                                        },
+                                    ),
+                                    Literal(
+                                        LiteralExpr {
+                                            value: Int(
+                                                "2",
+                                            ),
+                                            range: 10..11,
+                                        },
+                                    ),
+                                ],
+                                kw_args: [],
+                                range: 6..12,
+                            },
+                            range: 5..12,
+                        },
+                    ),
+                    range: 5..12,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Call(
+                        CallExpr {
+                            lhs: Id(
+                                Identifier {
+                                    id: "x",
+                                    range: 13..14,
+                                },
+                            ),
+                            args: Arguments {
+                                args: [
+                                    Literal(
+                                        LiteralExpr {
+                                            value: Int(
+                                                "1",
+                                            ),
+                                            range: 15..16,
+                                        },
+                                    ),
+                                    Literal(
+                                        LiteralExpr {
+                                            value: Int(
+                                                "2",
+                                            ),
+                                            range: 18..19,
+                                        },
+                                    ),
+                                ],
+                                kw_args: [
+                                    KeywordArg {
+                                        arg: Some(
+                                            Valid(
+                                                Identifier {
+                                                    id: "x",
+                                                    range: 21..22,
+                                                },
+                                            ),
+                                        ),
+                                        value: Literal(
+                                            LiteralExpr {
+                                                value: Int(
+                                                    "3",
+                                                ),
+                                                range: 23..24,
+                                            },
+                                        ),
+                                        range: 21..24,
+                                    },
+                                    KeywordArg {
+                                        arg: Some(
+                                            Valid(
+                                                Identifier {
+                                                    id: "y",
+                                                    range: 26..27,
+                                                },
+                                            ),
+                                        ),
+                                        value: Literal(
+                                            LiteralExpr {
+                                                value: Int(
+                                                    "4",
+                                                ),
+                                                range: 28..29,
+                                            },
+                                        ),
+                                        range: 26..29,
+                                    },
+                                ],
+                                range: 14..30,
+                            },
+                            range: 13..30,
+                        },
+                    ),
+                    range: 13..30,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Call(
+                        CallExpr {
+                            lhs: Id(
+                                Identifier {
+                                    id: "f",
+                                    range: 31..32,
+                                },
+                            ),
+                            args: Arguments {
+                                args: [
+                                    Starred(
+                                        StarredExpr {
+                                            value: Id(
+                                                Identifier {
+                                                    id: "l",
+                                                    range: 34..35,
+                                                },
+                                            ),
+                                            range: 33..35,
+                                        },
+                                    ),
+                                ],
+                                kw_args: [],
+                                range: 32..36,
+                            },
+                            range: 31..36,
+                        },
+                    ),
+                    range: 31..36,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Call(
+                        CallExpr {
+                            lhs: Id(
+                                Identifier {
+                                    id: "f",
+                                    range: 37..38,
+                                },
+                            ),
+                            args: Arguments {
+                                args: [],
+                                kw_args: [
+                                    KeywordArg {
+                                        arg: None,
+                                        value: Id(
+                                            Identifier {
+                                                id: "a",
+                                                range: 41..42,
+                                            },
+                                        ),
+                                        range: 39..42,
+                                    },
+                                ],
+                                range: 38..43,
+                            },
+                            range: 37..43,
+                        },
+                    ),
+                    range: 37..43,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Call(
+                        CallExpr {
+                            lhs: Id(
+                                Identifier {
+                                    id: "f",
+                                    range: 44..45,
+                                },
+                            ),
+                            args: Arguments {
+                                args: [
+                                    Starred(
+                                        StarredExpr {
+                                            value: Id(
+                                                Identifier {
+                                                    id: "a",
+                                                    range: 47..48,
+                                                },
+                                            ),
+                                            range: 46..48,
+                                        },
+                                    ),
+                                    Id(
+                                        Identifier {
+                                            id: "b",
+                                            range: 50..51,
+                                        },
+                                    ),
+                                ],
+                                kw_args: [
+                                    KeywordArg {
+                                        arg: None,
+                                        value: Id(
+                                            Identifier {
+                                                id: "l",
+                                                range: 55..56,
+                                            },
+                                        ),
+                                        range: 53..56,
+                                    },
+                                ],
+                                range: 45..57,
+                            },
+                            range: 44..57,
+                        },
+                    ),
+                    range: 44..57,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Call(
+                        CallExpr {
+                            lhs: Id(
+                                Identifier {
+                                    id: "f",
+                                    range: 58..59,
+                                },
+                            ),
+                            args: Arguments {
+                                args: [
+                                    Starred(
+                                        StarredExpr {
+                                            value: Id(
+                                                Identifier {
+                                                    id: "a",
+                                                    range: 61..62,
+                                                },
+                                            ),
+                                            range: 60..62,
+                                        },
+                                    ),
+                                    Starred(
+                                        StarredExpr {
+                                            value: Id(
+                                                Identifier {
+                                                    id: "b",
+                                                    range: 65..66,
+                                                },
+                                            ),
+                                            range: 64..66,
+                                        },
+                                    ),
+                                ],
+                                kw_args: [],
+                                range: 59..67,
+                            },
+                            range: 58..67,
+                        },
+                    ),
+                    range: 58..67,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Call(
+                        CallExpr {
+                            lhs: Id(
+                                Identifier {
+                                    id: "f",
+                                    range: 68..69,
+                                },
+                            ),
+                            args: Arguments {
+                                args: [
+                                    ListComp(
+                                        ListCompExpr {
+                                            element: List(
+                                                ListExpr {
+                                                    elements: [
+                                                        Id(
+                                                            Identifier {
+                                                                id: "a",
+                                                                range: 86..87,
+                                                            },
+                                                        ),
+                                                    ],
+                                                    range: 85..88,
+                                                },
+                                            ),
+                                            generators: [
+                                                Comprehension {
+                                                    target: Id(
+                                                        Identifier {
+                                                            id: "d",
+                                                            range: 101..102,
+                                                        },
+                                                    ),
+                                                    iter: Id(
+                                                        Identifier {
+                                                            id: "f",
+                                                            range: 106..107,
+                                                        },
+                                                    ),
+                                                    ifs: [],
+                                                    is_async: false,
+                                                    range: 97..107,
+                                                },
+                                            ],
+                                            range: 75..113,
+                                        },
+                                    ),
+                                ],
+                                kw_args: [],
+                                range: 69..116,
+                            },
+                            range: 68..116,
+                        },
+                    ),
+                    range: 68..116,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Call(
+                        CallExpr {
+                            lhs: Id(
+                                Identifier {
+                                    id: "f",
+                                    range: 117..118,
+                                },
+                            ),
+                            args: Arguments {
+                                args: [
+                                    SetComp(
+                                        SetCompExpr {
+                                            element: List(
+                                                ListExpr {
+                                                    elements: [
+                                                        Id(
+                                                            Identifier {
+                                                                id: "a",
+                                                                range: 135..136,
+                                                            },
+                                                        ),
+                                                    ],
+                                                    range: 134..137,
+                                                },
+                                            ),
+                                            generators: [
+                                                Comprehension {
+                                                    target: Id(
+                                                        Identifier {
+                                                            id: "d",
+                                                            range: 150..151,
+                                                        },
+                                                    ),
+                                                    iter: Id(
+                                                        Identifier {
+                                                            id: "f",
+                                                            range: 155..156,
+                                                        },
+                                                    ),
+                                                    ifs: [],
+                                                    is_async: false,
+                                                    range: 146..156,
+                                                },
+                                            ],
+                                            range: 134..156,
+                                        },
+                                    ),
+                                ],
+                                kw_args: [],
+                                range: 118..165,
+                            },
+                            range: 117..165,
+                        },
+                    ),
+                    range: 117..165,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Call(
+                        CallExpr {
+                            lhs: Id(
+                                Identifier {
+                                    id: "f",
+                                    range: 166..167,
+                                },
+                            ),
+                            args: Arguments {
+                                args: [
+                                    DictComp(
+                                        DictCompExpr {
+                                            key: Id(
+                                                Identifier {
+                                                    id: "A",
+                                                    range: 183..184,
+                                                },
+                                            ),
+                                            value: List(
+                                                ListExpr {
+                                                    elements: [
+                                                        Id(
+                                                            Identifier {
+                                                                id: "a",
+                                                                range: 187..188,
+                                                            },
+                                                        ),
+                                                    ],
+                                                    range: 186..189,
+                                                },
+                                            ),
+                                            generators: [
+                                                Comprehension {
+                                                    target: Id(
+                                                        Identifier {
+                                                            id: "d",
+                                                            range: 202..203,
+                                                        },
+                                                    ),
+                                                    iter: Id(
+                                                        Identifier {
+                                                            id: "f",
+                                                            range: 207..208,
+                                                        },
+                                                    ),
+                                                    ifs: [],
+                                                    is_async: false,
+                                                    range: 198..208,
+                                                },
+                                            ],
+                                            range: 173..214,
+                                        },
+                                    ),
+                                ],
+                                kw_args: [],
+                                range: 167..217,
+                            },
+                            range: 166..217,
+                        },
+                    ),
+                    range: 166..217,
+                },
+            ),
+        ],
+        range: 0..217,
+    },
+    parse_errors: [],
+}

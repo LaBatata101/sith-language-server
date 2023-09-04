@@ -1,0 +1,722 @@
+---
+source: src/parser/tests.rs
+expression: "parse(\"\nl[0]\nl[1:]\nl[1:2]\nl[:2]\nl[:2:]\nl[:2:3]\nl[1:2:3]\nl[:]\nl[::]\nl[0][0]\nl[0,1]\nl[0:,]\nl[0:,1]\nl[0:1, 2]\nl[0:1:2, 3, i:i + 1]\nx[a := b]\na[:, :11]\n\")"
+---
+ParsedFile {
+    ast: Module {
+        body: [
+            Expression(
+                ExpressionStmt {
+                    value: Subscript(
+                        SubscriptExpr {
+                            value: Id(
+                                Identifier {
+                                    id: "l",
+                                    range: 1..2,
+                                },
+                            ),
+                            slice: Literal(
+                                LiteralExpr {
+                                    value: Int(
+                                        "0",
+                                    ),
+                                    range: 3..4,
+                                },
+                            ),
+                            range: 1..5,
+                        },
+                    ),
+                    range: 1..5,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Subscript(
+                        SubscriptExpr {
+                            value: Id(
+                                Identifier {
+                                    id: "l",
+                                    range: 6..7,
+                                },
+                            ),
+                            slice: Slice(
+                                SliceExpr {
+                                    lower: Some(
+                                        Literal(
+                                            LiteralExpr {
+                                                value: Int(
+                                                    "1",
+                                                ),
+                                                range: 8..9,
+                                            },
+                                        ),
+                                    ),
+                                    upper: None,
+                                    step: None,
+                                    range: 8..9,
+                                },
+                            ),
+                            range: 6..11,
+                        },
+                    ),
+                    range: 6..11,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Subscript(
+                        SubscriptExpr {
+                            value: Id(
+                                Identifier {
+                                    id: "l",
+                                    range: 12..13,
+                                },
+                            ),
+                            slice: Slice(
+                                SliceExpr {
+                                    lower: Some(
+                                        Literal(
+                                            LiteralExpr {
+                                                value: Int(
+                                                    "1",
+                                                ),
+                                                range: 14..15,
+                                            },
+                                        ),
+                                    ),
+                                    upper: Some(
+                                        Literal(
+                                            LiteralExpr {
+                                                value: Int(
+                                                    "2",
+                                                ),
+                                                range: 16..17,
+                                            },
+                                        ),
+                                    ),
+                                    step: None,
+                                    range: 14..17,
+                                },
+                            ),
+                            range: 12..18,
+                        },
+                    ),
+                    range: 12..18,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Subscript(
+                        SubscriptExpr {
+                            value: Id(
+                                Identifier {
+                                    id: "l",
+                                    range: 19..20,
+                                },
+                            ),
+                            slice: Slice(
+                                SliceExpr {
+                                    lower: None,
+                                    upper: Some(
+                                        Literal(
+                                            LiteralExpr {
+                                                value: Int(
+                                                    "2",
+                                                ),
+                                                range: 22..23,
+                                            },
+                                        ),
+                                    ),
+                                    step: None,
+                                    range: 21..23,
+                                },
+                            ),
+                            range: 19..24,
+                        },
+                    ),
+                    range: 19..24,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Subscript(
+                        SubscriptExpr {
+                            value: Id(
+                                Identifier {
+                                    id: "l",
+                                    range: 25..26,
+                                },
+                            ),
+                            slice: Slice(
+                                SliceExpr {
+                                    lower: None,
+                                    upper: Some(
+                                        Literal(
+                                            LiteralExpr {
+                                                value: Int(
+                                                    "2",
+                                                ),
+                                                range: 28..29,
+                                            },
+                                        ),
+                                    ),
+                                    step: None,
+                                    range: 27..29,
+                                },
+                            ),
+                            range: 25..31,
+                        },
+                    ),
+                    range: 25..31,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Subscript(
+                        SubscriptExpr {
+                            value: Id(
+                                Identifier {
+                                    id: "l",
+                                    range: 32..33,
+                                },
+                            ),
+                            slice: Slice(
+                                SliceExpr {
+                                    lower: None,
+                                    upper: Some(
+                                        Literal(
+                                            LiteralExpr {
+                                                value: Int(
+                                                    "2",
+                                                ),
+                                                range: 35..36,
+                                            },
+                                        ),
+                                    ),
+                                    step: Some(
+                                        Literal(
+                                            LiteralExpr {
+                                                value: Int(
+                                                    "3",
+                                                ),
+                                                range: 37..38,
+                                            },
+                                        ),
+                                    ),
+                                    range: 34..38,
+                                },
+                            ),
+                            range: 32..39,
+                        },
+                    ),
+                    range: 32..39,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Subscript(
+                        SubscriptExpr {
+                            value: Id(
+                                Identifier {
+                                    id: "l",
+                                    range: 40..41,
+                                },
+                            ),
+                            slice: Slice(
+                                SliceExpr {
+                                    lower: Some(
+                                        Literal(
+                                            LiteralExpr {
+                                                value: Int(
+                                                    "1",
+                                                ),
+                                                range: 42..43,
+                                            },
+                                        ),
+                                    ),
+                                    upper: Some(
+                                        Literal(
+                                            LiteralExpr {
+                                                value: Int(
+                                                    "2",
+                                                ),
+                                                range: 44..45,
+                                            },
+                                        ),
+                                    ),
+                                    step: Some(
+                                        Literal(
+                                            LiteralExpr {
+                                                value: Int(
+                                                    "3",
+                                                ),
+                                                range: 46..47,
+                                            },
+                                        ),
+                                    ),
+                                    range: 42..47,
+                                },
+                            ),
+                            range: 40..48,
+                        },
+                    ),
+                    range: 40..48,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Subscript(
+                        SubscriptExpr {
+                            value: Id(
+                                Identifier {
+                                    id: "l",
+                                    range: 49..50,
+                                },
+                            ),
+                            slice: Slice(
+                                SliceExpr {
+                                    lower: None,
+                                    upper: None,
+                                    step: None,
+                                    range: 51..52,
+                                },
+                            ),
+                            range: 49..53,
+                        },
+                    ),
+                    range: 49..53,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Subscript(
+                        SubscriptExpr {
+                            value: Id(
+                                Identifier {
+                                    id: "l",
+                                    range: 54..55,
+                                },
+                            ),
+                            slice: Slice(
+                                SliceExpr {
+                                    lower: None,
+                                    upper: None,
+                                    step: None,
+                                    range: 56..57,
+                                },
+                            ),
+                            range: 54..59,
+                        },
+                    ),
+                    range: 54..59,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Subscript(
+                        SubscriptExpr {
+                            value: Subscript(
+                                SubscriptExpr {
+                                    value: Id(
+                                        Identifier {
+                                            id: "l",
+                                            range: 60..61,
+                                        },
+                                    ),
+                                    slice: Literal(
+                                        LiteralExpr {
+                                            value: Int(
+                                                "0",
+                                            ),
+                                            range: 62..63,
+                                        },
+                                    ),
+                                    range: 60..64,
+                                },
+                            ),
+                            slice: Literal(
+                                LiteralExpr {
+                                    value: Int(
+                                        "0",
+                                    ),
+                                    range: 65..66,
+                                },
+                            ),
+                            range: 60..67,
+                        },
+                    ),
+                    range: 60..67,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Subscript(
+                        SubscriptExpr {
+                            value: Id(
+                                Identifier {
+                                    id: "l",
+                                    range: 68..69,
+                                },
+                            ),
+                            slice: Tuple(
+                                TupleExpr {
+                                    elements: [
+                                        Literal(
+                                            LiteralExpr {
+                                                value: Int(
+                                                    "0",
+                                                ),
+                                                range: 70..71,
+                                            },
+                                        ),
+                                        Literal(
+                                            LiteralExpr {
+                                                value: Int(
+                                                    "1",
+                                                ),
+                                                range: 72..73,
+                                            },
+                                        ),
+                                    ],
+                                    range: 70..73,
+                                },
+                            ),
+                            range: 68..74,
+                        },
+                    ),
+                    range: 68..74,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Subscript(
+                        SubscriptExpr {
+                            value: Id(
+                                Identifier {
+                                    id: "l",
+                                    range: 75..76,
+                                },
+                            ),
+                            slice: Tuple(
+                                TupleExpr {
+                                    elements: [
+                                        Slice(
+                                            SliceExpr {
+                                                lower: Some(
+                                                    Literal(
+                                                        LiteralExpr {
+                                                            value: Int(
+                                                                "0",
+                                                            ),
+                                                            range: 77..78,
+                                                        },
+                                                    ),
+                                                ),
+                                                upper: None,
+                                                step: None,
+                                                range: 77..78,
+                                            },
+                                        ),
+                                    ],
+                                    range: 77..80,
+                                },
+                            ),
+                            range: 75..81,
+                        },
+                    ),
+                    range: 75..81,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Subscript(
+                        SubscriptExpr {
+                            value: Id(
+                                Identifier {
+                                    id: "l",
+                                    range: 82..83,
+                                },
+                            ),
+                            slice: Tuple(
+                                TupleExpr {
+                                    elements: [
+                                        Slice(
+                                            SliceExpr {
+                                                lower: Some(
+                                                    Literal(
+                                                        LiteralExpr {
+                                                            value: Int(
+                                                                "0",
+                                                            ),
+                                                            range: 84..85,
+                                                        },
+                                                    ),
+                                                ),
+                                                upper: None,
+                                                step: None,
+                                                range: 84..85,
+                                            },
+                                        ),
+                                        Literal(
+                                            LiteralExpr {
+                                                value: Int(
+                                                    "1",
+                                                ),
+                                                range: 87..88,
+                                            },
+                                        ),
+                                    ],
+                                    range: 84..88,
+                                },
+                            ),
+                            range: 82..89,
+                        },
+                    ),
+                    range: 82..89,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Subscript(
+                        SubscriptExpr {
+                            value: Id(
+                                Identifier {
+                                    id: "l",
+                                    range: 90..91,
+                                },
+                            ),
+                            slice: Tuple(
+                                TupleExpr {
+                                    elements: [
+                                        Slice(
+                                            SliceExpr {
+                                                lower: Some(
+                                                    Literal(
+                                                        LiteralExpr {
+                                                            value: Int(
+                                                                "0",
+                                                            ),
+                                                            range: 92..93,
+                                                        },
+                                                    ),
+                                                ),
+                                                upper: Some(
+                                                    Literal(
+                                                        LiteralExpr {
+                                                            value: Int(
+                                                                "1",
+                                                            ),
+                                                            range: 94..95,
+                                                        },
+                                                    ),
+                                                ),
+                                                step: None,
+                                                range: 92..95,
+                                            },
+                                        ),
+                                        Literal(
+                                            LiteralExpr {
+                                                value: Int(
+                                                    "2",
+                                                ),
+                                                range: 97..98,
+                                            },
+                                        ),
+                                    ],
+                                    range: 92..98,
+                                },
+                            ),
+                            range: 90..99,
+                        },
+                    ),
+                    range: 90..99,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Subscript(
+                        SubscriptExpr {
+                            value: Id(
+                                Identifier {
+                                    id: "l",
+                                    range: 100..101,
+                                },
+                            ),
+                            slice: Tuple(
+                                TupleExpr {
+                                    elements: [
+                                        Slice(
+                                            SliceExpr {
+                                                lower: Some(
+                                                    Literal(
+                                                        LiteralExpr {
+                                                            value: Int(
+                                                                "0",
+                                                            ),
+                                                            range: 102..103,
+                                                        },
+                                                    ),
+                                                ),
+                                                upper: Some(
+                                                    Literal(
+                                                        LiteralExpr {
+                                                            value: Int(
+                                                                "1",
+                                                            ),
+                                                            range: 104..105,
+                                                        },
+                                                    ),
+                                                ),
+                                                step: Some(
+                                                    Literal(
+                                                        LiteralExpr {
+                                                            value: Int(
+                                                                "2",
+                                                            ),
+                                                            range: 106..107,
+                                                        },
+                                                    ),
+                                                ),
+                                                range: 102..107,
+                                            },
+                                        ),
+                                        Literal(
+                                            LiteralExpr {
+                                                value: Int(
+                                                    "3",
+                                                ),
+                                                range: 109..110,
+                                            },
+                                        ),
+                                        Slice(
+                                            SliceExpr {
+                                                lower: Some(
+                                                    Id(
+                                                        Identifier {
+                                                            id: "i",
+                                                            range: 112..113,
+                                                        },
+                                                    ),
+                                                ),
+                                                upper: Some(
+                                                    BinaryOp(
+                                                        BinaryOpExpr {
+                                                            left: Id(
+                                                                Identifier {
+                                                                    id: "i",
+                                                                    range: 114..115,
+                                                                },
+                                                            ),
+                                                            op: Add,
+                                                            right: Literal(
+                                                                LiteralExpr {
+                                                                    value: Int(
+                                                                        "1",
+                                                                    ),
+                                                                    range: 118..119,
+                                                                },
+                                                            ),
+                                                            range: 114..119,
+                                                        },
+                                                    ),
+                                                ),
+                                                step: None,
+                                                range: 112..119,
+                                            },
+                                        ),
+                                    ],
+                                    range: 102..119,
+                                },
+                            ),
+                            range: 100..120,
+                        },
+                    ),
+                    range: 100..120,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Subscript(
+                        SubscriptExpr {
+                            value: Id(
+                                Identifier {
+                                    id: "x",
+                                    range: 121..122,
+                                },
+                            ),
+                            slice: Named(
+                                NamedExpr {
+                                    target: Id(
+                                        Identifier {
+                                            id: "a",
+                                            range: 123..124,
+                                        },
+                                    ),
+                                    value: Id(
+                                        Identifier {
+                                            id: "b",
+                                            range: 128..129,
+                                        },
+                                    ),
+                                    range: 123..129,
+                                },
+                            ),
+                            range: 121..130,
+                        },
+                    ),
+                    range: 121..130,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Subscript(
+                        SubscriptExpr {
+                            value: Id(
+                                Identifier {
+                                    id: "a",
+                                    range: 131..132,
+                                },
+                            ),
+                            slice: Tuple(
+                                TupleExpr {
+                                    elements: [
+                                        Slice(
+                                            SliceExpr {
+                                                lower: None,
+                                                upper: None,
+                                                step: None,
+                                                range: 133..134,
+                                            },
+                                        ),
+                                        Slice(
+                                            SliceExpr {
+                                                lower: None,
+                                                upper: Some(
+                                                    Literal(
+                                                        LiteralExpr {
+                                                            value: Int(
+                                                                "11",
+                                                            ),
+                                                            range: 137..139,
+                                                        },
+                                                    ),
+                                                ),
+                                                step: None,
+                                                range: 136..139,
+                                            },
+                                        ),
+                                    ],
+                                    range: 133..139,
+                                },
+                            ),
+                            range: 131..140,
+                        },
+                    ),
+                    range: 131..140,
+                },
+            ),
+        ],
+        range: 0..140,
+    },
+    parse_errors: [],
+}

@@ -1,0 +1,371 @@
+---
+source: src/parser/tests.rs
+expression: "parse(\"\nx = 1\n[] = *l\n() = *t\n{} = *d\na, b = ab\n1 + 1 = a and b\n*a = 1 + 2\na and b = None\na < b = True\na = b = c\n... = f() = c, = 1\n\")"
+---
+ParsedFile {
+    ast: Module {
+        body: [
+            Assign(
+                AssignStmt {
+                    targets: [
+                        Id(
+                            Identifier {
+                                id: "x",
+                                range: 1..2,
+                            },
+                        ),
+                    ],
+                    value: Literal(
+                        LiteralExpr {
+                            value: Int(
+                                "1",
+                            ),
+                            range: 5..6,
+                        },
+                    ),
+                    range: 1..6,
+                },
+            ),
+            Assign(
+                AssignStmt {
+                    targets: [
+                        List(
+                            ListExpr {
+                                elements: [],
+                                range: 7..9,
+                            },
+                        ),
+                    ],
+                    value: Starred(
+                        StarredExpr {
+                            value: Id(
+                                Identifier {
+                                    id: "l",
+                                    range: 13..14,
+                                },
+                            ),
+                            range: 12..14,
+                        },
+                    ),
+                    range: 7..14,
+                },
+            ),
+            Assign(
+                AssignStmt {
+                    targets: [
+                        Tuple(
+                            TupleExpr {
+                                elements: [],
+                                range: 15..17,
+                            },
+                        ),
+                    ],
+                    value: Starred(
+                        StarredExpr {
+                            value: Id(
+                                Identifier {
+                                    id: "t",
+                                    range: 21..22,
+                                },
+                            ),
+                            range: 20..22,
+                        },
+                    ),
+                    range: 15..22,
+                },
+            ),
+            Assign(
+                AssignStmt {
+                    targets: [
+                        Dict(
+                            DictExpr {
+                                keys: [],
+                                values: [],
+                                range: 23..25,
+                            },
+                        ),
+                    ],
+                    value: Starred(
+                        StarredExpr {
+                            value: Id(
+                                Identifier {
+                                    id: "d",
+                                    range: 29..30,
+                                },
+                            ),
+                            range: 28..30,
+                        },
+                    ),
+                    range: 23..30,
+                },
+            ),
+            Assign(
+                AssignStmt {
+                    targets: [
+                        Tuple(
+                            TupleExpr {
+                                elements: [
+                                    Id(
+                                        Identifier {
+                                            id: "a",
+                                            range: 31..32,
+                                        },
+                                    ),
+                                    Id(
+                                        Identifier {
+                                            id: "b",
+                                            range: 34..35,
+                                        },
+                                    ),
+                                ],
+                                range: 31..36,
+                            },
+                        ),
+                    ],
+                    value: Id(
+                        Identifier {
+                            id: "ab",
+                            range: 38..40,
+                        },
+                    ),
+                    range: 31..40,
+                },
+            ),
+            Assign(
+                AssignStmt {
+                    targets: [
+                        BinaryOp(
+                            BinaryOpExpr {
+                                left: Literal(
+                                    LiteralExpr {
+                                        value: Int(
+                                            "1",
+                                        ),
+                                        range: 41..42,
+                                    },
+                                ),
+                                op: Add,
+                                right: Literal(
+                                    LiteralExpr {
+                                        value: Int(
+                                            "1",
+                                        ),
+                                        range: 45..46,
+                                    },
+                                ),
+                                range: 41..46,
+                            },
+                        ),
+                    ],
+                    value: BoolOp(
+                        BoolOpExpr {
+                            op: And,
+                            values: [
+                                Id(
+                                    Identifier {
+                                        id: "a",
+                                        range: 49..50,
+                                    },
+                                ),
+                                Id(
+                                    Identifier {
+                                        id: "b",
+                                        range: 55..56,
+                                    },
+                                ),
+                            ],
+                            range: 49..56,
+                        },
+                    ),
+                    range: 41..56,
+                },
+            ),
+            Assign(
+                AssignStmt {
+                    targets: [
+                        Starred(
+                            StarredExpr {
+                                value: Id(
+                                    Identifier {
+                                        id: "a",
+                                        range: 58..59,
+                                    },
+                                ),
+                                range: 57..59,
+                            },
+                        ),
+                    ],
+                    value: BinaryOp(
+                        BinaryOpExpr {
+                            left: Literal(
+                                LiteralExpr {
+                                    value: Int(
+                                        "1",
+                                    ),
+                                    range: 62..63,
+                                },
+                            ),
+                            op: Add,
+                            right: Literal(
+                                LiteralExpr {
+                                    value: Int(
+                                        "2",
+                                    ),
+                                    range: 66..67,
+                                },
+                            ),
+                            range: 62..67,
+                        },
+                    ),
+                    range: 57..67,
+                },
+            ),
+            Assign(
+                AssignStmt {
+                    targets: [
+                        BoolOp(
+                            BoolOpExpr {
+                                op: And,
+                                values: [
+                                    Id(
+                                        Identifier {
+                                            id: "a",
+                                            range: 68..69,
+                                        },
+                                    ),
+                                    Id(
+                                        Identifier {
+                                            id: "b",
+                                            range: 74..75,
+                                        },
+                                    ),
+                                ],
+                                range: 68..75,
+                            },
+                        ),
+                    ],
+                    value: Literal(
+                        LiteralExpr {
+                            value: None,
+                            range: 78..82,
+                        },
+                    ),
+                    range: 68..82,
+                },
+            ),
+            Assign(
+                AssignStmt {
+                    targets: [
+                        Compare(
+                            CompareExpr {
+                                left: Id(
+                                    Identifier {
+                                        id: "a",
+                                        range: 83..84,
+                                    },
+                                ),
+                                ops: [
+                                    Lt,
+                                ],
+                                comparators: [
+                                    Id(
+                                        Identifier {
+                                            id: "b",
+                                            range: 87..88,
+                                        },
+                                    ),
+                                ],
+                                range: 83..88,
+                            },
+                        ),
+                    ],
+                    value: Literal(
+                        LiteralExpr {
+                            value: Bool(
+                                True,
+                            ),
+                            range: 91..95,
+                        },
+                    ),
+                    range: 83..95,
+                },
+            ),
+            Assign(
+                AssignStmt {
+                    targets: [
+                        Id(
+                            Identifier {
+                                id: "a",
+                                range: 96..97,
+                            },
+                        ),
+                        Id(
+                            Identifier {
+                                id: "b",
+                                range: 100..101,
+                            },
+                        ),
+                    ],
+                    value: Id(
+                        Identifier {
+                            id: "c",
+                            range: 104..105,
+                        },
+                    ),
+                    range: 96..105,
+                },
+            ),
+            Assign(
+                AssignStmt {
+                    targets: [
+                        Ellipsis(
+                            EllipsisExpr {
+                                range: 106..109,
+                            },
+                        ),
+                        Call(
+                            CallExpr {
+                                lhs: Id(
+                                    Identifier {
+                                        id: "f",
+                                        range: 112..113,
+                                    },
+                                ),
+                                args: Arguments {
+                                    args: [],
+                                    kw_args: [],
+                                    range: 113..115,
+                                },
+                                range: 112..115,
+                            },
+                        ),
+                        Tuple(
+                            TupleExpr {
+                                elements: [
+                                    Id(
+                                        Identifier {
+                                            id: "c",
+                                            range: 118..119,
+                                        },
+                                    ),
+                                ],
+                                range: 118..121,
+                            },
+                        ),
+                    ],
+                    value: Literal(
+                        LiteralExpr {
+                            value: Int(
+                                "1",
+                            ),
+                            range: 123..124,
+                        },
+                    ),
+                    range: 106..124,
+                },
+            ),
+        ],
+        range: 0..124,
+    },
+    parse_errors: [],
+}

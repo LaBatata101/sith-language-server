@@ -1,739 +1,1306 @@
-mod helpers;
-pub mod span;
-pub mod token;
+// This module takes care of lexing Python source text.
+//
+// This means source code is scanned and translated into separate tokens. The rules
+// governing what is and is not a valid token are defined in the Python reference
+// guide section on [Lexical analysis].
+//
+// The primary function in this module is [`lex`], which takes a string slice
+// and returns an iterator over the tokens in the source code. The tokens are currently returned
+// as a `Result<Spanned, LexicalError>`, where [`Spanned`] is a tuple containing the
+// start and end [`TextSize`] and a [`Tok`] denoting the token.
+//
+// # Example
+//
+// ```
+// use ruff_python_parser::{lexer::lex, Tok, Mode, StringKind};
+//
+// let source = "x = 'RustPython'";
+// let tokens = lex(source, Mode::Module)
+//     .map(|tok| tok.expect("Failed to lex"))
+//     .collect::<Vec<_>>();
+//
+// for (token, range) in tokens {
+//     println!(
+//         "{token:?}@{range:?}",
+//     );
+// }
+// ```
+//
+// [Lexical analysis]: https://docs.python.org/3/reference/lexical_analysis.html
 
-use token::Token;
+use std::fmt::{Debug, Display};
+use std::{char, cmp::Ordering};
 
-use unicode_xid::UnicodeXID;
+use ruff_text_size::{TextRange, TextSize};
 
-use crate::error::{PythonError, PythonErrorType};
+use cursor::{Cursor, EOF_CHAR};
+use indentation::{Indentation, Indentations};
 
-use self::{
-    helpers::{
-        convert_byte_to_unicode_codepoint, is_binary_number_valid, is_char_operator, is_decimal_number_valid, is_eol,
-        is_float_number_valid, is_hex_number_valid, is_octal_number_valid, is_string_prefix, is_whitespace,
-        unicode_char_size,
-    },
-    span::{Position, Span},
-    token::types::{IntegerType, KeywordType, NumberType, OperatorType, SoftKeywordType, TokenType},
+use self::types::{KeywordKind, NumberKind, OperatorKind, SoftKeywordKind, StringKind, TokenKind};
+
+use self::helpers::{
+    is_ascii_identifier_start, is_binary_number_valid, is_decimal_number_valid, is_float_number_valid,
+    is_hex_number_valid, is_identifier_continuation, is_octal_number_valid, is_quote, is_unicode_identifier_start,
 };
+use self::soft_keywords::SoftKeywordTransformer;
 
-pub struct Lexer<'src> {
-    text: &'src str,
-    text_bytes: &'src [u8],
-    current_pos: Position,
+mod cursor;
+mod helpers;
+mod indentation;
+mod soft_keywords;
+pub mod types;
 
-    is_at_beginning_of_line: bool,
-    /// Use to track the indentations levels. Always has one indentation level
-    /// like the CPython implementation.
-    indent_stack: Vec<usize>,
+/// A lexer for Python source code.
+#[derive(Debug, Clone)]
+pub struct Lexer<'source> {
+    // Contains the source code to be lexed.
+    cursor: Cursor<'source>,
+    source: &'source str,
 
-    /// Used to check wheter we are inside a `[]`, `()` or `{}`, and skip the `NewLine` token creation.
-    implicit_line_joining: i32,
-
-    errors: Vec<PythonError>,
+    state: State,
+    // Amount of parenthesis.
+    nesting: u32,
+    // Indentation levels.
+    indentations: Indentations,
+    pending_indentation: Option<Indentation>,
 }
 
-// FIXME: handle mix of tabs and spaces
-impl<'src> Lexer<'src> {
-    pub fn new(src: &'src str) -> Self {
-        Self {
-            text: src,
-            errors: vec![],
-            is_at_beginning_of_line: true,
-            indent_stack: vec![0],
-            implicit_line_joining: 0,
-            text_bytes: src.as_bytes(),
-            current_pos: Position::new(),
-        }
+/// Contains a Token along with its `range`.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Token(TokenKind, TextRange);
+/// The result of lexing a token.
+pub type LexResult = Result<Token, LexicalError>;
+
+impl Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?} {:?}", self.0, self.1)
+    }
+}
+
+impl Token {
+    pub fn new(kind: TokenKind, range: TextRange) -> Self {
+        Self(kind, range)
     }
 
-    fn add_error(&mut self, ty: PythonErrorType, msg: String, span: Span) {
-        self.errors.push(PythonError { error: ty, msg, span });
+    #[inline]
+    pub fn kind(&self) -> TokenKind {
+        self.0
     }
 
-    #[inline(always)]
-    fn is_eof(&self) -> bool {
-        self.current_pos.read_pos >= self.text_bytes.len()
+    #[inline]
+    pub fn range(&self) -> TextRange {
+        self.1
+    }
+}
+
+// Create a new lexer from a source string.
+//
+// # Examples
+//
+// ```
+// use ruff_python_parser::{Mode, lexer::lex};
+//
+// let source = "def hello(): return 'world'";
+// let lexer = lex(source, Mode::Module);
+//
+// for token in lexer {
+//    println!("{:?}", token);
+// }
+// ```
+#[inline]
+pub fn lex(source: &str) -> SoftKeywordTransformer<Lexer> {
+    SoftKeywordTransformer::new(Lexer::new(source))
+}
+
+impl<'source> Lexer<'source> {
+    /// Create a new lexer from T and a starting location. You probably want to use
+    /// [`lex`] instead.
+    pub fn new(input: &'source str) -> Self {
+        assert!(
+            u32::try_from(input.len()).is_ok(),
+            "Lexer only supports files with a size up to 4GB"
+        );
+
+        let mut lexer = Lexer {
+            state: State::AfterNewline,
+            nesting: 0,
+            indentations: Indentations::default(),
+            pending_indentation: None,
+
+            source: input,
+            cursor: Cursor::new(input),
+        };
+        // TODO: Handle possible mismatch between BOM and explicit encoding declaration.
+        lexer.cursor.eat_char('\u{feff}');
+
+        lexer
     }
 
-    /// Consumes the following whitespace characters: ' ', '\t' and '\x0C'.
-    fn consume_whitespace(&mut self) {
-        self.consume_while(is_whitespace);
-    }
-
-    /// Advances the current position by the specified `offset` and returns the original
-    /// position and the updated position as a tuple.
-    fn advance_pos(&mut self, offset: usize) -> (Position, Position) {
-        let start = self.current_pos;
-
-        self.current_pos.read_pos += offset;
-        self.current_pos
-            .go_right(offset.try_into().expect("offset to big to fit into u32!"));
-
-        (start, self.current_pos)
-    }
-
-    /// Consumes the specified number of characters by the specified `total` from the input
-    /// and returns a token of the specified [`TokenType`] with the corresponding span.
-    fn consume_n_chars(&mut self, total: usize, token_kind: TokenType<'src>) -> Token<'src> {
-        let (start, end) = self.advance_pos(total);
-
-        Token {
-            kind: token_kind,
-            span: Span::new(start, end),
-        }
-    }
-
-    /// Consumes a single character from the input and returns a token of the specified
-    /// [`TokenType`] with the corresponding span.
-    fn consume_single_char(&mut self, token_kind: TokenType<'src>) -> Token<'src> {
-        self.consume_n_chars(1, token_kind)
-    }
-
-    /// Consumes one character at a time while `predicate` returns `true`.
-    /// Returns the original position before consuming and the updated position after
-    /// consuming as a tuple.
-    fn consume_while<F>(&mut self, predicate: F) -> (Position, Position)
-    where
-        F: Fn(u8) -> bool,
-    {
-        self.consume_while_with_offset(1, predicate)
-    }
-
-    /// Consumes `total` characters while `predicate` returns `true`.
-    /// Returns the original position before consuming and the updated position after
-    /// consuming as a tuple.
-    fn consume_while_with_offset<F>(&mut self, total: usize, predicate: F) -> (Position, Position)
-    where
-        F: Fn(u8) -> bool,
-    {
-        let start = self.current_pos;
-        while !self.is_eof() && predicate(self.text_bytes[self.current_pos.read_pos]) {
-            self.advance_pos(total);
-        }
-        let end = self.current_pos;
-
-        (start, end)
-    }
-
-    pub fn tokenize(mut self) -> (Vec<Token<'src>>, Vec<PythonError>) {
-        let mut tokens = Vec::new();
-
-        while !self.is_eof() {
-            if self.is_at_beginning_of_line && self.implicit_line_joining == 0 {
-                tokens.extend(self.handle_indentation());
+    /// Lex an identifier. Also used for keywords and string/bytes literals with a prefix.
+    fn lex_identifier(&mut self, first: char) -> Result<TokenKind, LexicalError> {
+        // Detect potential string like rb'' b'' f'' u'' r''
+        match self.cursor.first() {
+            quote @ ('\'' | '"') => {
+                if let Ok(string_kind) = StringKind::try_from(first) {
+                    self.cursor.bump();
+                    return self.lex_string(string_kind, quote);
+                }
             }
+            second @ ('f' | 'F' | 'r' | 'R' | 'b' | 'B') if is_quote(self.cursor.second()) => {
+                self.cursor.bump();
 
-            let Some(&char_byte) = self.text_bytes.get( self.current_pos.read_pos ) else {
-                break;
-            };
-
-            let token = if char_byte.is_ascii_digit() {
-                self.consume_number()
-            } else if char_byte == b'"' || char_byte == b'\'' {
-                self.consume_string()
-            } else if char_byte == b'(' {
-                self.implicit_line_joining += 1;
-                self.consume_single_char(TokenType::OpenParenthesis)
-            } else if char_byte == b')' {
-                self.implicit_line_joining -= 1;
-                self.consume_single_char(TokenType::CloseParenthesis)
-            } else if char_byte == b'[' {
-                self.implicit_line_joining += 1;
-                self.consume_single_char(TokenType::OpenBrackets)
-            } else if char_byte == b']' {
-                self.implicit_line_joining -= 1;
-                self.consume_single_char(TokenType::CloseBrackets)
-            } else if char_byte == b'{' {
-                self.implicit_line_joining += 1;
-                self.consume_single_char(TokenType::OpenBrace)
-            } else if char_byte == b'}' {
-                self.implicit_line_joining -= 1;
-                self.consume_single_char(TokenType::CloseBrace)
-            } else if char_byte == b';' {
-                self.consume_single_char(TokenType::SemiColon)
-            } else if char_byte == b',' {
-                self.consume_single_char(TokenType::Comma)
-            } else if char_byte == b'#' {
-                self.consume_comment();
-                continue;
-            } else if char_byte == b'\\' {
-                self.handle_explicit_line_join();
-                continue;
-            } else if is_char_operator(char_byte) {
-                if char_byte == b'-' && self.text_bytes.get(self.current_pos.read_pos + 1) == Some(&b'>') {
-                    self.consume_n_chars(2, TokenType::RightArrow)
-                } else {
-                    self.consume_operator()
+                if let Ok(string_kind) = StringKind::try_from([first, second]) {
+                    let quote = self.cursor.bump().unwrap();
+                    return self.lex_string(string_kind, quote);
                 }
-            } else if is_whitespace(char_byte) {
-                self.consume_whitespace();
-                continue;
-            } else if is_eol(char_byte) {
-                let eol_token = self.consume_eol();
-                if self.implicit_line_joining > 0 {
-                    continue;
-                }
-
-                self.is_at_beginning_of_line = true;
-                eol_token
-            } else if char_byte == b':' {
-                if let Some(b'=') = self.text_bytes.get(self.current_pos.read_pos + 1) {
-                    self.consume_n_chars(2, TokenType::Operator(OperatorType::ColonEqual))
-                } else {
-                    self.consume_single_char(TokenType::Colon)
-                }
-            } else if char_byte == b'.' {
-                if self
-                    .text_bytes
-                    .get(self.current_pos.read_pos + 1)
-                    .map_or(false, |char| char.is_ascii_digit())
-                {
-                    self.consume_float(self.current_pos)
-                } else if let (Some(b'.'), Some(b'.')) = (
-                    self.text_bytes.get(self.current_pos.read_pos + 1),
-                    self.text_bytes.get(self.current_pos.read_pos + 2),
-                ) {
-                    self.consume_n_chars(3, TokenType::Ellipsis)
-                } else {
-                    self.consume_single_char(TokenType::Dot)
-                }
-            } else if char_byte == b'_'
-                || convert_byte_to_unicode_codepoint(self.text_bytes, char_byte, self.current_pos.read_pos)
-                    .is_xid_start()
-            {
-                self.consume_id_or_keyword()
-            } else {
-                let token = self.consume_single_char(TokenType::Invalid(char_byte as char));
-                self.add_error(
-                    PythonErrorType::InvalidToken,
-                    format!(
-                        "SyntaxError: character {} only allowed in string literal",
-                        char_byte as char
-                    ),
-                    token.span,
-                );
-
-                token
-            };
-
-            tokens.push(token);
+            }
+            _ => {}
         }
 
-        while *self.indent_stack.last().unwrap() > 0 {
-            tokens.push(Token {
-                kind: TokenType::Dedent,
-                span: Span {
-                    row_start: self.current_pos.row,
-                    row_end: self.current_pos.row,
-                    column_start: 1,
-                    column_end: 1,
-                },
-            });
-            self.indent_stack.pop();
-        }
+        self.cursor.eat_while(is_identifier_continuation);
 
-        tokens.push(Token {
-            kind: TokenType::Eof,
-            span: Span::new(self.current_pos, self.current_pos),
-        });
+        let text = self.token_text();
 
-        (tokens, self.errors)
+        let keyword = match text {
+            "and" => TokenKind::Keyword(KeywordKind::And),
+            "as" => TokenKind::Keyword(KeywordKind::As),
+            "assert" => TokenKind::Keyword(KeywordKind::Assert),
+            "async" => TokenKind::Keyword(KeywordKind::Async),
+            "await" => TokenKind::Keyword(KeywordKind::Await),
+            "break" => TokenKind::Keyword(KeywordKind::Break),
+            "case" => TokenKind::SoftKeyword(SoftKeywordKind::Case),
+            "class" => TokenKind::Keyword(KeywordKind::Class),
+            "continue" => TokenKind::Keyword(KeywordKind::Continue),
+            "def" => TokenKind::Keyword(KeywordKind::Def),
+            "del" => TokenKind::Keyword(KeywordKind::Del),
+            "elif" => TokenKind::Keyword(KeywordKind::Elif),
+            "else" => TokenKind::Keyword(KeywordKind::Else),
+            "except" => TokenKind::Keyword(KeywordKind::Except),
+            "False" => TokenKind::Keyword(KeywordKind::False),
+            "finally" => TokenKind::Keyword(KeywordKind::Finally),
+            "for" => TokenKind::Keyword(KeywordKind::For),
+            "from" => TokenKind::Keyword(KeywordKind::From),
+            "global" => TokenKind::Keyword(KeywordKind::Global),
+            "if" => TokenKind::Keyword(KeywordKind::If),
+            "import" => TokenKind::Keyword(KeywordKind::Import),
+            "in" => TokenKind::Keyword(KeywordKind::In),
+            "is" => TokenKind::Keyword(KeywordKind::Is),
+            "lambda" => TokenKind::Keyword(KeywordKind::Lambda),
+            "match" => TokenKind::SoftKeyword(SoftKeywordKind::Match),
+            "None" => TokenKind::Keyword(KeywordKind::None),
+            "nonlocal" => TokenKind::Keyword(KeywordKind::NonLocal),
+            "not" => TokenKind::Keyword(KeywordKind::Not),
+            "or" => TokenKind::Keyword(KeywordKind::Or),
+            "pass" => TokenKind::Keyword(KeywordKind::Pass),
+            "raise" => TokenKind::Keyword(KeywordKind::Raise),
+            "return" => TokenKind::Keyword(KeywordKind::Return),
+            "True" => TokenKind::Keyword(KeywordKind::True),
+            "try" => TokenKind::Keyword(KeywordKind::Try),
+            "type" => TokenKind::SoftKeyword(SoftKeywordKind::Type),
+            "while" => TokenKind::Keyword(KeywordKind::While),
+            "with" => TokenKind::Keyword(KeywordKind::With),
+            "yield" => TokenKind::Keyword(KeywordKind::Yield),
+            _ => return Ok(TokenKind::Id),
+        };
+
+        Ok(keyword)
     }
 
-    fn handle_explicit_line_join(&mut self) {
-        let (start, end) = self.advance_pos(1);
-
-        let char = self.text_bytes[self.current_pos.read_pos];
-        if !is_eol(char) {
-            self.add_error(
-                PythonErrorType::Syntax,
-                format!(
-                    "SyntaxError: unexpected character '{}' after line continuation character",
-                    char as char
-                ),
-                Span::new(start, end),
-            );
+    /// Numeric lexing. The feast can start!
+    fn lex_number(&mut self, first: char) -> Result<TokenKind, LexicalError> {
+        if first == '0' {
+            if self.cursor.eat_if(|c| matches!(c, 'x' | 'X')).is_some() {
+                self.lex_number_radix(Radix::Hex)
+            } else if self.cursor.eat_if(|c| matches!(c, 'o' | 'O')).is_some() {
+                self.lex_number_radix(Radix::Octal)
+            } else if self.cursor.eat_if(|c| matches!(c, 'b' | 'B')).is_some() {
+                self.lex_number_radix(Radix::Binary)
+            } else {
+                self.lex_decimal_number(first)
+            }
         } else {
-            self.consume_eol();
+            self.lex_decimal_number(first)
         }
     }
 
-    /// Given we are at the start of a line, count the number of spaces and/or tabs until the first character.
-    /// Code borrowed from:
-    /// https://github.com/RustPython/Parser/blob/704eb40108239a8faf9bd1d4217e8dad0ac7edb3/parser/src/lexer.rs#L608
-    fn consume_indentation(&mut self) -> usize {
-        let mut indent_level = 0;
+    /// Lex a hex/octal/decimal/binary number without a decimal point.
+    fn lex_number_radix(&mut self, radix: Radix) -> Result<TokenKind, LexicalError> {
+        // #[cfg(debug_assertions)]
+        // debug_assert!(matches!(self.cursor.previous().to_ascii_lowercase(), 'x' | 'o' | 'b'));
 
-        while !self.is_eof() {
-            match self.text_bytes[self.current_pos.read_pos] {
-                b' ' => {
-                    self.advance_pos(1);
-                    indent_level += 1;
-                }
-                b'#' => {
-                    self.consume_comment();
-                    indent_level = 0;
-                }
-                b'\t' => {
-                    // FIXME: handle the case where spaces and tabs are mixed!
-                    self.advance_pos(1);
-                }
-                0x0C => {
-                    self.advance_pos(1);
-                    indent_level = 0;
-                }
-                b'\n' | b'\r' => {
-                    // Empty line
-                    self.consume_eol();
-                    indent_level = 0;
-                }
-                _ => {
-                    self.is_at_beginning_of_line = false;
-                    break;
-                }
-            }
+        self.cursor.eat_while(|char| radix.is_digit(char) || char == '_');
+
+        // If we find a valid identifier character after consuming the number,
+        // consume all of that, unless is one of the characters that can be
+        // found in a float number (`e`, `E`, `j` and `J`).
+        if is_unicode_identifier_start(self.cursor.first()) {
+            self.cursor.eat_while(|char| {
+                !matches!(char, 'e' | 'E' | 'j' | 'J')
+                    && (char == '_' || char.is_ascii_digit() || is_identifier_continuation(char))
+            });
         }
 
-        indent_level
+        Ok(TokenKind::Number(
+            radix
+                .try_number_kind(self.token_text())
+                .map_err(|error| LexicalError::new(error, self.token_range()))?,
+        ))
     }
 
-    fn handle_indentation(&mut self) -> Vec<Token<'src>> {
-        let current_indent_level = self.consume_indentation();
-        let top_of_stack = &self.indent_stack.last().copied().unwrap();
-        let mut indentation_tokens = vec![];
+    /// Lex a normal number, that is, no octal, hex or binary number.
+    fn lex_decimal_number(&mut self, first_digit_or_dot: char) -> Result<TokenKind, LexicalError> {
+        #[cfg(debug_assertions)]
+        debug_assert!(self.cursor.previous().is_ascii_digit() || self.cursor.previous() == '.');
 
-        match current_indent_level.cmp(top_of_stack) {
-            std::cmp::Ordering::Less => {
-                while self
-                    .indent_stack
-                    .last()
-                    .map_or(false, |&top_of_stack| current_indent_level < top_of_stack)
-                {
-                    self.indent_stack.pop();
-                    indentation_tokens.push(Token {
-                        kind: TokenType::Dedent,
-                        span: Span::new(self.current_pos, self.current_pos),
-                    });
-                }
-
-                // compare the top of the stack with the current indent level
-                if *self.indent_stack.last().unwrap() != current_indent_level {
-                    self.add_error(
-                        PythonErrorType::Indentation,
-                        format!(
-                            "IndentError: current indent amount '{current_indent_level}' does not match previous indent '{}'",
-                            self.indent_stack.last().unwrap()
-                        ),
-                        Span::new(self.current_pos, self.current_pos),
-                    );
-                }
-            }
-            std::cmp::Ordering::Greater => {
-                self.indent_stack.push(current_indent_level);
-                indentation_tokens.push(Token {
-                    kind: TokenType::Indent,
-                    span: Span::new(self.current_pos, self.current_pos),
-                });
-            }
-            std::cmp::Ordering::Equal => (), // Do nothing!
+        // For cases where the float number doesn't have the decimal, e.g. .1, .1314
+        if matches!(first_digit_or_dot, '.') {
+            return self.lex_float_number();
         }
 
-        indentation_tokens
-    }
+        let decimal_number = self.lex_number_radix(Radix::Decimal);
 
-    fn consume_string(&mut self) -> Token<'src> {
-        let mut is_str_unclosed = false;
-        let start = self.current_pos;
-
-        let quote_char = self.text_bytes[self.current_pos.read_pos];
-        self.advance_pos(1);
-
-        let is_triple_quote =
-            if self.text_bytes[self.current_pos.read_pos..self.current_pos.read_pos + 2] == [quote_char; 2] {
-                self.advance_pos(2);
-                true
+        // After lexing the decimal number we may encounter a `.`, `e` or `E`.
+        // This means the number is a float number.
+        if matches!(self.cursor.first(), '.' | 'e' | 'E') {
+            return self.lex_float_number();
+        } else if self.cursor.eat_if(|char| matches!(char, 'j' | 'J')).is_some() {
+            if is_float_number_valid(self.token_text()) {
+                return Ok(TokenKind::Number(NumberKind::Complex));
             } else {
-                false
+                self.state = State::Other;
+                return Err(LexicalError::new(
+                    LexicalErrorType::InvalidNumberError(InvalidNumberErrorKind::Complex),
+                    self.token_range(),
+                ));
+            }
+        }
+
+        decimal_number
+    }
+
+    fn lex_float_number(&mut self) -> Result<TokenKind, LexicalError> {
+        // Consume `.`, e` or `E`.
+        if matches!(self.cursor.bump(), Some('e' | 'E')) {
+            self.cursor.eat_if(|char| matches!(char, '-' | '+'));
+        }
+
+        let _ = self.lex_number_radix(Radix::Decimal);
+
+        if self.cursor.eat_if(|char| matches!(char, 'e' | 'E')).is_some() {
+            self.cursor.eat_if(|char| matches!(char, '-' | '+'));
+            let _ = self.lex_number_radix(Radix::Decimal);
+        }
+
+        let is_complex = self.cursor.eat_if(|char| matches!(char, 'j' | 'J')).is_some();
+
+        if is_float_number_valid(self.token_text()) {
+            let number_kind = if is_complex {
+                NumberKind::Complex
+            } else {
+                NumberKind::Float
             };
 
-        while !self.is_eof() {
-            match self.text_bytes[self.current_pos.read_pos] {
-                // Consume '\' and the following char. Also handles the case where '\' is the
-                // explicit line join character.
-                b'\\' => {
-                    self.advance_pos(1);
-                    if is_eol(self.text_bytes[self.current_pos.read_pos]) {
-                        self.consume_eol();
+            Ok(TokenKind::Number(number_kind))
+        } else {
+            self.state = State::Other;
+            let error = if is_complex {
+                LexicalErrorType::InvalidNumberError(InvalidNumberErrorKind::Complex)
+            } else {
+                LexicalErrorType::InvalidNumberError(InvalidNumberErrorKind::Float)
+            };
+            Err(LexicalError::new(error, self.token_range()))
+        }
+    }
+
+    /// Lex a string literal.
+    fn lex_string(&mut self, kind: StringKind, quote: char) -> Result<TokenKind, LexicalError> {
+        #[cfg(debug_assertions)]
+        debug_assert_eq!(self.cursor.previous(), quote);
+
+        // If the next two characters are also the quote character, then we have a triple-quoted
+        // string; consume those two characters and ensure that we require a triple-quote to close
+        let triple_quoted = if self.cursor.first() == quote && self.cursor.second() == quote {
+            self.cursor.bump();
+            self.cursor.bump();
+            true
+        } else {
+            false
+        };
+
+        loop {
+            match self.cursor.first() {
+                '\\' => {
+                    self.cursor.bump();
+                    if self.cursor.eat_char('\r') {
+                        self.cursor.eat_char('\n');
                     } else {
-                        self.advance_pos(1);
+                        self.cursor.bump();
                     }
                 }
-                c if is_eol(c) && !is_triple_quote => {
-                    is_str_unclosed = true;
-                    break;
+                '\r' | '\n' if !triple_quoted => {
+                    self.state = State::Other;
+                    return Err(LexicalError::new(
+                        LexicalErrorType::UnclosedStringError,
+                        self.token_range(),
+                    ));
                 }
-                // correctly handles the EOL inside triple quote strings
-                c if is_eol(c) && is_triple_quote => {
-                    self.consume_eol();
-                }
-                c if c == quote_char => {
-                    if is_triple_quote {
-                        self.advance_pos(1);
-
-                        if self.text_bytes[self.current_pos.read_pos..self.current_pos.read_pos + 2] == [quote_char; 2]
-                        {
-                            self.advance_pos(2);
+                c if c == quote => {
+                    self.cursor.bump();
+                    if triple_quoted {
+                        if self.cursor.first() == quote && self.cursor.second() == quote {
+                            self.cursor.bump();
+                            self.cursor.bump();
                             break;
                         }
                     } else {
-                        self.advance_pos(1);
                         break;
                     }
                 }
-                // consume the content inside the string
-                _ => {
-                    self.advance_pos(1);
-                }
-            }
-
-            if self.is_eof() {
-                is_str_unclosed = true;
-            }
-        }
-        let end = self.current_pos;
-
-        if is_str_unclosed {
-            self.add_error(
-                PythonErrorType::Syntax,
-                "SyntaxError: unclosed string literal".to_string(),
-                Span::new(start, end),
-            );
-        }
-
-        Token {
-            kind: TokenType::String(&self.text[start.read_pos..end.read_pos]),
-            span: Span::new(start, end),
-        }
-    }
-
-    fn consume_eol(&mut self) -> Token<'src> {
-        let token = if self.text_bytes[self.current_pos.read_pos] == b'\r'
-            && self.text_bytes.get(self.current_pos.read_pos + 1) == Some(&b'\n')
-        {
-            self.consume_n_chars(2, TokenType::NewLine)
-        } else {
-            self.consume_single_char(TokenType::NewLine)
-        };
-
-        self.current_pos.new_line();
-        token
-    }
-
-    fn consume_comment(&mut self) {
-        self.consume_while(|char| !matches!(char, b'\n' | b'\r'));
-    }
-
-    fn consume_id_or_keyword(&mut self) -> Token<'src> {
-        // TODO: check for a string prefix before consuming it.
-        let start = self.current_pos;
-        while !self.is_eof()
-            && convert_byte_to_unicode_codepoint(
-                self.text_bytes,
-                self.text_bytes[self.current_pos.read_pos],
-                self.current_pos.read_pos,
-            )
-            .is_xid_continue()
-        {
-            self.advance_pos(unicode_char_size(self.text_bytes[self.current_pos.read_pos]));
-        }
-        let end = self.current_pos;
-        let id_str = &self.text[start.read_pos..end.read_pos];
-
-        if !self.is_eof()
-            && is_string_prefix(id_str)
-            && matches!(self.text_bytes[self.current_pos.read_pos], b'\'' | b'"')
-        {
-            return self.consume_string();
-        }
-
-        let token_type = match id_str {
-            "and" => TokenType::Keyword(KeywordType::And),
-            "as" => TokenType::Keyword(KeywordType::As),
-            "assert" => TokenType::Keyword(KeywordType::Assert),
-            "async" => TokenType::Keyword(KeywordType::Async),
-            "await" => TokenType::Keyword(KeywordType::Await),
-            "break" => TokenType::Keyword(KeywordType::Break),
-            "case" => TokenType::SoftKeyword(SoftKeywordType::Case),
-            "class" => TokenType::Keyword(KeywordType::Class),
-            "continue" => TokenType::Keyword(KeywordType::Continue),
-            "def" => TokenType::Keyword(KeywordType::Def),
-            "del" => TokenType::Keyword(KeywordType::Del),
-            "elif" => TokenType::Keyword(KeywordType::Elif),
-            "else" => TokenType::Keyword(KeywordType::Else),
-            "except" => TokenType::Keyword(KeywordType::Except),
-            "False" => TokenType::Keyword(KeywordType::False),
-            "finally" => TokenType::Keyword(KeywordType::Finally),
-            "for" => TokenType::Keyword(KeywordType::For),
-            "from" => TokenType::Keyword(KeywordType::From),
-            "global" => TokenType::Keyword(KeywordType::Global),
-            "if" => TokenType::Keyword(KeywordType::If),
-            "import" => TokenType::Keyword(KeywordType::Import),
-            "in" => TokenType::Keyword(KeywordType::In),
-            "is" => TokenType::Keyword(KeywordType::Is),
-            "lambda" => TokenType::Keyword(KeywordType::Lambda),
-            "match" => TokenType::SoftKeyword(SoftKeywordType::Match),
-            "None" => TokenType::Keyword(KeywordType::None),
-            "nonlocal" => TokenType::Keyword(KeywordType::NonLocal),
-            "not" => TokenType::Keyword(KeywordType::Not),
-            "or" => TokenType::Keyword(KeywordType::Or),
-            "pass" => TokenType::Keyword(KeywordType::Pass),
-            "raise" => TokenType::Keyword(KeywordType::Raise),
-            "return" => TokenType::Keyword(KeywordType::Return),
-            "True" => TokenType::Keyword(KeywordType::True),
-            "try" => TokenType::Keyword(KeywordType::Try),
-            "while" => TokenType::Keyword(KeywordType::While),
-            "with" => TokenType::Keyword(KeywordType::With),
-            "yield" => TokenType::Keyword(KeywordType::Yield),
-            "_" => TokenType::SoftKeyword(SoftKeywordType::Underscore),
-            _ => TokenType::Id(id_str),
-        };
-
-        Token {
-            kind: token_type,
-            span: Span::new(start, end),
-        }
-    }
-
-    fn consume_float(&mut self, float_start: Position) -> Token<'src> {
-        if matches!(self.text_bytes[self.current_pos.read_pos], b'e' | b'E') {
-            self.advance_pos(1);
-            // after consuming the 'e'/'E', we may see a '+' or '-'
-            if !self.is_eof() && matches!(self.text_bytes[self.current_pos.read_pos], b'-' | b'+') {
-                self.advance_pos(1);
-            }
-        } else if self.text_bytes[self.current_pos.read_pos] == b'.' {
-            // consume '.'
-            self.advance_pos(1);
-        }
-
-        let (_, mut end) = self.consume_while(|char| char.is_ascii_digit() || char == b'_');
-
-        if !self.is_eof() && matches!(self.text_bytes[self.current_pos.read_pos], b'e' | b'E') {
-            self.advance_pos(1);
-            // after consuming the 'e'/'E', we may see a '+' or '-'
-            if !self.is_eof() && matches!(self.text_bytes[self.current_pos.read_pos], b'-' | b'+') {
-                self.advance_pos(1);
-            }
-
-            (_, end) = self.consume_while(|char| char.is_ascii_digit() || char == b'_');
-        }
-
-        let token_kind = if !self.is_eof() && matches!(self.text_bytes[end.read_pos], b'j' | b'J') {
-            // consume 'j'/'J'
-            self.advance_pos(1);
-            let float = &self.text[float_start.read_pos..self.current_pos.read_pos];
-            if !is_float_number_valid(float) {
-                self.add_error(
-                    PythonErrorType::Syntax,
-                    format!("SyntaxError: invalid imaginary number literal \"{float}\""),
-                    Span::new(float_start, end),
-                );
-            }
-            TokenType::Number(NumberType::Imaginary(float))
-        } else {
-            let float = &self.text[float_start.read_pos..end.read_pos];
-            if !is_float_number_valid(float) {
-                self.add_error(
-                    PythonErrorType::Syntax,
-                    format!("SyntaxError: invalid float number literal \"{float}\""),
-                    Span::new(float_start, end),
-                );
-            }
-            TokenType::Number(NumberType::Float(float))
-        };
-
-        Token {
-            kind: token_kind,
-            span: Span::new(float_start, end),
-        }
-    }
-
-    fn consume_number(&mut self) -> Token<'src> {
-        let (start, mut end) = self.consume_while(|char| char.is_ascii_digit() || char == b'_');
-
-        if !self.is_eof()
-            && matches!(
-                self.text_bytes[self.current_pos.read_pos],
-                b'.' | b'e' | b'E' | b'j' | b'J'
-            )
-        {
-            return self.consume_float(start);
-        }
-
-        // In case we find any alphabetic character after the number, consume it.
-        // TODO: probably do this check with `is_xid_continue`
-        if !self.is_eof() && self.text_bytes[self.current_pos.read_pos].is_ascii_alphabetic() {
-            (_, end) = self.consume_while(|char| char.is_ascii_alphanumeric() || char == b'_');
-        }
-
-        let number = &self.text[start.read_pos..end.read_pos];
-
-        // check if the number is valid and get their type.
-        let number_type = if number.len() > 2 {
-            match &number[..2] {
-                "0b" | "0B" => {
-                    if !is_binary_number_valid(number) {
-                        self.add_error(
-                            PythonErrorType::Syntax,
-                            "SyntaxError: invalid binary number literal".to_string(),
-                            Span::new(start, end),
-                        );
-                    }
-                    TokenType::Number(NumberType::Integer(IntegerType::Binary(number)))
-                }
-                "0x" | "0X" => {
-                    if !is_hex_number_valid(number) {
-                        self.add_error(
-                            PythonErrorType::Syntax,
-                            "SyntaxError: invalid hexadecimal number literal".to_string(),
-                            Span::new(start, end),
-                        );
-                    }
-                    TokenType::Number(NumberType::Integer(IntegerType::Hex(number)))
-                }
-                "0o" | "0O" => {
-                    if !is_octal_number_valid(number) {
-                        self.add_error(
-                            PythonErrorType::Syntax,
-                            "SyntaxError: invalid octal number literal".to_string(),
-                            Span::new(start, end),
-                        );
-                    }
-                    TokenType::Number(NumberType::Integer(IntegerType::Octal(number)))
+                EOF_CHAR => {
+                    self.state = State::Other;
+                    return Err(LexicalError::new(
+                        LexicalErrorType::UnclosedStringError,
+                        self.token_range(),
+                    ));
                 }
                 _ => {
-                    if !is_decimal_number_valid(number) {
-                        self.add_error(
-                            PythonErrorType::Syntax,
-                            "SyntaxError: invalid decimal number literal".to_string(),
-                            Span::new(start, end),
-                        );
-                    }
-                    TokenType::Number(NumberType::Integer(IntegerType::Decimal(number)))
+                    self.cursor.bump();
                 }
             }
-        } else {
-            if !is_decimal_number_valid(number) {
-                self.add_error(
-                    PythonErrorType::Syntax,
-                    "SyntaxError: invalid decimal number literal".to_string(),
-                    Span::new(start, end),
-                );
+        }
+
+        Ok(TokenKind::String {
+            kind,
+            is_triple_quote: triple_quoted,
+        })
+    }
+
+    // This is the main entry point. Call this function to retrieve the next token.
+    // This function is used by the iterator implementation.
+    pub fn next_token(&mut self) -> LexResult {
+        // Return dedent tokens until the current indentation level matches the indentation of the next token.
+        if let Some(indentation) = self.pending_indentation.take() {
+            match self.indentations.current().try_compare(indentation) {
+                Ok(Ordering::Greater) => {
+                    self.pending_indentation = Some(indentation);
+                    let offset = self.offset();
+                    self.indentations
+                        .dedent_one(indentation)
+                        .map_err(|_| LexicalError::new(LexicalErrorType::IndentationError, self.token_range()))?;
+                    return Ok(Token(TokenKind::Dedent, TextRange::empty(offset)));
+                }
+                Ok(_) => {}
+                Err(_) => {
+                    return Err(LexicalError::new(
+                        LexicalErrorType::IndentationError,
+                        self.token_range(),
+                    ));
+                }
             }
+        }
 
-            TokenType::Number(NumberType::Integer(IntegerType::Decimal(number)))
-        };
+        if self.state.is_after_newline() {
+            if let Some(indentation) = self.eat_indentation()? {
+                return Ok(indentation);
+            }
+        } else {
+            self.skip_whitespace()?;
+        }
 
-        Token {
-            kind: number_type,
-            span: Span::new(start, end),
+        self.cursor.start_token();
+        if let Some(c) = self.cursor.bump() {
+            if c.is_ascii() {
+                self.consume_ascii_character(c)
+            } else if is_unicode_identifier_start(c) {
+                let identifier = self.lex_identifier(c)?;
+                self.state = State::Other;
+
+                Ok(Token(identifier, self.token_range()))
+            } else {
+                Err(LexicalError::new(
+                    LexicalErrorType::UnrecognizedToken,
+                    self.token_range(),
+                ))
+            }
+        } else {
+            // Reached the end of the file. Emit a trailing newline token if not at the beginning of a logical line,
+            // empty the dedent stack, and finally, return the EndOfFile token.
+            self.consume_end()
         }
     }
 
-    fn consume_operator(&mut self) -> Token<'src> {
-        let (token_kind, total_chars) = match (
-            self.text_bytes[self.current_pos.read_pos],
-            self.text_bytes.get(self.current_pos.read_pos + 1),
-        ) {
-            (b'=', Some(b'=')) => (TokenType::Operator(OperatorType::Equals), 2),
-            (b'+', Some(b'=')) => (TokenType::Operator(OperatorType::PlusEqual), 2),
-            (b'*', Some(b'=')) => (TokenType::Operator(OperatorType::AsteriskEqual), 2),
-            (b'-', Some(b'=')) => (TokenType::Operator(OperatorType::MinusEqual), 2),
-            (b'<', Some(b'=')) => (TokenType::Operator(OperatorType::LessThanOrEqual), 2),
-            (b'>', Some(b'=')) => (TokenType::Operator(OperatorType::GreaterThanOrEqual), 2),
-            (b'^', Some(b'=')) => (TokenType::Operator(OperatorType::BitwiseXOrEqual), 2),
-            (b'~', Some(b'=')) => (TokenType::Operator(OperatorType::BitwiseNotEqual), 2),
-            (b'!', Some(b'=')) => (TokenType::Operator(OperatorType::NotEquals), 2),
-            (b'%', Some(b'=')) => (TokenType::Operator(OperatorType::ModuloEqual), 2),
-            (b'&', Some(b'=')) => (TokenType::Operator(OperatorType::BitwiseAndEqual), 2),
-            (b'|', Some(b'=')) => (TokenType::Operator(OperatorType::BitwiseOrEqual), 2),
-            (b'@', Some(b'=')) => (TokenType::Operator(OperatorType::AtEqual), 2),
-            (b'/', Some(b'=')) => (TokenType::Operator(OperatorType::DivideEqual), 2),
-            (b'/', Some(b'/')) => {
-                if self
-                    .text_bytes
-                    .get(self.current_pos.read_pos + 2)
-                    .map_or(false, |char| *char == b'=')
-                {
-                    (TokenType::Operator(OperatorType::FloorDivisionEqual), 3)
-                } else {
-                    (TokenType::Operator(OperatorType::FloorDivision), 2)
+    fn skip_whitespace(&mut self) -> Result<(), LexicalError> {
+        loop {
+            match self.cursor.first() {
+                ' ' => {
+                    self.cursor.bump();
+                }
+                '\t' => {
+                    self.cursor.bump();
+                }
+                '\\' => {
+                    self.cursor.bump();
+                    if self.cursor.eat_char('\r') {
+                        self.cursor.eat_char('\n');
+                    } else if self.cursor.is_eof() {
+                        return Err(LexicalError::new(LexicalErrorType::Eof, self.token_range()));
+                    } else if !self.cursor.eat_char('\n') {
+                        // bump the cursor to avoid creating a `Id` token for this character
+                        self.cursor.bump();
+                        return Err(LexicalError::new(
+                            LexicalErrorType::LineContinuationError,
+                            TextRange::new(
+                                self.offset().checked_sub(1.into()).expect("subtraction overflowed"),
+                                self.offset(),
+                            ),
+                        ));
+                    }
+                }
+                // Form feed
+                '\x0C' => {
+                    self.cursor.bump();
+                }
+                _ => break,
+            }
+        }
+
+        Ok(())
+    }
+
+    fn eat_indentation(&mut self) -> Result<Option<Token>, LexicalError> {
+        let mut indentation = Indentation::root();
+        self.cursor.start_token();
+
+        loop {
+            match self.cursor.first() {
+                ' ' => {
+                    self.cursor.bump();
+                    indentation = indentation.add_space();
+                }
+                '\t' => {
+                    self.cursor.bump();
+                    indentation = indentation.add_tab();
+                }
+                '\\' => {
+                    self.cursor.bump();
+                    if self.cursor.eat_char('\r') {
+                        self.cursor.eat_char('\n');
+                    } else if self.cursor.is_eof() {
+                        return Err(LexicalError::new(LexicalErrorType::Eof, self.token_range()));
+                    } else if !self.cursor.eat_char('\n') {
+                        // bump the cursor to avoid creating a `Id` token for this character
+                        self.cursor.bump();
+                        return Err(LexicalError::new(
+                            LexicalErrorType::LineContinuationError,
+                            TextRange::new(
+                                self.offset().checked_sub(1.into()).expect("subtraction overflowed"),
+                                self.offset(),
+                            ),
+                        ));
+                    }
+                    indentation = Indentation::root();
+                }
+                // Form feed
+                '\x0C' => {
+                    self.cursor.bump();
+                    indentation = Indentation::root();
+                }
+                _ => break,
+            }
+        }
+
+        if self.state.is_after_newline() {
+            // Handle indentation if this is a new, not all empty, logical line
+            if !matches!(self.cursor.first(), '\n' | '\r' | '#' | EOF_CHAR) {
+                self.state = State::NonEmptyLogicalLine;
+
+                if let Some(token) = self.handle_indentation(indentation)? {
+                    // Set to false so that we don't handle indentation on the next call.
+
+                    return Ok(Some(token));
                 }
             }
-            (b'<', Some(b'<')) => {
-                if self
-                    .text_bytes
-                    .get(self.current_pos.read_pos + 2)
-                    .map_or(false, |char| *char == b'=')
-                {
-                    (TokenType::Operator(OperatorType::BitwiseLeftShiftEqual), 3)
-                } else {
-                    (TokenType::Operator(OperatorType::BitwiseLeftShift), 2)
-                }
-            }
-            (b'>', Some(b'>')) => {
-                if self
-                    .text_bytes
-                    .get(self.current_pos.read_pos + 2)
-                    .map_or(false, |char| *char == b'=')
-                {
-                    (TokenType::Operator(OperatorType::BitwiseRightShiftEqual), 3)
-                } else {
-                    (TokenType::Operator(OperatorType::BitwiseRightShift), 2)
-                }
-            }
-            (b'*', Some(b'*')) => {
-                if self
-                    .text_bytes
-                    .get(self.current_pos.read_pos + 2)
-                    .map_or(false, |char| *char == b'=')
-                {
-                    (TokenType::Operator(OperatorType::ExponentEqual), 3)
-                } else {
-                    (TokenType::Operator(OperatorType::Exponent), 2)
-                }
+        }
+
+        Ok(None)
+    }
+
+    fn handle_indentation(&mut self, indentation: Indentation) -> Result<Option<Token>, LexicalError> {
+        let token = match self.indentations.current().try_compare(indentation) {
+            // Dedent
+            Ok(Ordering::Greater) => {
+                self.pending_indentation = Some(indentation);
+
+                self.indentations
+                    .dedent_one(indentation)
+                    .map_err(|_| LexicalError::new(LexicalErrorType::IndentationError, self.token_range()))?;
+                Some(Token(TokenKind::Dedent, TextRange::empty(self.offset())))
             }
 
-            (b'%', _) => (TokenType::Operator(OperatorType::Modulo), 1),
-            (b'&', _) => (TokenType::Operator(OperatorType::BitwiseAnd), 1),
-            (b'*', _) => (TokenType::Operator(OperatorType::Asterisk), 1),
-            (b'+', _) => (TokenType::Operator(OperatorType::Plus), 1),
-            (b'-', _) => (TokenType::Operator(OperatorType::Minus), 1),
-            (b'<', _) => (TokenType::Operator(OperatorType::LessThan), 1),
-            (b'=', _) => (TokenType::Operator(OperatorType::Assign), 1),
-            (b'>', _) => (TokenType::Operator(OperatorType::GreaterThan), 1),
-            (b'^', _) => (TokenType::Operator(OperatorType::BitwiseXOR), 1),
-            (b'|', _) => (TokenType::Operator(OperatorType::BitwiseOr), 1),
-            (b'~', _) => (TokenType::Operator(OperatorType::BitwiseNot), 1),
-            (b'@', _) => (TokenType::Operator(OperatorType::At), 1),
-            (b'/', _) => (TokenType::Operator(OperatorType::Divide), 1),
+            Ok(Ordering::Equal) => None,
 
-            (_, _) => {
-                let mut end = self.current_pos;
-                end.column += 2;
-
-                self.add_error(
-                    PythonErrorType::Syntax,
-                    "SyntaxError: invalid operator".to_string(),
-                    Span::new(self.current_pos, end),
-                );
-
-                (TokenType::Operator(OperatorType::Invalid), 2)
+            // Indent
+            Ok(Ordering::Less) => {
+                self.indentations.indent(indentation);
+                Some(Token(TokenKind::Indent, self.token_range()))
+            }
+            Err(_) => {
+                return Err(LexicalError::new(
+                    LexicalErrorType::IndentationError,
+                    self.token_range(),
+                ));
             }
         };
 
-        self.consume_n_chars(total_chars, token_kind)
+        Ok(token)
+    }
+
+    fn consume_end(&mut self) -> Result<Token, LexicalError> {
+        // We reached end of file.
+        // First of all, we need all nestings to be finished.
+        if self.nesting > 0 {
+            self.nesting = 0;
+        }
+
+        // Next, insert a trailing newline, if required.
+        if !self.state.is_new_logical_line() {
+            self.state = State::AfterNewline;
+            Ok(Token(TokenKind::NewLine, TextRange::empty(self.offset())))
+        }
+        // Next, flush the indentation stack to zero.
+        else if self.indentations.dedent().is_some() {
+            Ok(Token(TokenKind::Dedent, TextRange::empty(self.offset())))
+        } else {
+            Ok(Token(TokenKind::Eof, TextRange::empty(self.offset())))
+        }
+    }
+
+    fn lex_comment(&mut self) -> Result<Token, LexicalError> {
+        #[cfg(debug_assertions)]
+        debug_assert_eq!(self.cursor.previous(), '#');
+
+        self.cursor.eat_while(|char| !matches!(char, '\r' | '\n'));
+        Ok(Token(TokenKind::Comment, self.token_range()))
+    }
+
+    // Dispatch based on the given character.
+    fn consume_ascii_character(&mut self, c: char) -> Result<Token, LexicalError> {
+        let token = match c {
+            c if is_ascii_identifier_start(c) => self.lex_identifier(c)?,
+            '0'..='9' => self.lex_number(c)?,
+            '#' => return self.lex_comment(),
+            '"' | '\'' => self.lex_string(StringKind::String, c)?,
+            '=' => {
+                if self.cursor.eat_char('=') {
+                    TokenKind::Operator(OperatorKind::Equals)
+                } else {
+                    self.state = State::AfterEqual;
+                    return Ok(Token(TokenKind::Operator(OperatorKind::Assign), self.token_range()));
+                }
+            }
+            '+' => {
+                if self.cursor.eat_char('=') {
+                    TokenKind::Operator(OperatorKind::PlusEqual)
+                } else {
+                    TokenKind::Operator(OperatorKind::Plus)
+                }
+            }
+            '*' => {
+                if self.cursor.eat_char('=') {
+                    TokenKind::Operator(OperatorKind::AsteriskEqual)
+                } else if self.cursor.eat_char('*') {
+                    if self.cursor.eat_char('=') {
+                        TokenKind::Operator(OperatorKind::ExponentEqual)
+                    } else {
+                        TokenKind::Operator(OperatorKind::Exponent)
+                    }
+                } else {
+                    TokenKind::Operator(OperatorKind::Asterisk)
+                }
+            }
+            '/' => {
+                if self.cursor.eat_char('=') {
+                    TokenKind::Operator(OperatorKind::DivideEqual)
+                } else if self.cursor.eat_char('/') {
+                    if self.cursor.eat_char('=') {
+                        TokenKind::Operator(OperatorKind::FloorDivisionEqual)
+                    } else {
+                        TokenKind::Operator(OperatorKind::DoubleSlash)
+                    }
+                } else {
+                    TokenKind::Operator(OperatorKind::Slash)
+                }
+            }
+            '%' => {
+                if self.cursor.eat_char('=') {
+                    TokenKind::Operator(OperatorKind::ModulusEqual)
+                } else {
+                    TokenKind::Operator(OperatorKind::Modulus)
+                }
+            }
+            '|' => {
+                if self.cursor.eat_char('=') {
+                    TokenKind::Operator(OperatorKind::BitwiseOrEqual)
+                } else {
+                    TokenKind::Operator(OperatorKind::BitwiseOr)
+                }
+            }
+            '^' => {
+                if self.cursor.eat_char('=') {
+                    TokenKind::Operator(OperatorKind::BitwiseXOREqual)
+                } else {
+                    TokenKind::Operator(OperatorKind::BitwiseXor)
+                }
+            }
+            '&' => {
+                if self.cursor.eat_char('=') {
+                    TokenKind::Operator(OperatorKind::BitwiseAndEqual)
+                } else {
+                    TokenKind::Operator(OperatorKind::BitwiseAnd)
+                }
+            }
+            '-' => {
+                if self.cursor.eat_char('=') {
+                    TokenKind::Operator(OperatorKind::MinusEqual)
+                } else if self.cursor.eat_char('>') {
+                    TokenKind::RightArrow
+                } else {
+                    TokenKind::Operator(OperatorKind::Minus)
+                }
+            }
+            '@' => {
+                if self.cursor.eat_char('=') {
+                    TokenKind::Operator(OperatorKind::AtEqual)
+                } else {
+                    TokenKind::Operator(OperatorKind::At)
+                }
+            }
+            '!' => {
+                if self.cursor.eat_char('=') {
+                    TokenKind::Operator(OperatorKind::NotEquals)
+                } else {
+                    return Err(LexicalError::new(
+                        LexicalErrorType::UnrecognizedToken,
+                        self.token_range(),
+                    ));
+                }
+            }
+            '~' => TokenKind::Operator(OperatorKind::BitwiseNot),
+            '(' => {
+                self.nesting += 1;
+                TokenKind::OpenParenthesis
+            }
+            ')' => {
+                self.nesting = self.nesting.saturating_sub(1);
+                TokenKind::CloseParenthesis
+            }
+            '[' => {
+                self.nesting += 1;
+                TokenKind::OpenBracket
+            }
+            ']' => {
+                self.nesting = self.nesting.saturating_sub(1);
+                TokenKind::CloseBracket
+            }
+            '{' => {
+                self.nesting += 1;
+                TokenKind::OpenBrace
+            }
+            '}' => {
+                self.nesting = self.nesting.saturating_sub(1);
+                TokenKind::CloseBrace
+            }
+            ':' => {
+                if self.cursor.eat_char('=') {
+                    TokenKind::Operator(OperatorKind::ColonEqual)
+                } else {
+                    TokenKind::Colon
+                }
+            }
+            ';' => TokenKind::SemiColon,
+            '<' => {
+                if self.cursor.eat_char('<') {
+                    if self.cursor.eat_char('=') {
+                        TokenKind::Operator(OperatorKind::BitwiseLeftShiftEqual)
+                    } else {
+                        TokenKind::Operator(OperatorKind::BitwiseLeftShift)
+                    }
+                } else if self.cursor.eat_char('=') {
+                    TokenKind::Operator(OperatorKind::LessThanOrEqual)
+                } else {
+                    TokenKind::Operator(OperatorKind::LessThan)
+                }
+            }
+            '>' => {
+                if self.cursor.eat_char('>') {
+                    if self.cursor.eat_char('=') {
+                        TokenKind::Operator(OperatorKind::BitwiseRightShiftEqual)
+                    } else {
+                        TokenKind::Operator(OperatorKind::BitwiseRightShift)
+                    }
+                } else if self.cursor.eat_char('=') {
+                    TokenKind::Operator(OperatorKind::GreaterThanOrEqual)
+                } else {
+                    TokenKind::Operator(OperatorKind::GreaterThan)
+                }
+            }
+            ',' => TokenKind::Comma,
+            '.' => {
+                if self.cursor.first().is_ascii_digit() {
+                    self.lex_decimal_number('.')?
+                } else if self.cursor.first() == '.' && self.cursor.second() == '.' {
+                    self.cursor.bump();
+                    self.cursor.bump();
+                    TokenKind::Ellipsis
+                } else {
+                    TokenKind::Dot
+                }
+            }
+            '\n' => {
+                return Ok(Token(
+                    if self.nesting == 0 && !self.state.is_new_logical_line() {
+                        self.state = State::AfterNewline;
+                        TokenKind::NewLine
+                    } else {
+                        TokenKind::NonLogicalNewline
+                    },
+                    self.token_range(),
+                ))
+            }
+            '\r' => {
+                self.cursor.eat_char('\n');
+
+                return Ok(Token(
+                    if self.nesting == 0 && !self.state.is_new_logical_line() {
+                        self.state = State::AfterNewline;
+                        TokenKind::NewLine
+                    } else {
+                        TokenKind::NonLogicalNewline
+                    },
+                    self.token_range(),
+                ));
+            }
+
+            _ => {
+                self.state = State::Other;
+
+                return Err(LexicalError::new(
+                    LexicalErrorType::UnrecognizedToken,
+                    self.token_range(),
+                ));
+            }
+        };
+
+        self.state = State::Other;
+
+        Ok(Token(token, self.token_range()))
+    }
+
+    #[inline]
+    fn token_range(&self) -> TextRange {
+        let end = self.offset();
+        let len = self.cursor.token_len();
+
+        TextRange::at(end - len, len)
+    }
+
+    #[inline]
+    fn token_text(&self) -> &'source str {
+        &self.source[self.token_range()]
+    }
+
+    // Lexer doesn't allow files larger than 4GB
+    #[allow(clippy::cast_possible_truncation)]
+    #[inline]
+    fn offset(&self) -> TextSize {
+        TextSize::new(self.source.len() as u32) - self.cursor.text_len()
+    }
+
+    pub fn debug(&self) -> LexerDebug<'_, '_, Lexer> {
+        LexerDebug::new(self, self.source)
+    }
+}
+
+// Implement iterator pattern for Lexer.
+// Calling the next element in the iterator will yield the next lexical
+// token.
+impl Iterator for Lexer<'_> {
+    type Item = LexResult;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let token = self.next_token();
+
+        match token {
+            Ok(Token(TokenKind::Eof, _)) => None,
+            r => Some(r),
+        }
+    }
+}
+
+pub struct LexerDebug<'lexer, 'source, I: Clone> {
+    lexer: &'lexer I,
+    src: &'source str,
+}
+
+impl<'lexer, 'source, I> LexerDebug<'lexer, 'source, I>
+where
+    I: Clone + Iterator<Item = LexResult>,
+{
+    pub fn new(lexer: &'lexer I, src: &'source str) -> Self {
+        Self { lexer, src }
+    }
+}
+
+impl<I> Debug for LexerDebug<'_, '_, I>
+where
+    I: Clone + Iterator<Item = LexResult>,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_list()
+            .entries(self.lexer.clone().map(|result| match result {
+                Ok(token) => LexerDebugItem::Token(self.src[token.range()].to_string(), token),
+                Err(err) => LexerDebugItem::Error(self.src[err.range].to_string(), TokenKind::Invalid, err.error),
+            }))
+            .finish()
+    }
+}
+
+enum LexerDebugItem {
+    Token(String, Token),
+    Error(String, TokenKind, LexicalErrorType),
+}
+
+impl Debug for LexerDebugItem {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LexerDebugItem::Token(src, tok) => {
+                write!(f, "{:?} {}", src, tok)
+            }
+            LexerDebugItem::Error(src, tok_kind, err_kind) => {
+                write!(f, "{:?} {:?} {}", src, tok_kind, err_kind)
+            }
+        }
+    }
+}
+
+/// Represents an error that occur during lexing and are
+/// returned by the `parse_*` functions in the iterator in the
+/// [lexer] implementation.
+///
+/// [lexer]: crate::lexer
+#[derive(Debug, PartialEq, Clone)]
+pub struct LexicalError {
+    /// The type of error that occurred.
+    pub error: LexicalErrorType,
+    /// The range of the error.
+    pub range: TextRange,
+}
+
+impl LexicalError {
+    /// Creates a new `LexicalError` with the given error type and location.
+    pub fn new(error: LexicalErrorType, range: TextRange) -> Self {
+        Self { error, range }
+    }
+}
+
+/// Represents the different types of errors that can occur during lexing.
+#[derive(Debug, PartialEq, Clone)]
+pub enum LexicalErrorType {
+    /// The indentation is not consistent.
+    IndentationError,
+    /// An unrecognized token was encountered.
+    UnrecognizedToken,
+    /// An unexpected character was encountered after a line continuation.
+    LineContinuationError,
+    /// An unexpected end of file was encountered.
+    Eof,
+    // A string literal doesn't have the closing quote.
+    UnclosedStringError,
+    // A invalid number literal, can be an integer, float or complex.
+    InvalidNumberError(InvalidNumberErrorKind),
+}
+
+impl std::fmt::Display for LexicalErrorType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            LexicalErrorType::IndentationError => {
+                write!(f, "unindent does not match any outer indentation level")
+            }
+            LexicalErrorType::UnrecognizedToken => {
+                write!(f, "unexpected token")
+            }
+            LexicalErrorType::LineContinuationError => {
+                write!(f, "unexpected character after line continuation character")
+            }
+            LexicalErrorType::Eof => write!(f, "unexpected EOF while parsing"),
+            LexicalErrorType::UnclosedStringError => write!(f, "missing closing quote in string literal"),
+            LexicalErrorType::InvalidNumberError(kind) => write!(f, "{kind}"),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum InvalidNumberErrorKind {
+    Hex,
+    Int,
+    Octal,
+    Float,
+    Binary,
+    Complex,
+}
+
+impl std::fmt::Display for InvalidNumberErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            InvalidNumberErrorKind::Hex => write!(f, "invalid hexadecimal number"),
+            InvalidNumberErrorKind::Int => write!(f, "invalid integer number"),
+            InvalidNumberErrorKind::Octal => write!(f, "invalid octal number"),
+            InvalidNumberErrorKind::Float => write!(f, "invalid float number"),
+            InvalidNumberErrorKind::Binary => write!(f, "invalid binary number"),
+            InvalidNumberErrorKind::Complex => write!(f, "invalid complex number"),
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+enum State {
+    /// Lexer is right at the beginning of the file or after a `Newline` token.
+    AfterNewline,
+
+    /// The lexer is at the start of a new logical line but **after** the indentation
+    NonEmptyLogicalLine,
+
+    /// Lexer is right after an equal token
+    AfterEqual,
+
+    /// Inside of a logical line
+    Other,
+}
+
+impl State {
+    const fn is_after_newline(self) -> bool {
+        matches!(self, State::AfterNewline)
+    }
+
+    const fn is_new_logical_line(self) -> bool {
+        matches!(self, State::AfterNewline | State::NonEmptyLogicalLine)
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+enum Radix {
+    Binary,
+    Octal,
+    Decimal,
+    Hex,
+}
+
+impl Radix {
+    const fn is_digit(self, c: char) -> bool {
+        match self {
+            Radix::Binary => matches!(c, '0'..='1'),
+            Radix::Octal => matches!(c, '0'..='7'),
+            Radix::Decimal => c.is_ascii_digit(),
+            Radix::Hex => matches!(c, '0'..='9' | 'a'..='f' | 'A'..='F'),
+        }
+    }
+
+    /// Based on the `Radix`, try to convert `str` to `NumberKind` if `str` is a
+    /// valid number.
+    fn try_number_kind(self, str: &str) -> Result<NumberKind, LexicalErrorType> {
+        match self {
+            Radix::Binary if !is_binary_number_valid(str) => {
+                Err(LexicalErrorType::InvalidNumberError(InvalidNumberErrorKind::Binary))
+            }
+            Radix::Octal if !is_octal_number_valid(str) => {
+                Err(LexicalErrorType::InvalidNumberError(InvalidNumberErrorKind::Octal))
+            }
+            Radix::Hex if !is_hex_number_valid(str) => {
+                Err(LexicalErrorType::InvalidNumberError(InvalidNumberErrorKind::Hex))
+            }
+            Radix::Decimal if !is_decimal_number_valid(str) => {
+                Err(LexicalErrorType::InvalidNumberError(InvalidNumberErrorKind::Int))
+            }
+
+            Radix::Octal => Ok(NumberKind::Octal),
+            Radix::Decimal => Ok(NumberKind::Decimal),
+            Radix::Hex => Ok(NumberKind::Hex),
+            Radix::Binary => Ok(NumberKind::Binary),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use insta::assert_debug_snapshot;
+
+    use crate::lexer::{lex, LexerDebug};
+
+    #[test]
+    fn lex_identifiers() {
+        let source = "x _abc foo_bar Foo FooBar __foo__ X abc123 abc_123 aBc_123";
+        let lexer = lex(source);
+        assert_debug_snapshot!(LexerDebug::new(&lexer, source));
+    }
+
+    #[test]
+    fn lex_decimal_number() {
+        let source = "1_000 12 0b1_0_1 0B10 0o0_1_2_3_4_5_6_7 0O01234567 0xABCDEF_0123456789 0X0123456789ABCDEF";
+        let lexer = lex(source);
+        assert_debug_snapshot!(LexerDebug::new(&lexer, source));
+    }
+
+    #[test]
+    fn lex_float_number() {
+        let source = "3.14 10. .001 1e100 3.14e-10 0e0 3.14_15_93";
+        let lexer = lex(source);
+        assert_debug_snapshot!(LexerDebug::new(&lexer, source));
+    }
+
+    #[test]
+    fn lex_complex_number() {
+        let source = "3.14j 10.j 10j .001j 1e100j 3.14e-10j 3.14_15_93j";
+        let lexer = lex(source);
+        assert_debug_snapshot!(LexerDebug::new(&lexer, source));
+    }
+
+    #[test]
+    fn lex_unclosed_square_bracket() {
+        let source = "[1";
+        let lexer = lex(source);
+        assert_debug_snapshot!(LexerDebug::new(&lexer, source));
+    }
+
+    const WINDOWS_EOL: &str = "\r\n";
+    const MAC_EOL: &str = "\r";
+    const UNIX_EOL: &str = "\n";
+
+    macro_rules! test_line_comment {
+        ($($name:ident: $eol:expr,)*) => {
+            $(
+                #[test]
+
+                fn $name() {
+                    let source = format!(r"99232  #{}", $eol);
+                    let lexer = lex(&source);
+                    assert_debug_snapshot!(LexerDebug::new(&lexer, &source));
+                }
+            )*
+        }
+    }
+
+    test_line_comment! {
+        lex_line_comment_long: " foo",
+        lex_line_comment_whitespace: "  ",
+        lex_line_comment_single_whitespace: " ",
+        lex_line_comment_empty: "",
+    }
+
+    macro_rules! test_comment_until_eol {
+        ($($name:ident: $eol:expr,)*) => {
+            $(
+                #[test]
+
+                fn $name() {
+                    let source = format!("123  # Foo{}456", $eol);
+                    let lexer = lex(&source);
+                    assert_debug_snapshot!(LexerDebug::new(&lexer, &source));
+                }
+            )*
+        }
+    }
+
+    test_comment_until_eol! {
+        lex_comment_until_windows_eol: WINDOWS_EOL,
+        lex_comment_until_mac_eol: MAC_EOL,
+        lex_comment_until_unix_eol: UNIX_EOL,
+    }
+
+    #[test]
+    fn lex_assignment() {
+        let source = r"a_variable = 99 + 2-0";
+        let lexer = lex(source);
+        assert_debug_snapshot!(LexerDebug::new(&lexer, source));
+    }
+
+    macro_rules! test_indentation_with_eol {
+        ($($name:ident: $eol:expr,)*) => {
+            $(
+                #[test]
+
+                fn $name() {
+                    let source = format!("def foo():{}   return 99{}{}", $eol, $eol, $eol);
+                    let lexer = lex(&source);
+                    assert_debug_snapshot!(LexerDebug::new(&lexer, &source));
+                }
+            )*
+        };
+    }
+
+    test_indentation_with_eol! {
+        lex_indentation_windows_eol: WINDOWS_EOL,
+        lex_indentation_mac_eol: MAC_EOL,
+        lex_indentation_unix_eol: UNIX_EOL,
+    }
+
+    macro_rules! test_double_dedent_with_eol {
+        ($($name:ident: $eol:expr,)*) => {
+            $(
+                #[test]
+
+                fn $name() {
+                    let source = format!("def foo():{} if x:{}{}  return 99{}{}", $eol, $eol, $eol, $eol, $eol);
+                    let lexer = lex(&source);
+                    assert_debug_snapshot!(LexerDebug::new(&lexer, &source));
+                }
+            )*
+        }
+    }
+
+    test_double_dedent_with_eol! {
+        lex_double_dedent_windows_eol: WINDOWS_EOL,
+        lex_double_dedent_mac_eol: MAC_EOL,
+        lex_double_dedent_unix_eol: UNIX_EOL,
+    }
+
+    macro_rules! test_double_dedent_with_tabs {
+        ($($name:ident: $eol:expr,)*) => {
+            $(
+                #[test]
+
+                fn $name() {
+                    let source = format!("def foo():{}\tif x:{}{}\t return 99{}{}", $eol, $eol, $eol, $eol, $eol);
+                    let lexer = lex(&source);
+                    assert_debug_snapshot!(LexerDebug::new(&lexer, &source));
+                }
+            )*
+        }
+    }
+
+    test_double_dedent_with_tabs! {
+        lex_double_dedent_tabs_windows_eol: WINDOWS_EOL,
+        lex_double_dedent_tabs_mac_eol: MAC_EOL,
+        lex_double_dedent_tabs_unix_eol: UNIX_EOL,
+    }
+
+    macro_rules! test_newline_in_brackets {
+        ($($name:ident: $eol:expr,)*) => {
+            $(
+                #[test]
+
+                fn $name() {
+                    let source = r"x = [
+
+        1,2
+    ,(3,
+    4,
+    ), {
+    5,
+    6,\
+    7}]
+    ".replace("\n", $eol);
+                    let lexer = lex(&source);
+                    assert_debug_snapshot!(LexerDebug::new(&lexer, &source));
+                }
+            )*
+        };
+    }
+
+    test_newline_in_brackets! {
+        lex_newline_in_brackets_windows_eol: WINDOWS_EOL,
+        lex_newline_in_brackets_mac_eol: MAC_EOL,
+        lex_newline_in_brackets_unix_eol: UNIX_EOL,
+    }
+
+    #[test]
+    fn lex_non_logical_newline_in_string_continuation() {
+        let source = r"(
+        'a'
+        'b'
+
+        'c' \
+        'd'
+    )";
+        let lexer = lex(source);
+        assert_debug_snapshot!(LexerDebug::new(&lexer, source));
+    }
+
+    #[test]
+    fn lex_logical_newline_line_comment() {
+        let source = "#Hello\n#World\n";
+        let lexer = lex(source);
+        assert_debug_snapshot!(LexerDebug::new(&lexer, source));
+    }
+
+    #[test]
+    fn lex_operators() {
+        let source = "//////=/ /";
+        let lexer = lex(source);
+        assert_debug_snapshot!(LexerDebug::new(&lexer, source));
+    }
+
+    #[test]
+    fn lex_string() {
+        let source = r#""double" 'single' 'can\'t' "\\\"" '\t\r\n' '\g' r'raw\'' '\420' '\200\0a'"#;
+        let lexer = lex(source);
+        assert_debug_snapshot!(LexerDebug::new(&lexer, source));
+    }
+
+    #[test]
+    fn lex_soft_keywords() {
+        let source = "match x:\n\tcase None:\n\t...";
+        let lexer = lex(source);
+        assert_debug_snapshot!(LexerDebug::new(&lexer, source));
+    }
+
+    macro_rules! test_string_continuation_with_eol {
+        ($($name:ident: $eol:expr,)*) => {
+            $(
+                #[test]
+
+                fn $name() {
+                    let source = format!("\"abc\\{}def\"", $eol);
+                    let lexer = lex(&source);
+                    assert_debug_snapshot!(LexerDebug::new(&lexer, &source));
+                }
+            )*
+        }
+    }
+
+    test_string_continuation_with_eol! {
+        lex_string_continuation_windows_eol: WINDOWS_EOL,
+        lex_string_continuation_mac_eol: MAC_EOL,
+        lex_string_continuation_unix_eol: UNIX_EOL,
+    }
+
+    macro_rules! test_triple_quoted {
+        ($($name:ident: $eol:expr,)*) => {
+            $(
+                #[test]
+
+                fn $name() {
+                    let source = format!("\"\"\"{} test string{} \"\"\"", $eol, $eol);
+                    let lexer = lex(&source);
+                    assert_debug_snapshot!(LexerDebug::new(&lexer, &source));
+                }
+            )*
+        }
+    }
+
+    test_triple_quoted! {
+        lex_triple_quoted_windows_eol: WINDOWS_EOL,
+        lex_triple_quoted_unix_eol: UNIX_EOL,
+        lex_triple_quoted_macos_eol: MAC_EOL,
+    }
+
+    #[test]
+    fn test_too_low_dedent() {
+        let source = r"if True:
+    pass
+  pass
+";
+        let lexer = lex(source);
+        assert_debug_snapshot!(LexerDebug::new(&lexer, source));
     }
 }

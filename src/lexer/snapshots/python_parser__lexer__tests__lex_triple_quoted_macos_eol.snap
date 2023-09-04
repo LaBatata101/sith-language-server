@@ -1,0 +1,8 @@
+---
+source: src/lexer/mod.rs
+expression: lexer.debug()
+---
+[
+    "\"\"\"\r test string\r \"\"\"" String { kind: String, is_triple_quote: true } 0..21,
+    "" NewLine 21..21,
+]

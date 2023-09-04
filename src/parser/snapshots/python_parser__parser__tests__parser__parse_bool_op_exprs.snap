@@ -1,0 +1,163 @@
+---
+source: src/parser/tests.rs
+expression: "parse(\"\na and b\na and b and c\na or b\na or b or c\na and b or c\n\")"
+---
+ParsedFile {
+    ast: Module {
+        body: [
+            Expression(
+                ExpressionStmt {
+                    value: BoolOp(
+                        BoolOpExpr {
+                            op: And,
+                            values: [
+                                Id(
+                                    Identifier {
+                                        id: "a",
+                                        range: 1..2,
+                                    },
+                                ),
+                                Id(
+                                    Identifier {
+                                        id: "b",
+                                        range: 7..8,
+                                    },
+                                ),
+                            ],
+                            range: 1..8,
+                        },
+                    ),
+                    range: 1..8,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: BoolOp(
+                        BoolOpExpr {
+                            op: And,
+                            values: [
+                                Id(
+                                    Identifier {
+                                        id: "a",
+                                        range: 9..10,
+                                    },
+                                ),
+                                Id(
+                                    Identifier {
+                                        id: "b",
+                                        range: 15..16,
+                                    },
+                                ),
+                                Id(
+                                    Identifier {
+                                        id: "c",
+                                        range: 21..22,
+                                    },
+                                ),
+                            ],
+                            range: 9..22,
+                        },
+                    ),
+                    range: 9..22,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: BoolOp(
+                        BoolOpExpr {
+                            op: Or,
+                            values: [
+                                Id(
+                                    Identifier {
+                                        id: "a",
+                                        range: 23..24,
+                                    },
+                                ),
+                                Id(
+                                    Identifier {
+                                        id: "b",
+                                        range: 28..29,
+                                    },
+                                ),
+                            ],
+                            range: 23..29,
+                        },
+                    ),
+                    range: 23..29,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: BoolOp(
+                        BoolOpExpr {
+                            op: Or,
+                            values: [
+                                Id(
+                                    Identifier {
+                                        id: "a",
+                                        range: 30..31,
+                                    },
+                                ),
+                                Id(
+                                    Identifier {
+                                        id: "b",
+                                        range: 35..36,
+                                    },
+                                ),
+                                Id(
+                                    Identifier {
+                                        id: "c",
+                                        range: 40..41,
+                                    },
+                                ),
+                            ],
+                            range: 30..41,
+                        },
+                    ),
+                    range: 30..41,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: BoolOp(
+                        BoolOpExpr {
+                            op: Or,
+                            values: [
+                                BoolOp(
+                                    BoolOpExpr {
+                                        op: And,
+                                        values: [
+                                            Id(
+                                                Identifier {
+                                                    id: "a",
+                                                    range: 42..43,
+                                                },
+                                            ),
+                                            Id(
+                                                Identifier {
+                                                    id: "b",
+                                                    range: 48..49,
+                                                },
+                                            ),
+                                        ],
+                                        range: 42..49,
+                                    },
+                                ),
+                                Id(
+                                    Identifier {
+                                        id: "c",
+                                        range: 53..54,
+                                    },
+                                ),
+                            ],
+                            range: 42..54,
+                        },
+                    ),
+                    range: 42..54,
+                },
+            ),
+        ],
+        range: 0..54,
+    },
+    parse_errors: [],
+}

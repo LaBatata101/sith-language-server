@@ -1,0 +1,476 @@
+---
+source: src/parser/tests.rs
+expression: "parse(\"\nfor i in x:\n    ...\nfor x.attr in f():\n    pass\nfor 1 + 2 in x.attr:\n    ...\nfor i in x <= y:\n    pass\nfor i in a and b:\n    pass\nfor a,b,c, in iter:\n    ...\nfor (a, b) in iter:\n    ...\nfor i in *x.attr:\n    ...\nfor -i in [1, 2]:\n    ...\nfor *l in a, b, c,:\n   ...\nelse:\n    pass\n\")"
+---
+ParsedFile {
+    ast: Module {
+        body: [
+            For(
+                ForStmt {
+                    target: Id(
+                        Identifier {
+                            id: "i",
+                            range: 5..6,
+                        },
+                    ),
+                    iter: Id(
+                        Identifier {
+                            id: "x",
+                            range: 10..11,
+                        },
+                    ),
+                    body: [
+                        Expression(
+                            ExpressionStmt {
+                                value: Ellipsis(
+                                    EllipsisExpr {
+                                        range: 17..20,
+                                    },
+                                ),
+                                range: 17..20,
+                            },
+                        ),
+                    ],
+                    orelse: [],
+                    range: 1..20,
+                },
+            ),
+            For(
+                ForStmt {
+                    target: Attribute(
+                        AttributeExpr {
+                            value: Id(
+                                Identifier {
+                                    id: "x",
+                                    range: 25..26,
+                                },
+                            ),
+                            attr: Valid(
+                                Identifier {
+                                    id: "attr",
+                                    range: 27..31,
+                                },
+                            ),
+                            range: 25..31,
+                        },
+                    ),
+                    iter: Call(
+                        CallExpr {
+                            lhs: Id(
+                                Identifier {
+                                    id: "f",
+                                    range: 35..36,
+                                },
+                            ),
+                            args: Arguments {
+                                args: [],
+                                kw_args: [],
+                                range: 36..38,
+                            },
+                            range: 35..38,
+                        },
+                    ),
+                    body: [
+                        Pass(
+                            PassStmt {
+                                range: 44..48,
+                            },
+                        ),
+                    ],
+                    orelse: [],
+                    range: 21..48,
+                },
+            ),
+            For(
+                ForStmt {
+                    target: BinaryOp(
+                        BinaryOpExpr {
+                            left: Literal(
+                                LiteralExpr {
+                                    value: Int(
+                                        "1",
+                                    ),
+                                    range: 53..54,
+                                },
+                            ),
+                            op: Add,
+                            right: Literal(
+                                LiteralExpr {
+                                    value: Int(
+                                        "2",
+                                    ),
+                                    range: 57..58,
+                                },
+                            ),
+                            range: 53..58,
+                        },
+                    ),
+                    iter: Attribute(
+                        AttributeExpr {
+                            value: Id(
+                                Identifier {
+                                    id: "x",
+                                    range: 62..63,
+                                },
+                            ),
+                            attr: Valid(
+                                Identifier {
+                                    id: "attr",
+                                    range: 64..68,
+                                },
+                            ),
+                            range: 62..68,
+                        },
+                    ),
+                    body: [
+                        Expression(
+                            ExpressionStmt {
+                                value: Ellipsis(
+                                    EllipsisExpr {
+                                        range: 74..77,
+                                    },
+                                ),
+                                range: 74..77,
+                            },
+                        ),
+                    ],
+                    orelse: [],
+                    range: 49..77,
+                },
+            ),
+            For(
+                ForStmt {
+                    target: Id(
+                        Identifier {
+                            id: "i",
+                            range: 82..83,
+                        },
+                    ),
+                    iter: Compare(
+                        CompareExpr {
+                            left: Id(
+                                Identifier {
+                                    id: "x",
+                                    range: 87..88,
+                                },
+                            ),
+                            ops: [
+                                LtE,
+                            ],
+                            comparators: [
+                                Id(
+                                    Identifier {
+                                        id: "y",
+                                        range: 92..93,
+                                    },
+                                ),
+                            ],
+                            range: 87..93,
+                        },
+                    ),
+                    body: [
+                        Pass(
+                            PassStmt {
+                                range: 99..103,
+                            },
+                        ),
+                    ],
+                    orelse: [],
+                    range: 78..103,
+                },
+            ),
+            For(
+                ForStmt {
+                    target: Id(
+                        Identifier {
+                            id: "i",
+                            range: 108..109,
+                        },
+                    ),
+                    iter: BoolOp(
+                        BoolOpExpr {
+                            op: And,
+                            values: [
+                                Id(
+                                    Identifier {
+                                        id: "a",
+                                        range: 113..114,
+                                    },
+                                ),
+                                Id(
+                                    Identifier {
+                                        id: "b",
+                                        range: 119..120,
+                                    },
+                                ),
+                            ],
+                            range: 113..120,
+                        },
+                    ),
+                    body: [
+                        Pass(
+                            PassStmt {
+                                range: 126..130,
+                            },
+                        ),
+                    ],
+                    orelse: [],
+                    range: 104..130,
+                },
+            ),
+            For(
+                ForStmt {
+                    target: Tuple(
+                        TupleExpr {
+                            elements: [
+                                Id(
+                                    Identifier {
+                                        id: "a",
+                                        range: 135..136,
+                                    },
+                                ),
+                                Id(
+                                    Identifier {
+                                        id: "b",
+                                        range: 137..138,
+                                    },
+                                ),
+                                Id(
+                                    Identifier {
+                                        id: "c",
+                                        range: 139..140,
+                                    },
+                                ),
+                            ],
+                            range: 135..142,
+                        },
+                    ),
+                    iter: Id(
+                        Identifier {
+                            id: "iter",
+                            range: 145..149,
+                        },
+                    ),
+                    body: [
+                        Expression(
+                            ExpressionStmt {
+                                value: Ellipsis(
+                                    EllipsisExpr {
+                                        range: 155..158,
+                                    },
+                                ),
+                                range: 155..158,
+                            },
+                        ),
+                    ],
+                    orelse: [],
+                    range: 131..158,
+                },
+            ),
+            For(
+                ForStmt {
+                    target: Tuple(
+                        TupleExpr {
+                            elements: [
+                                Id(
+                                    Identifier {
+                                        id: "a",
+                                        range: 164..165,
+                                    },
+                                ),
+                                Id(
+                                    Identifier {
+                                        id: "b",
+                                        range: 167..168,
+                                    },
+                                ),
+                            ],
+                            range: 163..169,
+                        },
+                    ),
+                    iter: Id(
+                        Identifier {
+                            id: "iter",
+                            range: 173..177,
+                        },
+                    ),
+                    body: [
+                        Expression(
+                            ExpressionStmt {
+                                value: Ellipsis(
+                                    EllipsisExpr {
+                                        range: 183..186,
+                                    },
+                                ),
+                                range: 183..186,
+                            },
+                        ),
+                    ],
+                    orelse: [],
+                    range: 159..186,
+                },
+            ),
+            For(
+                ForStmt {
+                    target: Id(
+                        Identifier {
+                            id: "i",
+                            range: 191..192,
+                        },
+                    ),
+                    iter: Starred(
+                        StarredExpr {
+                            value: Attribute(
+                                AttributeExpr {
+                                    value: Id(
+                                        Identifier {
+                                            id: "x",
+                                            range: 197..198,
+                                        },
+                                    ),
+                                    attr: Valid(
+                                        Identifier {
+                                            id: "attr",
+                                            range: 199..203,
+                                        },
+                                    ),
+                                    range: 197..203,
+                                },
+                            ),
+                            range: 196..203,
+                        },
+                    ),
+                    body: [
+                        Expression(
+                            ExpressionStmt {
+                                value: Ellipsis(
+                                    EllipsisExpr {
+                                        range: 209..212,
+                                    },
+                                ),
+                                range: 209..212,
+                            },
+                        ),
+                    ],
+                    orelse: [],
+                    range: 187..212,
+                },
+            ),
+            For(
+                ForStmt {
+                    target: UnaryOp(
+                        UnaryOpExpr {
+                            op: USub,
+                            operand: Id(
+                                Identifier {
+                                    id: "i",
+                                    range: 218..219,
+                                },
+                            ),
+                            range: 217..219,
+                        },
+                    ),
+                    iter: List(
+                        ListExpr {
+                            elements: [
+                                Literal(
+                                    LiteralExpr {
+                                        value: Int(
+                                            "1",
+                                        ),
+                                        range: 224..225,
+                                    },
+                                ),
+                                Literal(
+                                    LiteralExpr {
+                                        value: Int(
+                                            "2",
+                                        ),
+                                        range: 227..228,
+                                    },
+                                ),
+                            ],
+                            range: 223..229,
+                        },
+                    ),
+                    body: [
+                        Expression(
+                            ExpressionStmt {
+                                value: Ellipsis(
+                                    EllipsisExpr {
+                                        range: 235..238,
+                                    },
+                                ),
+                                range: 235..238,
+                            },
+                        ),
+                    ],
+                    orelse: [],
+                    range: 213..238,
+                },
+            ),
+            For(
+                ForStmt {
+                    target: Starred(
+                        StarredExpr {
+                            value: Id(
+                                Identifier {
+                                    id: "l",
+                                    range: 244..245,
+                                },
+                            ),
+                            range: 243..245,
+                        },
+                    ),
+                    iter: Tuple(
+                        TupleExpr {
+                            elements: [
+                                Id(
+                                    Identifier {
+                                        id: "a",
+                                        range: 249..250,
+                                    },
+                                ),
+                                Id(
+                                    Identifier {
+                                        id: "b",
+                                        range: 252..253,
+                                    },
+                                ),
+                                Id(
+                                    Identifier {
+                                        id: "c",
+                                        range: 255..256,
+                                    },
+                                ),
+                            ],
+                            range: 249..257,
+                        },
+                    ),
+                    body: [
+                        Expression(
+                            ExpressionStmt {
+                                value: Ellipsis(
+                                    EllipsisExpr {
+                                        range: 262..265,
+                                    },
+                                ),
+                                range: 262..265,
+                            },
+                        ),
+                    ],
+                    orelse: [
+                        Pass(
+                            PassStmt {
+                                range: 276..280,
+                            },
+                        ),
+                    ],
+                    range: 239..280,
+                },
+            ),
+        ],
+        range: 0..280,
+    },
+    parse_errors: [],
+}

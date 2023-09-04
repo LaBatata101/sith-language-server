@@ -1,0 +1,365 @@
+---
+source: src/parser/tests.rs
+expression: "parse(\"\na == b\nb < a\nb > a\na >= b\na <= b\na != b\na is c\na in b\na not in c\na is not b\na < b == c > d is e not in f is not g <= h >= i != j\n\")"
+---
+ParsedFile {
+    ast: Module {
+        body: [
+            Expression(
+                ExpressionStmt {
+                    value: Compare(
+                        CompareExpr {
+                            left: Id(
+                                Identifier {
+                                    id: "a",
+                                    range: 1..2,
+                                },
+                            ),
+                            ops: [
+                                Eq,
+                            ],
+                            comparators: [
+                                Id(
+                                    Identifier {
+                                        id: "b",
+                                        range: 6..7,
+                                    },
+                                ),
+                            ],
+                            range: 1..7,
+                        },
+                    ),
+                    range: 1..7,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Compare(
+                        CompareExpr {
+                            left: Id(
+                                Identifier {
+                                    id: "b",
+                                    range: 8..9,
+                                },
+                            ),
+                            ops: [
+                                Lt,
+                            ],
+                            comparators: [
+                                Id(
+                                    Identifier {
+                                        id: "a",
+                                        range: 12..13,
+                                    },
+                                ),
+                            ],
+                            range: 8..13,
+                        },
+                    ),
+                    range: 8..13,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Compare(
+                        CompareExpr {
+                            left: Id(
+                                Identifier {
+                                    id: "b",
+                                    range: 14..15,
+                                },
+                            ),
+                            ops: [
+                                Gt,
+                            ],
+                            comparators: [
+                                Id(
+                                    Identifier {
+                                        id: "a",
+                                        range: 18..19,
+                                    },
+                                ),
+                            ],
+                            range: 14..19,
+                        },
+                    ),
+                    range: 14..19,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Compare(
+                        CompareExpr {
+                            left: Id(
+                                Identifier {
+                                    id: "a",
+                                    range: 20..21,
+                                },
+                            ),
+                            ops: [
+                                GtE,
+                            ],
+                            comparators: [
+                                Id(
+                                    Identifier {
+                                        id: "b",
+                                        range: 25..26,
+                                    },
+                                ),
+                            ],
+                            range: 20..26,
+                        },
+                    ),
+                    range: 20..26,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Compare(
+                        CompareExpr {
+                            left: Id(
+                                Identifier {
+                                    id: "a",
+                                    range: 27..28,
+                                },
+                            ),
+                            ops: [
+                                LtE,
+                            ],
+                            comparators: [
+                                Id(
+                                    Identifier {
+                                        id: "b",
+                                        range: 32..33,
+                                    },
+                                ),
+                            ],
+                            range: 27..33,
+                        },
+                    ),
+                    range: 27..33,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Compare(
+                        CompareExpr {
+                            left: Id(
+                                Identifier {
+                                    id: "a",
+                                    range: 34..35,
+                                },
+                            ),
+                            ops: [
+                                NotEq,
+                            ],
+                            comparators: [
+                                Id(
+                                    Identifier {
+                                        id: "b",
+                                        range: 39..40,
+                                    },
+                                ),
+                            ],
+                            range: 34..40,
+                        },
+                    ),
+                    range: 34..40,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Compare(
+                        CompareExpr {
+                            left: Id(
+                                Identifier {
+                                    id: "a",
+                                    range: 41..42,
+                                },
+                            ),
+                            ops: [
+                                Is,
+                            ],
+                            comparators: [
+                                Id(
+                                    Identifier {
+                                        id: "c",
+                                        range: 46..47,
+                                    },
+                                ),
+                            ],
+                            range: 41..47,
+                        },
+                    ),
+                    range: 41..47,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Compare(
+                        CompareExpr {
+                            left: Id(
+                                Identifier {
+                                    id: "a",
+                                    range: 48..49,
+                                },
+                            ),
+                            ops: [
+                                In,
+                            ],
+                            comparators: [
+                                Id(
+                                    Identifier {
+                                        id: "b",
+                                        range: 53..54,
+                                    },
+                                ),
+                            ],
+                            range: 48..54,
+                        },
+                    ),
+                    range: 48..54,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Compare(
+                        CompareExpr {
+                            left: Id(
+                                Identifier {
+                                    id: "a",
+                                    range: 55..56,
+                                },
+                            ),
+                            ops: [
+                                NotIn,
+                            ],
+                            comparators: [
+                                Id(
+                                    Identifier {
+                                        id: "c",
+                                        range: 64..65,
+                                    },
+                                ),
+                            ],
+                            range: 55..65,
+                        },
+                    ),
+                    range: 55..65,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Compare(
+                        CompareExpr {
+                            left: Id(
+                                Identifier {
+                                    id: "a",
+                                    range: 66..67,
+                                },
+                            ),
+                            ops: [
+                                IsNot,
+                            ],
+                            comparators: [
+                                Id(
+                                    Identifier {
+                                        id: "b",
+                                        range: 75..76,
+                                    },
+                                ),
+                            ],
+                            range: 66..76,
+                        },
+                    ),
+                    range: 66..76,
+                },
+            ),
+            Expression(
+                ExpressionStmt {
+                    value: Compare(
+                        CompareExpr {
+                            left: Id(
+                                Identifier {
+                                    id: "a",
+                                    range: 77..78,
+                                },
+                            ),
+                            ops: [
+                                Lt,
+                                Eq,
+                                Gt,
+                                Is,
+                                NotIn,
+                                IsNot,
+                                LtE,
+                                GtE,
+                                NotEq,
+                            ],
+                            comparators: [
+                                Id(
+                                    Identifier {
+                                        id: "b",
+                                        range: 81..82,
+                                    },
+                                ),
+                                Id(
+                                    Identifier {
+                                        id: "c",
+                                        range: 86..87,
+                                    },
+                                ),
+                                Id(
+                                    Identifier {
+                                        id: "d",
+                                        range: 90..91,
+                                    },
+                                ),
+                                Id(
+                                    Identifier {
+                                        id: "e",
+                                        range: 95..96,
+                                    },
+                                ),
+                                Id(
+                                    Identifier {
+                                        id: "f",
+                                        range: 104..105,
+                                    },
+                                ),
+                                Id(
+                                    Identifier {
+                                        id: "g",
+                                        range: 113..114,
+                                    },
+                                ),
+                                Id(
+                                    Identifier {
+                                        id: "h",
+                                        range: 118..119,
+                                    },
+                                ),
+                                Id(
+                                    Identifier {
+                                        id: "i",
+                                        range: 123..124,
+                                    },
+                                ),
+                                Id(
+                                    Identifier {
+                                        id: "j",
+                                        range: 128..129,
+                                    },
+                                ),
+                            ],
+                            range: 77..129,
+                        },
+                    ),
+                    range: 77..129,
+                },
+            ),
+        ],
+        range: 0..129,
+    },
+    parse_errors: [],
+}
