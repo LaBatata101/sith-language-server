@@ -39,7 +39,6 @@ pub enum Statement<'a> {
     Try(TryStmt<'a>),
     While(WhileStmt<'a>),
     With(WithStmt<'a>),
-    Invalid(TextRange),
 }
 
 #[derive(Debug, PartialEq, Eq)]
