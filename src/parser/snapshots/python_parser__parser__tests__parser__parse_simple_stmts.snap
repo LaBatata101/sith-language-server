@@ -240,7 +240,7 @@ ParsedFile {
                 AssertStmt {
                     test: Call(
                         CallExpr {
-                            lhs: Id(
+                            func: Id(
                                 Identifier {
                                     id: "f",
                                     range: 123..124,
@@ -470,7 +470,7 @@ ParsedFile {
                     value: Some(
                         Call(
                             CallExpr {
-                                lhs: Id(
+                                func: Id(
                                     Identifier {
                                         id: "f",
                                         range: 262..263,
@@ -493,7 +493,7 @@ ParsedFile {
                     value: Some(
                         Call(
                             CallExpr {
-                                lhs: Attribute(
+                                func: Attribute(
                                     AttributeExpr {
                                         value: Id(
                                             Identifier {

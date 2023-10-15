@@ -87,7 +87,7 @@ ParsedFile {
                         YieldFromExpr {
                             value: Call(
                                 CallExpr {
-                                    lhs: Id(
+                                    func: Id(
                                         Identifier {
                                             id: "f",
                                             range: 61..62,

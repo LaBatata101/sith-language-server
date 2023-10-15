@@ -14,7 +14,7 @@ pub struct Module<'a> {
 #[derive(Debug, PartialEq, Eq)]
 pub enum Statement<'a> {
     Assign(AssignStmt<'a>),
-    AugAssing(AugAssignStmt<'a>),
+    AugAssign(AugAssignStmt<'a>),
     AnnAssign(AnnAssignStmt<'a>),
     Assert(AssertStmt<'a>),
     AsyncFor(ForStmt<'a>),
@@ -296,7 +296,7 @@ pub struct DelStmt<'a> {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct CallExpr<'a> {
-    pub lhs: Box<Expression<'a>>,
+    pub func: Box<Expression<'a>>,
     pub args: Arguments<'a>,
     pub range: TextRange,
 }

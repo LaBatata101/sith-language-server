@@ -254,7 +254,7 @@ ParsedFile {
                                     ExpressionStmt {
                                         value: Call(
                                             CallExpr {
-                                                lhs: Id(
+                                                func: Id(
                                                     Identifier {
                                                         id: "f",
                                                         range: 172..173,

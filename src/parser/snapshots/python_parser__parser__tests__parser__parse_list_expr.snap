@@ -237,7 +237,7 @@ ParsedFile {
                             elements: [
                                 Call(
                                     CallExpr {
-                                        lhs: Id(
+                                        func: Id(
                                             Identifier {
                                                 id: "f",
                                                 range: 75..76,
@@ -249,7 +249,7 @@ ParsedFile {
                                                     GeneratorExpr {
                                                         element: Call(
                                                             CallExpr {
-                                                                lhs: Id(
+                                                                func: Id(
                                                                     Identifier {
                                                                         id: "g",
                                                                         range: 77..78,
@@ -259,7 +259,7 @@ ParsedFile {
                                                                     args: [
                                                                         Call(
                                                                             CallExpr {
-                                                                                lhs: Attribute(
+                                                                                func: Attribute(
                                                                                     AttributeExpr {
                                                                                         value: Id(
                                                                                             Identifier {

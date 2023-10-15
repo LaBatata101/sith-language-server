@@ -355,7 +355,7 @@ ParsedFile {
                 ExpressionStmt {
                     value: Call(
                         CallExpr {
-                            lhs: Id(
+                            func: Id(
                                 Identifier {
                                     id: "f",
                                     range: 183..184,
@@ -407,7 +407,7 @@ ParsedFile {
                 ExpressionStmt {
                     value: Call(
                         CallExpr {
-                            lhs: Id(
+                            func: Id(
                                 Identifier {
                                     id: "f",
                                     range: 199..200,
@@ -465,7 +465,7 @@ ParsedFile {
                 ExpressionStmt {
                     value: Call(
                         CallExpr {
-                            lhs: Id(
+                            func: Id(
                                 Identifier {
                                     id: "f",
                                     range: 218..219,

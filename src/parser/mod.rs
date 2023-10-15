@@ -1644,7 +1644,7 @@ where
         range = range.cover(value_range);
 
         (
-            Statement::AugAssing(nodes::AugAssignStmt {
+            Statement::AugAssign(nodes::AugAssignStmt {
                 target: target.value,
                 op,
                 value: Box::new(value),
@@ -2449,7 +2449,7 @@ where
 
         (
             Expression::Call(nodes::CallExpr {
-                lhs: Box::new(lhs),
+                func: Box::new(lhs),
                 args,
                 range,
             }),

@@ -41,7 +41,7 @@ ParsedFile {
                         IfElseExpr {
                             body: Call(
                                 CallExpr {
-                                    lhs: Id(
+                                    func: Id(
                                         Identifier {
                                             id: "f",
                                             range: 18..19,

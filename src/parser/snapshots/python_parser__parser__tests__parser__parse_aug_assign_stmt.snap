@@ -5,7 +5,7 @@ expression: "parse(\"\na += 1\na *= b\na -= 1\na /= a + 1\na //= (a + b) - c ** 
 ParsedFile {
     ast: Module {
         body: [
-            AugAssing(
+            AugAssign(
                 AugAssignStmt {
                     target: Id(
                         Identifier {
@@ -25,7 +25,7 @@ ParsedFile {
                     range: 1..7,
                 },
             ),
-            AugAssing(
+            AugAssign(
                 AugAssignStmt {
                     target: Id(
                         Identifier {
@@ -43,7 +43,7 @@ ParsedFile {
                     range: 8..14,
                 },
             ),
-            AugAssing(
+            AugAssign(
                 AugAssignStmt {
                     target: Id(
                         Identifier {
@@ -63,7 +63,7 @@ ParsedFile {
                     range: 15..21,
                 },
             ),
-            AugAssing(
+            AugAssign(
                 AugAssignStmt {
                     target: Id(
                         Identifier {
@@ -95,7 +95,7 @@ ParsedFile {
                     range: 22..32,
                 },
             ),
-            AugAssing(
+            AugAssign(
                 AugAssignStmt {
                     target: Id(
                         Identifier {
@@ -151,7 +151,7 @@ ParsedFile {
                     range: 33..55,
                 },
             ),
-            AugAssing(
+            AugAssign(
                 AugAssignStmt {
                     target: Id(
                         Identifier {
@@ -186,7 +186,7 @@ ParsedFile {
                     range: 56..66,
                 },
             ),
-            AugAssing(
+            AugAssign(
                 AugAssignStmt {
                     target: Id(
                         Identifier {
@@ -204,7 +204,7 @@ ParsedFile {
                     range: 68..74,
                 },
             ),
-            AugAssing(
+            AugAssign(
                 AugAssignStmt {
                     target: Id(
                         Identifier {
@@ -224,7 +224,7 @@ ParsedFile {
                     range: 75..81,
                 },
             ),
-            AugAssing(
+            AugAssign(
                 AugAssignStmt {
                     target: Id(
                         Identifier {
@@ -244,7 +244,7 @@ ParsedFile {
                     range: 82..89,
                 },
             ),
-            AugAssing(
+            AugAssign(
                 AugAssignStmt {
                     target: Id(
                         Identifier {
@@ -264,7 +264,7 @@ ParsedFile {
                     range: 90..97,
                 },
             ),
-            AugAssing(
+            AugAssign(
                 AugAssignStmt {
                     target: Id(
                         Identifier {
@@ -281,7 +281,7 @@ ParsedFile {
                     range: 98..106,
                 },
             ),
-            AugAssing(
+            AugAssign(
                 AugAssignStmt {
                     target: Id(
                         Identifier {
