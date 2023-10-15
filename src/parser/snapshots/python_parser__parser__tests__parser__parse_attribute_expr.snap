@@ -31,7 +31,7 @@ ParsedFile {
                 ExpressionStmt {
                     value: Call(
                         CallExpr {
-                            lhs: Attribute(
+                            func: Attribute(
                                 AttributeExpr {
                                     value: Id(
                                         Identifier {
@@ -65,7 +65,7 @@ ParsedFile {
                         AttributeExpr {
                             value: Call(
                                 CallExpr {
-                                    lhs: Id(
+                                    func: Id(
                                         Identifier {
                                             id: "value",
                                             range: 25..30,
@@ -97,11 +97,11 @@ ParsedFile {
                         AttributeExpr {
                             value: Call(
                                 CallExpr {
-                                    lhs: Attribute(
+                                    func: Attribute(
                                         AttributeExpr {
                                             value: Call(
                                                 CallExpr {
-                                                    lhs: Id(
+                                                    func: Id(
                                                         Identifier {
                                                             id: "value",
                                                             range: 38..43,

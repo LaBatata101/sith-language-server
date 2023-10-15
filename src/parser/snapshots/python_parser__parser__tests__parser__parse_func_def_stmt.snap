@@ -59,7 +59,7 @@ ParsedFile {
                             ExpressionStmt {
                                 value: Call(
                                     CallExpr {
-                                        lhs: Id(
+                                        func: Id(
                                             Identifier {
                                                 id: "f",
                                                 range: 38..39,
@@ -346,7 +346,7 @@ ParsedFile {
                             ExpressionStmt {
                                 value: Call(
                                     CallExpr {
-                                        lhs: Id(
+                                        func: Id(
                                             Identifier {
                                                 id: "f",
                                                 range: 162..163,
@@ -414,7 +414,7 @@ ParsedFile {
                                     BinaryOpExpr {
                                         left: Call(
                                             CallExpr {
-                                                lhs: Id(
+                                                func: Id(
                                                     Identifier {
                                                         id: "f",
                                                         range: 191..192,
@@ -532,7 +532,7 @@ ParsedFile {
                                     BinaryOpExpr {
                                         left: Call(
                                             CallExpr {
-                                                lhs: Id(
+                                                func: Id(
                                                     Identifier {
                                                         id: "f",
                                                         range: 232..233,

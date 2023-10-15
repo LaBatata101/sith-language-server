@@ -79,7 +79,7 @@ ParsedFile {
                         WithItem {
                             item: Call(
                                 CallExpr {
-                                    lhs: Id(
+                                    func: Id(
                                         Identifier {
                                             id: "open",
                                             range: 41..45,
@@ -125,7 +125,7 @@ ParsedFile {
                         WithItem {
                             item: Call(
                                 CallExpr {
-                                    lhs: Id(
+                                    func: Id(
                                         Identifier {
                                             id: "f",
                                             range: 67..68,

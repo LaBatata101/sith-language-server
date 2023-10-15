@@ -333,7 +333,7 @@ ParsedFile {
                             ),
                             body: Call(
                                 CallExpr {
-                                    lhs: Id(
+                                    func: Id(
                                         Identifier {
                                             id: "f",
                                             range: 114..115,
@@ -393,7 +393,7 @@ ParsedFile {
                                 BinaryOpExpr {
                                     left: Call(
                                         CallExpr {
-                                            lhs: Id(
+                                            func: Id(
                                                 Identifier {
                                                     id: "f",
                                                     range: 142..143,
@@ -503,7 +503,7 @@ ParsedFile {
                                 BinaryOpExpr {
                                     left: Call(
                                         CallExpr {
-                                            lhs: Id(
+                                            func: Id(
                                                 Identifier {
                                                     id: "f",
                                                     range: 182..183,

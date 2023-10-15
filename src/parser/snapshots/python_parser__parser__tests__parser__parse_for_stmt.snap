@@ -56,7 +56,7 @@ ParsedFile {
                     ),
                     iter: Call(
                         CallExpr {
-                            lhs: Id(
+                            func: Id(
                                 Identifier {
                                     id: "f",
                                     range: 35..36,

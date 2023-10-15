@@ -228,7 +228,7 @@ ParsedFile {
                                 ),
                                 Call(
                                     CallExpr {
-                                        lhs: Id(
+                                        func: Id(
                                             Identifier {
                                                 id: "call",
                                                 range: 91..95,
@@ -546,7 +546,7 @@ ParsedFile {
                             ),
                             value: Call(
                                 CallExpr {
-                                    lhs: Id(
+                                    func: Id(
                                         Identifier {
                                             id: "tuple",
                                             range: 198..203,
