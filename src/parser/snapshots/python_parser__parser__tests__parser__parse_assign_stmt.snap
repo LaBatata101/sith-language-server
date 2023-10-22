@@ -9,8 +9,9 @@ ParsedFile {
                 AssignStmt {
                     targets: [
                         Id(
-                            Identifier {
+                            IdExpr {
                                 id: "x",
+                                ctx: Store,
                                 range: 1..2,
                             },
                         ),
@@ -39,8 +40,9 @@ ParsedFile {
                     value: Starred(
                         StarredExpr {
                             value: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "l",
+                                    ctx: Load,
                                     range: 13..14,
                                 },
                             ),
@@ -63,8 +65,9 @@ ParsedFile {
                     value: Starred(
                         StarredExpr {
                             value: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "t",
+                                    ctx: Load,
                                     range: 21..22,
                                 },
                             ),
@@ -88,8 +91,9 @@ ParsedFile {
                     value: Starred(
                         StarredExpr {
                             value: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "d",
+                                    ctx: Load,
                                     range: 29..30,
                                 },
                             ),
@@ -106,14 +110,16 @@ ParsedFile {
                             TupleExpr {
                                 elements: [
                                     Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "a",
+                                            ctx: Store,
                                             range: 31..32,
                                         },
                                     ),
                                     Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "b",
+                                            ctx: Store,
                                             range: 34..35,
                                         },
                                     ),
@@ -123,8 +129,9 @@ ParsedFile {
                         ),
                     ],
                     value: Id(
-                        Identifier {
+                        IdExpr {
                             id: "ab",
+                            ctx: Load,
                             range: 38..40,
                         },
                     ),
@@ -162,14 +169,16 @@ ParsedFile {
                             op: And,
                             values: [
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "a",
+                                        ctx: Load,
                                         range: 49..50,
                                     },
                                 ),
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "b",
+                                        ctx: Load,
                                         range: 55..56,
                                     },
                                 ),
@@ -186,8 +195,9 @@ ParsedFile {
                         Starred(
                             StarredExpr {
                                 value: Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "a",
+                                        ctx: Load,
                                         range: 58..59,
                                     },
                                 ),
@@ -228,14 +238,16 @@ ParsedFile {
                                 op: And,
                                 values: [
                                     Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "a",
+                                            ctx: Load,
                                             range: 68..69,
                                         },
                                     ),
                                     Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "b",
+                                            ctx: Load,
                                             range: 74..75,
                                         },
                                     ),
@@ -259,8 +271,9 @@ ParsedFile {
                         Compare(
                             CompareExpr {
                                 left: Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "a",
+                                        ctx: Load,
                                         range: 83..84,
                                     },
                                 ),
@@ -269,8 +282,9 @@ ParsedFile {
                                 ],
                                 comparators: [
                                     Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "b",
+                                            ctx: Load,
                                             range: 87..88,
                                         },
                                     ),
@@ -294,21 +308,24 @@ ParsedFile {
                 AssignStmt {
                     targets: [
                         Id(
-                            Identifier {
+                            IdExpr {
                                 id: "a",
+                                ctx: Store,
                                 range: 96..97,
                             },
                         ),
                         Id(
-                            Identifier {
+                            IdExpr {
                                 id: "b",
+                                ctx: Load,
                                 range: 100..101,
                             },
                         ),
                     ],
                     value: Id(
-                        Identifier {
+                        IdExpr {
                             id: "c",
+                            ctx: Load,
                             range: 104..105,
                         },
                     ),
@@ -326,8 +343,9 @@ ParsedFile {
                         Call(
                             CallExpr {
                                 func: Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "f",
+                                        ctx: Load,
                                         range: 112..113,
                                     },
                                 ),
@@ -343,8 +361,9 @@ ParsedFile {
                             TupleExpr {
                                 elements: [
                                     Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "c",
+                                            ctx: Load,
                                             range: 118..119,
                                         },
                                     ),

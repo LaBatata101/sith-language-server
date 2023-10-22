@@ -77,14 +77,16 @@ ParsedFile {
                                         op: And,
                                         values: [
                                             Id(
-                                                Identifier {
+                                                IdExpr {
                                                     id: "x",
+                                                    ctx: Load,
                                                     range: 13..14,
                                                 },
                                             ),
                                             Id(
-                                                Identifier {
+                                                IdExpr {
                                                     id: "y",
+                                                    ctx: Load,
                                                     range: 19..20,
                                                 },
                                             ),
@@ -179,8 +181,9 @@ ParsedFile {
                                 BinaryOp(
                                     BinaryOpExpr {
                                         left: Id(
-                                            Identifier {
+                                            IdExpr {
                                                 id: "x",
+                                                ctx: Load,
                                                 range: 41..42,
                                             },
                                         ),
@@ -197,8 +200,9 @@ ParsedFile {
                                     },
                                 ),
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "l",
+                                        ctx: Load,
                                         range: 48..49,
                                     },
                                 ),

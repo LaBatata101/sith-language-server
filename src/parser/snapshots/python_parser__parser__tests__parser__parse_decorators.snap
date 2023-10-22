@@ -36,8 +36,9 @@ ParsedFile {
                     decorators: [
                         Decorator {
                             expr: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "a",
+                                    ctx: Load,
                                     range: 2..3,
                                 },
                             ),
@@ -83,8 +84,9 @@ ParsedFile {
                                     value: Attribute(
                                         AttributeExpr {
                                             value: Id(
-                                                Identifier {
+                                                IdExpr {
                                                     id: "a",
+                                                    ctx: Load,
                                                     range: 19..20,
                                                 },
                                             ),
@@ -144,8 +146,9 @@ ParsedFile {
                     decorators: [
                         Decorator {
                             expr: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "a",
+                                    ctx: Load,
                                     range: 40..41,
                                 },
                             ),
@@ -157,8 +160,9 @@ ParsedFile {
                                     value: Attribute(
                                         AttributeExpr {
                                             value: Id(
-                                                Identifier {
+                                                IdExpr {
                                                     id: "a",
+                                                    ctx: Load,
                                                     range: 43..44,
                                                 },
                                             ),
@@ -192,8 +196,9 @@ ParsedFile {
                     decorators: [
                         Decorator {
                             expr: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "a",
+                                    ctx: Load,
                                     range: 64..65,
                                 },
                             ),
@@ -230,8 +235,9 @@ ParsedFile {
                                     value: Attribute(
                                         AttributeExpr {
                                             value: Id(
-                                                Identifier {
+                                                IdExpr {
                                                     id: "a",
+                                                    ctx: Load,
                                                     range: 74..75,
                                                 },
                                             ),

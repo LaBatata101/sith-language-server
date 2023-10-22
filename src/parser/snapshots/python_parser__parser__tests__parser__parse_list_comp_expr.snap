@@ -10,24 +10,27 @@ ParsedFile {
                     value: ListComp(
                         ListCompExpr {
                             element: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "x",
+                                    ctx: Load,
                                     range: 2..3,
                                 },
                             ),
                             generators: [
                                 Comprehension {
                                     target: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "i",
+                                            ctx: Store,
                                             range: 8..9,
                                         },
                                     ),
                                     iter: Call(
                                         CallExpr {
                                             func: Id(
-                                                Identifier {
+                                                IdExpr {
                                                     id: "range",
+                                                    ctx: Load,
                                                     range: 13..18,
                                                 },
                                             ),
@@ -64,22 +67,25 @@ ParsedFile {
                     value: ListComp(
                         ListCompExpr {
                             element: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "b",
+                                    ctx: Load,
                                     range: 24..25,
                                 },
                             ),
                             generators: [
                                 Comprehension {
                                     target: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "c",
+                                            ctx: Store,
                                             range: 30..31,
                                         },
                                     ),
                                     iter: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "d",
+                                            ctx: Load,
                                             range: 35..36,
                                         },
                                     ),
@@ -87,8 +93,9 @@ ParsedFile {
                                         Compare(
                                             CompareExpr {
                                                 left: Id(
-                                                    Identifier {
+                                                    IdExpr {
                                                         id: "x",
+                                                        ctx: Load,
                                                         range: 40..41,
                                                     },
                                                 ),
@@ -97,8 +104,9 @@ ParsedFile {
                                                 ],
                                                 comparators: [
                                                     Id(
-                                                        Identifier {
+                                                        IdExpr {
                                                             id: "w",
+                                                            ctx: Load,
                                                             range: 45..46,
                                                         },
                                                     ),
@@ -111,14 +119,16 @@ ParsedFile {
                                                 op: And,
                                                 values: [
                                                     Id(
-                                                        Identifier {
+                                                        IdExpr {
                                                             id: "y",
+                                                            ctx: Load,
                                                             range: 50..51,
                                                         },
                                                     ),
                                                     Id(
-                                                        Identifier {
+                                                        IdExpr {
                                                             id: "yy",
+                                                            ctx: Load,
                                                             range: 56..58,
                                                         },
                                                     ),
@@ -127,8 +137,9 @@ ParsedFile {
                                             },
                                         ),
                                         Id(
-                                            Identifier {
+                                            IdExpr {
                                                 id: "z",
+                                                ctx: Load,
                                                 range: 62..63,
                                             },
                                         ),
@@ -148,22 +159,25 @@ ParsedFile {
                     value: ListComp(
                         ListCompExpr {
                             element: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "a",
+                                    ctx: Load,
                                     range: 66..67,
                                 },
                             ),
                             generators: [
                                 Comprehension {
                                     target: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "b",
+                                            ctx: Store,
                                             range: 72..73,
                                         },
                                     ),
                                     iter: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "c",
+                                            ctx: Load,
                                             range: 77..78,
                                         },
                                     ),
@@ -173,14 +187,16 @@ ParsedFile {
                                                 op: And,
                                                 values: [
                                                     Id(
-                                                        Identifier {
+                                                        IdExpr {
                                                             id: "d",
+                                                            ctx: Load,
                                                             range: 82..83,
                                                         },
                                                     ),
                                                     Id(
-                                                        Identifier {
+                                                        IdExpr {
                                                             id: "e",
+                                                            ctx: Load,
                                                             range: 88..89,
                                                         },
                                                     ),
@@ -194,14 +210,16 @@ ParsedFile {
                                 },
                                 Comprehension {
                                     target: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "f",
+                                            ctx: Store,
                                             range: 94..95,
                                         },
                                     ),
                                     iter: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "j",
+                                            ctx: Load,
                                             range: 99..100,
                                         },
                                     ),
@@ -209,8 +227,9 @@ ParsedFile {
                                         Compare(
                                             CompareExpr {
                                                 left: Id(
-                                                    Identifier {
+                                                    IdExpr {
                                                         id: "k",
+                                                        ctx: Load,
                                                         range: 104..105,
                                                     },
                                                 ),
@@ -219,8 +238,9 @@ ParsedFile {
                                                 ],
                                                 comparators: [
                                                     Id(
-                                                        Identifier {
+                                                        IdExpr {
                                                             id: "h",
+                                                            ctx: Load,
                                                             range: 108..109,
                                                         },
                                                     ),
@@ -244,22 +264,25 @@ ParsedFile {
                     value: ListComp(
                         ListCompExpr {
                             element: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "a",
+                                    ctx: Load,
                                     range: 112..113,
                                 },
                             ),
                             generators: [
                                 Comprehension {
                                     target: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "b",
+                                            ctx: Store,
                                             range: 118..119,
                                         },
                                     ),
                                     iter: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "c",
+                                            ctx: Load,
                                             range: 123..124,
                                         },
                                     ),
@@ -269,14 +292,16 @@ ParsedFile {
                                                 op: And,
                                                 values: [
                                                     Id(
-                                                        Identifier {
+                                                        IdExpr {
                                                             id: "d",
+                                                            ctx: Load,
                                                             range: 128..129,
                                                         },
                                                     ),
                                                     Id(
-                                                        Identifier {
+                                                        IdExpr {
                                                             id: "e",
+                                                            ctx: Load,
                                                             range: 134..135,
                                                         },
                                                     ),
@@ -290,14 +315,16 @@ ParsedFile {
                                 },
                                 Comprehension {
                                     target: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "f",
+                                            ctx: Store,
                                             range: 146..147,
                                         },
                                     ),
                                     iter: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "j",
+                                            ctx: Load,
                                             range: 151..152,
                                         },
                                     ),
@@ -305,8 +332,9 @@ ParsedFile {
                                         Compare(
                                             CompareExpr {
                                                 left: Id(
-                                                    Identifier {
+                                                    IdExpr {
                                                         id: "k",
+                                                        ctx: Load,
                                                         range: 156..157,
                                                     },
                                                 ),
@@ -315,8 +343,9 @@ ParsedFile {
                                                 ],
                                                 comparators: [
                                                     Id(
-                                                        Identifier {
+                                                        IdExpr {
                                                             id: "h",
+                                                            ctx: Load,
                                                             range: 160..161,
                                                         },
                                                     ),
@@ -350,16 +379,18 @@ ParsedFile {
                             generators: [
                                 Comprehension {
                                     target: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "i",
+                                            ctx: Store,
                                             range: 170..171,
                                         },
                                     ),
                                     iter: Compare(
                                         CompareExpr {
                                             left: Id(
-                                                Identifier {
+                                                IdExpr {
                                                     id: "x",
+                                                    ctx: Load,
                                                     range: 175..176,
                                                 },
                                             ),
@@ -368,8 +399,9 @@ ParsedFile {
                                             ],
                                             comparators: [
                                                 Id(
-                                                    Identifier {
+                                                    IdExpr {
                                                         id: "a",
+                                                        ctx: Load,
                                                         range: 180..181,
                                                     },
                                                 ),
@@ -393,8 +425,9 @@ ParsedFile {
                     value: ListComp(
                         ListCompExpr {
                             element: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "a",
+                                    ctx: Load,
                                     range: 184..185,
                                 },
                             ),
@@ -404,14 +437,16 @@ ParsedFile {
                                         TupleExpr {
                                             elements: [
                                                 Id(
-                                                    Identifier {
+                                                    IdExpr {
                                                         id: "a",
+                                                        ctx: Store,
                                                         range: 190..191,
                                                     },
                                                 ),
                                                 Id(
-                                                    Identifier {
+                                                    IdExpr {
                                                         id: "b",
+                                                        ctx: Load,
                                                         range: 193..194,
                                                     },
                                                 ),
@@ -420,8 +455,9 @@ ParsedFile {
                                         },
                                     ),
                                     iter: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "G",
+                                            ctx: Load,
                                             range: 198..199,
                                         },
                                     ),
@@ -443,8 +479,9 @@ ParsedFile {
                             element: Await(
                                 AwaitExpr {
                                     value: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "x",
+                                            ctx: Load,
                                             range: 213..214,
                                         },
                                     ),
@@ -457,14 +494,16 @@ ParsedFile {
                                         TupleExpr {
                                             elements: [
                                                 Id(
-                                                    Identifier {
+                                                    IdExpr {
                                                         id: "a",
+                                                        ctx: Store,
                                                         range: 219..220,
                                                     },
                                                 ),
                                                 Id(
-                                                    Identifier {
+                                                    IdExpr {
                                                         id: "b",
+                                                        ctx: Load,
                                                         range: 222..223,
                                                     },
                                                 ),
@@ -473,8 +512,9 @@ ParsedFile {
                                         },
                                     ),
                                     iter: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "C",
+                                            ctx: Load,
                                             range: 227..228,
                                         },
                                     ),

@@ -10,8 +10,9 @@ ParsedFile {
                     value: Compare(
                         CompareExpr {
                             left: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "a",
+                                    ctx: Load,
                                     range: 1..2,
                                 },
                             ),
@@ -20,8 +21,9 @@ ParsedFile {
                             ],
                             comparators: [
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "b",
+                                        ctx: Load,
                                         range: 6..7,
                                     },
                                 ),
@@ -37,8 +39,9 @@ ParsedFile {
                     value: Compare(
                         CompareExpr {
                             left: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "b",
+                                    ctx: Load,
                                     range: 8..9,
                                 },
                             ),
@@ -47,8 +50,9 @@ ParsedFile {
                             ],
                             comparators: [
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "a",
+                                        ctx: Load,
                                         range: 12..13,
                                     },
                                 ),
@@ -64,8 +68,9 @@ ParsedFile {
                     value: Compare(
                         CompareExpr {
                             left: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "b",
+                                    ctx: Load,
                                     range: 14..15,
                                 },
                             ),
@@ -74,8 +79,9 @@ ParsedFile {
                             ],
                             comparators: [
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "a",
+                                        ctx: Load,
                                         range: 18..19,
                                     },
                                 ),
@@ -91,8 +97,9 @@ ParsedFile {
                     value: Compare(
                         CompareExpr {
                             left: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "a",
+                                    ctx: Load,
                                     range: 20..21,
                                 },
                             ),
@@ -101,8 +108,9 @@ ParsedFile {
                             ],
                             comparators: [
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "b",
+                                        ctx: Load,
                                         range: 25..26,
                                     },
                                 ),
@@ -118,8 +126,9 @@ ParsedFile {
                     value: Compare(
                         CompareExpr {
                             left: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "a",
+                                    ctx: Load,
                                     range: 27..28,
                                 },
                             ),
@@ -128,8 +137,9 @@ ParsedFile {
                             ],
                             comparators: [
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "b",
+                                        ctx: Load,
                                         range: 32..33,
                                     },
                                 ),
@@ -145,8 +155,9 @@ ParsedFile {
                     value: Compare(
                         CompareExpr {
                             left: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "a",
+                                    ctx: Load,
                                     range: 34..35,
                                 },
                             ),
@@ -155,8 +166,9 @@ ParsedFile {
                             ],
                             comparators: [
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "b",
+                                        ctx: Load,
                                         range: 39..40,
                                     },
                                 ),
@@ -172,8 +184,9 @@ ParsedFile {
                     value: Compare(
                         CompareExpr {
                             left: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "a",
+                                    ctx: Load,
                                     range: 41..42,
                                 },
                             ),
@@ -182,8 +195,9 @@ ParsedFile {
                             ],
                             comparators: [
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "c",
+                                        ctx: Load,
                                         range: 46..47,
                                     },
                                 ),
@@ -199,8 +213,9 @@ ParsedFile {
                     value: Compare(
                         CompareExpr {
                             left: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "a",
+                                    ctx: Load,
                                     range: 48..49,
                                 },
                             ),
@@ -209,8 +224,9 @@ ParsedFile {
                             ],
                             comparators: [
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "b",
+                                        ctx: Load,
                                         range: 53..54,
                                     },
                                 ),
@@ -226,8 +242,9 @@ ParsedFile {
                     value: Compare(
                         CompareExpr {
                             left: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "a",
+                                    ctx: Load,
                                     range: 55..56,
                                 },
                             ),
@@ -236,8 +253,9 @@ ParsedFile {
                             ],
                             comparators: [
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "c",
+                                        ctx: Load,
                                         range: 64..65,
                                     },
                                 ),
@@ -253,8 +271,9 @@ ParsedFile {
                     value: Compare(
                         CompareExpr {
                             left: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "a",
+                                    ctx: Load,
                                     range: 66..67,
                                 },
                             ),
@@ -263,8 +282,9 @@ ParsedFile {
                             ],
                             comparators: [
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "b",
+                                        ctx: Load,
                                         range: 75..76,
                                     },
                                 ),
@@ -280,8 +300,9 @@ ParsedFile {
                     value: Compare(
                         CompareExpr {
                             left: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "a",
+                                    ctx: Load,
                                     range: 77..78,
                                 },
                             ),
@@ -298,56 +319,65 @@ ParsedFile {
                             ],
                             comparators: [
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "b",
+                                        ctx: Load,
                                         range: 81..82,
                                     },
                                 ),
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "c",
+                                        ctx: Load,
                                         range: 86..87,
                                     },
                                 ),
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "d",
+                                        ctx: Load,
                                         range: 90..91,
                                     },
                                 ),
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "e",
+                                        ctx: Load,
                                         range: 95..96,
                                     },
                                 ),
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "f",
+                                        ctx: Load,
                                         range: 104..105,
                                     },
                                 ),
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "g",
+                                        ctx: Load,
                                         range: 113..114,
                                     },
                                 ),
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "h",
+                                        ctx: Load,
                                         range: 118..119,
                                     },
                                 ),
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "i",
+                                        ctx: Load,
                                         range: 123..124,
                                     },
                                 ),
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "j",
+                                        ctx: Load,
                                         range: 128..129,
                                     },
                                 ),

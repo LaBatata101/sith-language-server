@@ -8,8 +8,9 @@ ParsedFile {
             Expression(
                 ExpressionStmt {
                     value: Id(
-                        Identifier {
+                        IdExpr {
                             id: "l",
+                            ctx: Load,
                             range: 2..3,
                         },
                     ),
@@ -21,8 +22,9 @@ ParsedFile {
                     value: Call(
                         CallExpr {
                             func: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "l",
+                                    ctx: Load,
                                     range: 6..7,
                                 },
                             ),
@@ -46,8 +48,9 @@ ParsedFile {
                                     func: Call(
                                         CallExpr {
                                             func: Id(
-                                                Identifier {
+                                                IdExpr {
                                                     id: "l",
+                                                    ctx: Load,
                                                     range: 12..13,
                                                 },
                                             ),
@@ -89,14 +92,16 @@ ParsedFile {
                                         op: And,
                                         values: [
                                             Id(
-                                                Identifier {
+                                                IdExpr {
                                                     id: "a",
+                                                    ctx: Load,
                                                     range: 22..23,
                                                 },
                                             ),
                                             Id(
-                                                Identifier {
+                                                IdExpr {
                                                     id: "b",
+                                                    ctx: Load,
                                                     range: 29..30,
                                                 },
                                             ),
@@ -105,8 +110,9 @@ ParsedFile {
                                     },
                                 ),
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "c",
+                                        ctx: Load,
                                         range: 34..35,
                                     },
                                 ),

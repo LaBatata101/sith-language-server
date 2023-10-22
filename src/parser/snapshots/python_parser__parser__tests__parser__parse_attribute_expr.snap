@@ -10,8 +10,9 @@ ParsedFile {
                     value: Attribute(
                         AttributeExpr {
                             value: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "value",
+                                    ctx: Load,
                                     range: 1..6,
                                 },
                             ),
@@ -34,8 +35,9 @@ ParsedFile {
                             func: Attribute(
                                 AttributeExpr {
                                     value: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "value",
+                                            ctx: Load,
                                             range: 12..17,
                                         },
                                     ),
@@ -66,8 +68,9 @@ ParsedFile {
                             value: Call(
                                 CallExpr {
                                     func: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "value",
+                                            ctx: Load,
                                             range: 25..30,
                                         },
                                     ),
@@ -102,8 +105,9 @@ ParsedFile {
                                             value: Call(
                                                 CallExpr {
                                                     func: Id(
-                                                        Identifier {
+                                                        IdExpr {
                                                             id: "value",
+                                                            ctx: Load,
                                                             range: 38..43,
                                                         },
                                                     ),
@@ -151,8 +155,9 @@ ParsedFile {
                             value: Attribute(
                                 AttributeExpr {
                                     value: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "value",
+                                            ctx: Load,
                                             range: 57..62,
                                         },
                                     ),

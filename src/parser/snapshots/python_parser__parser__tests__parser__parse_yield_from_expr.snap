@@ -10,8 +10,9 @@ ParsedFile {
                     value: YieldFrom(
                         YieldFromExpr {
                             value: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "x",
+                                    ctx: Load,
                                     range: 12..13,
                                 },
                             ),
@@ -28,8 +29,9 @@ ParsedFile {
                             value: BinaryOp(
                                 BinaryOpExpr {
                                     left: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "x",
+                                            ctx: Load,
                                             range: 25..26,
                                         },
                                     ),
@@ -60,14 +62,16 @@ ParsedFile {
                                     op: And,
                                     values: [
                                         Id(
-                                            Identifier {
+                                            IdExpr {
                                                 id: "a",
+                                                ctx: Load,
                                                 range: 42..43,
                                             },
                                         ),
                                         Id(
-                                            Identifier {
+                                            IdExpr {
                                                 id: "b",
+                                                ctx: Load,
                                                 range: 48..49,
                                             },
                                         ),
@@ -88,8 +92,9 @@ ParsedFile {
                             value: Call(
                                 CallExpr {
                                     func: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "f",
+                                            ctx: Load,
                                             range: 61..62,
                                         },
                                     ),
@@ -182,8 +187,9 @@ ParsedFile {
                                     keys: [
                                         Some(
                                             Id(
-                                                Identifier {
+                                                IdExpr {
                                                     id: "i",
+                                                    ctx: Load,
                                                     range: 113..114,
                                                 },
                                             ),

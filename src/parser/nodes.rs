@@ -10,7 +10,6 @@ pub struct Module<'a> {
     pub range: TextRange,
 }
 
-// CURRENT SIZE: 120
 #[derive(Debug, PartialEq, Eq)]
 pub enum Statement<'a> {
     Assign(AssignStmt<'a>),
@@ -54,7 +53,7 @@ pub enum Expression<'a> {
     Ellipsis(EllipsisExpr),
     FString(FStringExpr<'a>),
     Generator(GeneratorExpr<'a>),
-    Id(Identifier<'a>),
+    Id(IdExpr<'a>),
     IfElse(IfElseExpr<'a>),
     Invalid(TextRange),
     Lambda(LambdaExpr<'a>),
@@ -190,18 +189,6 @@ pub struct FunctionDefStmt<'a> {
     pub decorators: Vec<Decorator<'a>>,
     pub returns: Option<Box<Expression<'a>>>,
     pub range: TextRange,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct ParsedFile<'a> {
-    pub stmts: Vec<Statement<'a>>,
-}
-
-impl<'a> ParsedFile<'a> {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> Self {
-        Self { stmts: Vec::new() }
-    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -504,6 +491,13 @@ pub enum MaybeIdentifier<'a> {
 
 impl<'a> MaybeIdentifier<'a> {
     pub fn into_id(self) -> Option<Identifier<'a>> {
+        match self {
+            MaybeIdentifier::Valid(ident) => Some(ident),
+            MaybeIdentifier::Invalid(_) => None,
+        }
+    }
+
+    pub fn as_id(&self) -> Option<&Identifier<'a>> {
         match self {
             MaybeIdentifier::Valid(ident) => Some(ident),
             MaybeIdentifier::Invalid(_) => None,
@@ -828,6 +822,20 @@ pub struct ParameterWithDefault<'a> {
 pub struct NamedExpr<'a> {
     pub target: Box<Expression<'a>>,
     pub value: Box<Expression<'a>>,
+    pub range: TextRange,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum Context {
+    Load,
+    Store,
+    Del,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct IdExpr<'a> {
+    pub id: &'a str,
+    pub ctx: Context,
     pub range: TextRange,
 }
 

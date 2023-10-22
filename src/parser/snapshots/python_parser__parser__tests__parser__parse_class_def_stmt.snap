@@ -109,8 +109,9 @@ ParsedFile {
                                 Starred(
                                     StarredExpr {
                                         value: Id(
-                                            Identifier {
+                                            IdExpr {
                                                 id: "A",
+                                                ctx: Load,
                                                 range: 91..92,
                                             },
                                         ),
@@ -141,8 +142,9 @@ ParsedFile {
                                 KeywordArg {
                                     arg: None,
                                     value: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "k",
+                                            ctx: Load,
                                             range: 96..97,
                                         },
                                     ),
@@ -202,14 +204,16 @@ ParsedFile {
                                                     TupleExpr {
                                                         elements: [
                                                             Id(
-                                                                Identifier {
+                                                                IdExpr {
                                                                     id: "a",
+                                                                    ctx: Store,
                                                                     range: 138..139,
                                                                 },
                                                             ),
                                                             Id(
-                                                                Identifier {
+                                                                IdExpr {
                                                                     id: "b",
+                                                                    ctx: Store,
                                                                     range: 141..142,
                                                                 },
                                                             ),
@@ -219,8 +223,9 @@ ParsedFile {
                                                 ),
                                             ],
                                             value: Id(
-                                                Identifier {
+                                                IdExpr {
                                                     id: "l",
+                                                    ctx: Load,
                                                     range: 145..146,
                                                 },
                                             ),

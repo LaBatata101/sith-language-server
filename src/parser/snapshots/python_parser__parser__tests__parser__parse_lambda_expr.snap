@@ -11,8 +11,9 @@ ParsedFile {
                         LambdaExpr {
                             parameters: None,
                             body: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "a",
+                                    ctx: Load,
                                     range: 9..10,
                                 },
                             ),
@@ -174,15 +175,17 @@ ParsedFile {
                             body: BinaryOp(
                                 BinaryOpExpr {
                                     left: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "z",
+                                            ctx: Load,
                                             range: 55..56,
                                         },
                                     ),
                                     op: Mult,
                                     right: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "y",
+                                            ctx: Load,
                                             range: 59..60,
                                         },
                                     ),
@@ -221,8 +224,9 @@ ParsedFile {
                                 },
                             ),
                             body: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "a",
+                                    ctx: Load,
                                     range: 72..73,
                                 },
                             ),
@@ -334,8 +338,9 @@ ParsedFile {
                             body: Call(
                                 CallExpr {
                                     func: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "f",
+                                            ctx: Load,
                                             range: 114..115,
                                         },
                                     ),
@@ -394,8 +399,9 @@ ParsedFile {
                                     left: Call(
                                         CallExpr {
                                             func: Id(
-                                                Identifier {
+                                                IdExpr {
                                                     id: "f",
+                                                    ctx: Load,
                                                     range: 142..143,
                                                 },
                                             ),
@@ -504,8 +510,9 @@ ParsedFile {
                                     left: Call(
                                         CallExpr {
                                             func: Id(
-                                                Identifier {
+                                                IdExpr {
                                                     id: "f",
+                                                    ctx: Load,
                                                     range: 182..183,
                                                 },
                                             ),
