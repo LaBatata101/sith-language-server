@@ -3105,9 +3105,18 @@ where
         self.expect(TokenKind::Keyword(KeywordKind::For));
 
         let mut ifs = vec![];
-        self.set_ctx(ParserCtxFlags::COMPREHENSION_TARGET);
-        let (target, _) = self.parse_expr();
-        self.clear_ctx(ParserCtxFlags::COMPREHENSION_TARGET);
+        let (target, _) = if self.at_expr() {
+            self.set_ctx(ParserCtxFlags::COMPREHENSION_TARGET);
+            let target = self.parse_expr();
+            self.clear_ctx(ParserCtxFlags::COMPREHENSION_TARGET);
+            target
+        } else {
+            self.add_error(ParseErrorType::Other(
+                "expecting expression after `for` keyword".to_string(),
+            ));
+            let range = self.current_range();
+            (Expression::Invalid(range), range)
+        };
         self.expect(TokenKind::Keyword(KeywordKind::In));
 
         let (iter, iter_expr) = self.parse_expr();
