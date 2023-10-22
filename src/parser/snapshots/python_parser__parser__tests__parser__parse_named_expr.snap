@@ -10,8 +10,9 @@ ParsedFile {
                     value: Named(
                         NamedExpr {
                             target: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "x",
+                                    ctx: Store,
                                     range: 2..3,
                                 },
                             ),
@@ -37,8 +38,9 @@ ParsedFile {
                                 Named(
                                     NamedExpr {
                                         target: Id(
-                                            Identifier {
+                                            IdExpr {
                                                 id: "x",
+                                                ctx: Store,
                                                 range: 10..11,
                                             },
                                         ),
@@ -68,8 +70,9 @@ ParsedFile {
                                 Named(
                                     NamedExpr {
                                         target: Id(
-                                            Identifier {
+                                            IdExpr {
                                                 id: "x",
+                                                ctx: Store,
                                                 range: 20..21,
                                             },
                                         ),
@@ -96,8 +99,9 @@ ParsedFile {
                     value: Named(
                         NamedExpr {
                             target: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "x",
+                                    ctx: Store,
                                     range: 29..30,
                                 },
                             ),
@@ -135,16 +139,18 @@ ParsedFile {
                         TupleExpr {
                             elements: [
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "x",
+                                        ctx: Load,
                                         range: 42..43,
                                     },
                                 ),
                                 Named(
                                     NamedExpr {
                                         target: Id(
-                                            Identifier {
+                                            IdExpr {
                                                 id: "y",
+                                                ctx: Store,
                                                 range: 44..45,
                                             },
                                         ),
@@ -153,14 +159,16 @@ ParsedFile {
                                                 op: And,
                                                 values: [
                                                     Id(
-                                                        Identifier {
+                                                        IdExpr {
                                                             id: "a",
+                                                            ctx: Load,
                                                             range: 49..50,
                                                         },
                                                     ),
                                                     Id(
-                                                        Identifier {
+                                                        IdExpr {
                                                             id: "b",
+                                                            ctx: Load,
                                                             range: 55..56,
                                                         },
                                                     ),
@@ -184,24 +192,27 @@ ParsedFile {
                         SetExpr {
                             elements: [
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "x",
+                                        ctx: Load,
                                         range: 60..61,
                                     },
                                 ),
                                 Named(
                                     NamedExpr {
                                         target: Id(
-                                            Identifier {
+                                            IdExpr {
                                                 id: "y",
+                                                ctx: Store,
                                                 range: 62..63,
                                             },
                                         ),
                                         value: Compare(
                                             CompareExpr {
                                                 left: Id(
-                                                    Identifier {
+                                                    IdExpr {
                                                         id: "a",
+                                                        ctx: Load,
                                                         range: 67..68,
                                                     },
                                                 ),
@@ -210,8 +221,9 @@ ParsedFile {
                                                 ],
                                                 comparators: [
                                                     Id(
-                                                        Identifier {
+                                                        IdExpr {
                                                             id: "b",
+                                                            ctx: Load,
                                                             range: 71..72,
                                                         },
                                                     ),
@@ -235,16 +247,18 @@ ParsedFile {
                         ListExpr {
                             elements: [
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "x",
+                                        ctx: Load,
                                         range: 76..77,
                                     },
                                 ),
                                 Named(
                                     NamedExpr {
                                         target: Id(
-                                            Identifier {
+                                            IdExpr {
                                                 id: "y",
+                                                ctx: Store,
                                                 range: 78..79,
                                             },
                                         ),
@@ -268,8 +282,9 @@ ParsedFile {
                     value: Call(
                         CallExpr {
                             func: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "f",
+                                    ctx: Load,
                                     range: 88..89,
                                 },
                             ),
@@ -278,14 +293,16 @@ ParsedFile {
                                     Named(
                                         NamedExpr {
                                             target: Id(
-                                                Identifier {
+                                                IdExpr {
                                                     id: "a",
+                                                    ctx: Store,
                                                     range: 90..91,
                                                 },
                                             ),
                                             value: Id(
-                                                Identifier {
+                                                IdExpr {
                                                     id: "b",
+                                                    ctx: Load,
                                                     range: 93..94,
                                                 },
                                             ),
@@ -295,14 +312,16 @@ ParsedFile {
                                     Named(
                                         NamedExpr {
                                             target: Id(
-                                                Identifier {
+                                                IdExpr {
                                                     id: "c",
+                                                    ctx: Store,
                                                     range: 96..97,
                                                 },
                                             ),
                                             value: Id(
-                                                Identifier {
+                                                IdExpr {
                                                     id: "d",
+                                                    ctx: Load,
                                                     range: 99..100,
                                                 },
                                             ),

@@ -132,8 +132,9 @@ ParsedFile {
                         UnaryOpExpr {
                             op: Not,
                             operand: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "x",
+                                    ctx: Load,
                                     range: 26..27,
                                 },
                             ),

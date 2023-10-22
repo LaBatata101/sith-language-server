@@ -12,14 +12,16 @@ ParsedFile {
                             op: And,
                             values: [
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "a",
+                                        ctx: Load,
                                         range: 1..2,
                                     },
                                 ),
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "b",
+                                        ctx: Load,
                                         range: 7..8,
                                     },
                                 ),
@@ -37,20 +39,23 @@ ParsedFile {
                             op: And,
                             values: [
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "a",
+                                        ctx: Load,
                                         range: 9..10,
                                     },
                                 ),
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "b",
+                                        ctx: Load,
                                         range: 15..16,
                                     },
                                 ),
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "c",
+                                        ctx: Load,
                                         range: 21..22,
                                     },
                                 ),
@@ -68,14 +73,16 @@ ParsedFile {
                             op: Or,
                             values: [
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "a",
+                                        ctx: Load,
                                         range: 23..24,
                                     },
                                 ),
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "b",
+                                        ctx: Load,
                                         range: 28..29,
                                     },
                                 ),
@@ -93,20 +100,23 @@ ParsedFile {
                             op: Or,
                             values: [
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "a",
+                                        ctx: Load,
                                         range: 30..31,
                                     },
                                 ),
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "b",
+                                        ctx: Load,
                                         range: 35..36,
                                     },
                                 ),
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "c",
+                                        ctx: Load,
                                         range: 40..41,
                                     },
                                 ),
@@ -128,14 +138,16 @@ ParsedFile {
                                         op: And,
                                         values: [
                                             Id(
-                                                Identifier {
+                                                IdExpr {
                                                     id: "a",
+                                                    ctx: Load,
                                                     range: 42..43,
                                                 },
                                             ),
                                             Id(
-                                                Identifier {
+                                                IdExpr {
                                                     id: "b",
+                                                    ctx: Load,
                                                     range: 48..49,
                                                 },
                                             ),
@@ -144,8 +156,9 @@ ParsedFile {
                                     },
                                 ),
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "c",
+                                        ctx: Load,
                                         range: 53..54,
                                     },
                                 ),

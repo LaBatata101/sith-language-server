@@ -8,14 +8,16 @@ ParsedFile {
             For(
                 ForStmt {
                     target: Id(
-                        Identifier {
+                        IdExpr {
                             id: "i",
+                            ctx: Store,
                             range: 5..6,
                         },
                     ),
                     iter: Id(
-                        Identifier {
+                        IdExpr {
                             id: "x",
+                            ctx: Load,
                             range: 10..11,
                         },
                     ),
@@ -40,8 +42,9 @@ ParsedFile {
                     target: Attribute(
                         AttributeExpr {
                             value: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "x",
+                                    ctx: Store,
                                     range: 25..26,
                                 },
                             ),
@@ -57,8 +60,9 @@ ParsedFile {
                     iter: Call(
                         CallExpr {
                             func: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "f",
+                                    ctx: Load,
                                     range: 35..36,
                                 },
                             ),
@@ -108,8 +112,9 @@ ParsedFile {
                     iter: Attribute(
                         AttributeExpr {
                             value: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "x",
+                                    ctx: Load,
                                     range: 62..63,
                                 },
                             ),
@@ -141,16 +146,18 @@ ParsedFile {
             For(
                 ForStmt {
                     target: Id(
-                        Identifier {
+                        IdExpr {
                             id: "i",
+                            ctx: Store,
                             range: 82..83,
                         },
                     ),
                     iter: Compare(
                         CompareExpr {
                             left: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "x",
+                                    ctx: Load,
                                     range: 87..88,
                                 },
                             ),
@@ -159,8 +166,9 @@ ParsedFile {
                             ],
                             comparators: [
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "y",
+                                        ctx: Load,
                                         range: 92..93,
                                     },
                                 ),
@@ -182,8 +190,9 @@ ParsedFile {
             For(
                 ForStmt {
                     target: Id(
-                        Identifier {
+                        IdExpr {
                             id: "i",
+                            ctx: Store,
                             range: 108..109,
                         },
                     ),
@@ -192,14 +201,16 @@ ParsedFile {
                             op: And,
                             values: [
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "a",
+                                        ctx: Load,
                                         range: 113..114,
                                     },
                                 ),
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "b",
+                                        ctx: Load,
                                         range: 119..120,
                                     },
                                 ),
@@ -224,20 +235,23 @@ ParsedFile {
                         TupleExpr {
                             elements: [
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "a",
+                                        ctx: Store,
                                         range: 135..136,
                                     },
                                 ),
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "b",
+                                        ctx: Load,
                                         range: 137..138,
                                     },
                                 ),
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "c",
+                                        ctx: Load,
                                         range: 139..140,
                                     },
                                 ),
@@ -246,8 +260,9 @@ ParsedFile {
                         },
                     ),
                     iter: Id(
-                        Identifier {
+                        IdExpr {
                             id: "iter",
+                            ctx: Load,
                             range: 145..149,
                         },
                     ),
@@ -273,14 +288,16 @@ ParsedFile {
                         TupleExpr {
                             elements: [
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "a",
+                                        ctx: Load,
                                         range: 164..165,
                                     },
                                 ),
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "b",
+                                        ctx: Load,
                                         range: 167..168,
                                     },
                                 ),
@@ -289,8 +306,9 @@ ParsedFile {
                         },
                     ),
                     iter: Id(
-                        Identifier {
+                        IdExpr {
                             id: "iter",
+                            ctx: Load,
                             range: 173..177,
                         },
                     ),
@@ -313,8 +331,9 @@ ParsedFile {
             For(
                 ForStmt {
                     target: Id(
-                        Identifier {
+                        IdExpr {
                             id: "i",
+                            ctx: Store,
                             range: 191..192,
                         },
                     ),
@@ -323,8 +342,9 @@ ParsedFile {
                             value: Attribute(
                                 AttributeExpr {
                                     value: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "x",
+                                            ctx: Load,
                                             range: 197..198,
                                         },
                                     ),
@@ -362,8 +382,9 @@ ParsedFile {
                         UnaryOpExpr {
                             op: USub,
                             operand: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "i",
+                                    ctx: Store,
                                     range: 218..219,
                                 },
                             ),
@@ -414,8 +435,9 @@ ParsedFile {
                     target: Starred(
                         StarredExpr {
                             value: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "l",
+                                    ctx: Store,
                                     range: 244..245,
                                 },
                             ),
@@ -426,20 +448,23 @@ ParsedFile {
                         TupleExpr {
                             elements: [
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "a",
+                                        ctx: Load,
                                         range: 249..250,
                                     },
                                 ),
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "b",
+                                        ctx: Load,
                                         range: 252..253,
                                     },
                                 ),
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "c",
+                                        ctx: Load,
                                         range: 255..256,
                                     },
                                 ),

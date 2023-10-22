@@ -15,7 +15,9 @@ use crate::{
 
 use self::{
     helpers::remove_str_quotes,
-    nodes::{BinaryOp, BoolOp, BoolValue, CompareOp, Expression, Literal, Operator, Pattern, Statement, UnaryOp},
+    nodes::{
+        BinaryOp, BoolOp, BoolValue, CompareOp, Context, Expression, Literal, Operator, Pattern, Statement, UnaryOp,
+    },
 };
 
 #[derive(Debug)]
@@ -51,28 +53,28 @@ bitflags! {
         const PARENTHESIZED_EXPR = 1 << 12;
         const BRACKETSIZED_EXPR = 1 << 13;
         const BRACESIZED_EXPR = 1 << 14;
-        const COMPREHENSION_EXPR = 1 << 15;
-        const AWAIT_EXPR = 1 << 17;
-        const YIELD_EXPR = 1 << 18;
-        const YIELD_FROM_EXPR = 1 << 19;
-        const LIST_COMP_EXPR = 1 << 21;
-        const GENERATOR_EXPR = 1 << 22;
-        const DICT_COMP_EXPR = 1 << 23;
-        const SET_COMP_EXPR = 1 << 24;
-        const IF_EXPR = 1 << 25;
-        const LAMBDA_EXPR = 1 << 26;
+        const AWAIT_EXPR = 1 << 16;
+        const YIELD_EXPR = 1 << 17;
+        const YIELD_FROM_EXPR = 1 << 18;
+        const LIST_COMP_EXPR = 1 << 20;
+        const GENERATOR_EXPR = 1 << 21;
+        const DICT_COMP_EXPR = 1 << 22;
+        const SET_COMP_EXPR = 1 << 23;
+        const IF_EXPR = 1 << 24;
+        const LAMBDA_EXPR = 1 << 25;
 
-        const EXPR_STMT = 1 << 27;
-        const IF_STMT = 1 << 28;
-        const DEL_STMT = 1 << 29;
-        const ASSERT_STMT = 1 << 30;
-        const FUNC_DEF_STMT = 1 << 31;
-        const CLASS_DEF_STMT = 1 << 32;
-        const WITH_STMT = 1 << 33;
-        const FOR_STMT = 1 << 34;
-        const WHILE_STMT  = 1 << 35;
-        const MATCH_STMT  = 1 << 36;
+        const EXPR_STMT = 1 << 26;
+        const IF_STMT = 1 << 27;
+        const DEL_STMT = 1 << 28;
+        const ASSERT_STMT = 1 << 29;
+        const FUNC_DEF_STMT = 1 << 30;
+        const CLASS_DEF_STMT = 1 << 31;
+        const WITH_STMT = 1 << 32;
+        const FOR_STMT = 1 << 33;
+        const WHILE_STMT  = 1 << 34;
+        const MATCH_STMT  = 1 << 35;
 
+        const COMPREHENSION_TARGET = 1 << 36;
         const PARAMETERS = 1 << 37;
         const ARGUMENTS = 1 << 38;
         const SEQUENCE_PATTERN = 1 << 39;
@@ -682,10 +684,8 @@ where
                 )
             }
             TokenKind::Id if self.lookahead(1).kind() == TokenKind::Dot => {
-                let ident = self.parse_identifier().into_id().unwrap();
-                let range = ident.range;
-
-                let (expr, range) = self.parse_attr_expr_for_match_pattern(Expression::Id(ident), range);
+                let (id, range) = self.parse_id_expr();
+                let (expr, range) = self.parse_attr_expr_for_match_pattern(id, range);
                 (
                     Pattern::MatchValue(nodes::PatternMatchValue {
                         value: Box::new(expr),
@@ -999,7 +999,11 @@ where
             Pattern::MatchAs(nodes::PatternMatchAs { name: Some(ident), .. }) => {
                 cls_range = ident.range();
                 if ident.is_valid() {
-                    Box::new(Expression::Id(ident.into_id().unwrap()))
+                    Box::new(Expression::Id(nodes::IdExpr {
+                        id: self.src_text(cls_range),
+                        ctx: Context::Load,
+                        range: cls_range,
+                    }))
                 } else {
                     Box::new(Expression::Invalid(cls_range))
                 }
@@ -1447,7 +1451,7 @@ where
         let (item, mut range) = self.parse_expr();
 
         let target = if self.eat(TokenKind::Keyword(KeywordKind::As)) {
-            let (target, target_range) = self.parse_expr();
+            let (mut target, target_range) = self.parse_expr();
             range = range.cover(target_range);
 
             if matches!(target, Expression::BoolOp(_) | Expression::Compare(_)) {
@@ -1457,6 +1461,8 @@ where
                     target
                 )));
             }
+
+            helpers::set_ctx_in_expr(&mut target, Context::Store);
 
             Some(target)
         } else {
@@ -1562,9 +1568,11 @@ where
 
     fn parse_assign_stmt(&mut self, target_stmt: Statement<'src>, mut range: TextRange) -> StmtWithRange<'src> {
         self.eat(TokenKind::Operator(OperatorKind::Assign));
-        let Statement::Expression(target) = target_stmt else {
+        let Statement::Expression(mut target) = target_stmt else {
             unreachable!()
         };
+
+        helpers::set_ctx_in_expr(&mut target.value, Context::Store);
 
         let mut targets = vec![*target.value];
         let (mut value, value_range) = self.parse_expr();
@@ -1591,7 +1599,7 @@ where
 
     fn parse_ann_assign_stmt(&mut self, target: Statement<'src>, mut range: TextRange) -> StmtWithRange<'src> {
         self.eat(TokenKind::Colon);
-        let Statement::Expression(target) = target else {
+        let Statement::Expression(mut target) = target else {
             unreachable!()
         };
 
@@ -1601,6 +1609,8 @@ where
                 "unparenthesized tuple cannot have type annotation".to_string(),
             ));
         }
+
+        helpers::set_ctx_in_expr(&mut target.value, Context::Store);
 
         let simple = matches!(target.value.as_ref(), Expression::Id(_))
             && !self.last_ctx.intersects(ParserCtxFlags::PARENTHESIZED_EXPR);
@@ -1636,9 +1646,11 @@ where
     ) -> StmtWithRange<'src> {
         // Consume the operator
         self.next_token();
-        let Statement::Expression(target) = target else {
+        let Statement::Expression(mut target) = target else {
             unreachable!()
         };
+
+        helpers::set_ctx_in_expr(&mut target.value, Context::Store);
 
         let (value, value_range) = self.parse_expr();
         range = range.cover(value_range);
@@ -2261,7 +2273,7 @@ where
 
             // Don't parse a `CompareExpr` if we are parsing a `Comprehension` or `ForStmt`
             if op.is_compare_op()
-                && self.has_in_curr_or_parent_ctx(ParserCtxFlags::COMPREHENSION_EXPR | ParserCtxFlags::FOR_TARGET)
+                && self.has_in_curr_or_parent_ctx(ParserCtxFlags::COMPREHENSION_TARGET | ParserCtxFlags::FOR_TARGET)
             {
                 break;
             }
@@ -2338,6 +2350,27 @@ where
         }
     }
 
+    fn parse_id_expr(&mut self) -> ExprWithRange<'src> {
+        let range = self.current_range();
+        if self.expect(TokenKind::Id) {
+            (
+                Expression::Id(nodes::IdExpr {
+                    id: self.src_text(range),
+                    ctx: match self.ctx {
+                        ParserCtxFlags::DEL_STMT => Context::Del,
+                        // Context for assignments can't be handled here
+                        ParserCtxFlags::FOR_TARGET | ParserCtxFlags::COMPREHENSION_TARGET => Context::Store,
+                        _ => Context::Load,
+                    },
+                    range,
+                }),
+                range,
+            )
+        } else {
+            (Expression::Invalid(range), range)
+        }
+    }
+
     fn parse_atom(&mut self) -> ExprWithRange<'src> {
         let token = self.current_token();
         let lhs = match token.kind() {
@@ -2366,12 +2399,7 @@ where
                 range: token.range(),
             }),
             TokenKind::Ellipsis => Expression::Ellipsis(nodes::EllipsisExpr { range: token.range() }),
-            TokenKind::Id => {
-                return (
-                    Expression::Id(self.parse_identifier().into_id().unwrap()),
-                    token.range(),
-                )
-            }
+            TokenKind::Id => return self.parse_id_expr(),
             TokenKind::String { kind, is_triple_quote } => return self.parse_string_expr(kind, is_triple_quote),
             TokenKind::OpenParenthesis => return self.parse_parenthesized_expr(),
             TokenKind::OpenBracket => return self.parse_bracketsized_expr(),
@@ -2493,8 +2521,11 @@ where
 
                     if self.eat(TokenKind::Operator(OperatorKind::Assign)) {
                         is_pos_arg = false;
-                        let arg = if let Expression::Id(id) = expr {
-                            nodes::MaybeIdentifier::Valid(id)
+                        let arg = if let Expression::Id(ident_expr) = expr {
+                            nodes::MaybeIdentifier::Valid(nodes::Identifier {
+                                id: ident_expr.id,
+                                range: ident_expr.range,
+                            })
                         } else {
                             self.add_error(ParseErrorType::Other(format!(
                                 "`{}` cannot be used as a keyword argument!",
@@ -3066,7 +3097,6 @@ where
     }
 
     fn parse_comprehension(&mut self) -> nodes::Comprehension<'src> {
-        self.set_ctx(ParserCtxFlags::COMPREHENSION_EXPR);
         assert!(self.at(TokenKind::Keyword(KeywordKind::For)) || self.at(TokenKind::Keyword(KeywordKind::Async)));
 
         let mut range = self.current_range();
@@ -3075,11 +3105,10 @@ where
         self.expect(TokenKind::Keyword(KeywordKind::For));
 
         let mut ifs = vec![];
+        self.set_ctx(ParserCtxFlags::COMPREHENSION_TARGET);
         let (target, _) = self.parse_expr();
+        self.clear_ctx(ParserCtxFlags::COMPREHENSION_TARGET);
         self.expect(TokenKind::Keyword(KeywordKind::In));
-
-        // Clear the `ctx` early so we can parse `CompareExpr` in the comprehension `iter` and `if`s.
-        self.clear_ctx(ParserCtxFlags::COMPREHENSION_EXPR);
 
         let (iter, iter_expr) = self.parse_expr();
         range = range.cover(iter_expr);
@@ -3502,8 +3531,10 @@ where
         }
     }
 
-    fn parse_named_expr(&mut self, target: Expression<'src>, target_range: TextRange) -> ExprWithRange<'src> {
+    fn parse_named_expr(&mut self, mut target: Expression<'src>, target_range: TextRange) -> ExprWithRange<'src> {
         assert!(self.eat(TokenKind::Operator(OperatorKind::ColonEqual)));
+
+        helpers::set_ctx_in_expr(&mut target, Context::Store);
 
         let (value, value_range) = self.parse_expr();
         let range = target_range.cover(value_range);

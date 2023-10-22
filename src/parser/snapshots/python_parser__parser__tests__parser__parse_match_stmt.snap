@@ -8,8 +8,9 @@ ParsedFile {
             Match(
                 MatchStmt {
                     subject: Id(
-                        Identifier {
+                        IdExpr {
                             id: "x",
+                            ctx: Load,
                             range: 31..32,
                         },
                     ),
@@ -91,8 +92,9 @@ ParsedFile {
             Match(
                 MatchStmt {
                     subject: Id(
-                        Identifier {
+                        IdExpr {
                             id: "x",
+                            ctx: Load,
                             range: 143..144,
                         },
                     ),
@@ -103,8 +105,9 @@ ParsedFile {
                                     value: Attribute(
                                         AttributeExpr {
                                             value: Id(
-                                                Identifier {
+                                                IdExpr {
                                                     id: "a",
+                                                    ctx: Load,
                                                     range: 155..156,
                                                 },
                                             ),
@@ -143,8 +146,9 @@ ParsedFile {
                                             value: Attribute(
                                                 AttributeExpr {
                                                     value: Id(
-                                                        Identifier {
+                                                        IdExpr {
                                                             id: "a",
+                                                            ctx: Load,
                                                             range: 181..182,
                                                         },
                                                     ),
@@ -513,8 +517,9 @@ ParsedFile {
             Match(
                 MatchStmt {
                     subject: Id(
-                        Identifier {
+                        IdExpr {
                             id: "x",
+                            ctx: Load,
                             range: 485..486,
                         },
                     ),
@@ -649,8 +654,9 @@ ParsedFile {
                                                 value: Attribute(
                                                     AttributeExpr {
                                                         value: Id(
-                                                            Identifier {
+                                                            IdExpr {
                                                                 id: "a",
+                                                                ctx: Load,
                                                                 range: 549..550,
                                                             },
                                                         ),
@@ -692,8 +698,9 @@ ParsedFile {
             Match(
                 MatchStmt {
                     subject: Id(
-                        Identifier {
+                        IdExpr {
                             id: "x",
+                            ctx: Load,
                             range: 590..591,
                         },
                     ),
@@ -874,8 +881,9 @@ ParsedFile {
                                                 value: Attribute(
                                                     AttributeExpr {
                                                         value: Id(
-                                                            Identifier {
+                                                            IdExpr {
                                                                 id: "a",
+                                                                ctx: Load,
                                                                 range: 701..702,
                                                             },
                                                         ),
@@ -986,8 +994,9 @@ ParsedFile {
             Match(
                 MatchStmt {
                     subject: Id(
-                        Identifier {
+                        IdExpr {
                             id: "x",
+                            ctx: Load,
                             range: 807..808,
                         },
                     ),
@@ -1172,8 +1181,9 @@ ParsedFile {
                                                 value: Attribute(
                                                     AttributeExpr {
                                                         value: Id(
-                                                            Identifier {
+                                                            IdExpr {
                                                                 id: "a",
+                                                                ctx: Load,
                                                                 range: 899..900,
                                                             },
                                                         ),
@@ -1476,8 +1486,9 @@ ParsedFile {
             Match(
                 MatchStmt {
                     subject: Id(
-                        Identifier {
+                        IdExpr {
                             id: "x",
+                            ctx: Load,
                             range: 1077..1078,
                         },
                     ),
@@ -1657,8 +1668,9 @@ ParsedFile {
             Match(
                 MatchStmt {
                     subject: Id(
-                        Identifier {
+                        IdExpr {
                             id: "x",
+                            ctx: Load,
                             range: 1226..1227,
                         },
                     ),
@@ -1667,8 +1679,9 @@ ParsedFile {
                             pattern: MatchClass(
                                 PatternMatchClass {
                                     cls: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "Point",
+                                            ctx: Load,
                                             range: 1238..1243,
                                         },
                                     ),
@@ -1703,8 +1716,9 @@ ParsedFile {
                                             value: Attribute(
                                                 AttributeExpr {
                                                     value: Id(
-                                                        Identifier {
+                                                        IdExpr {
                                                             id: "a",
+                                                            ctx: Load,
                                                             range: 1268..1269,
                                                         },
                                                     ),
@@ -1753,8 +1767,9 @@ ParsedFile {
                             pattern: MatchClass(
                                 PatternMatchClass {
                                     cls: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "Point2D",
+                                            ctx: Load,
                                             range: 1302..1309,
                                         },
                                     ),
@@ -1808,8 +1823,9 @@ ParsedFile {
                             pattern: MatchClass(
                                 PatternMatchClass {
                                     cls: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "Point2D",
+                                            ctx: Load,
                                             range: 1337..1344,
                                         },
                                     ),
@@ -1885,8 +1901,9 @@ ParsedFile {
                             pattern: MatchClass(
                                 PatternMatchClass {
                                     cls: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "Point2D",
+                                            ctx: Load,
                                             range: 1378..1385,
                                         },
                                     ),
@@ -1944,8 +1961,9 @@ ParsedFile {
                             pattern: MatchClass(
                                 PatternMatchClass {
                                     cls: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "Point2D",
+                                            ctx: Load,
                                             range: 1414..1421,
                                         },
                                     ),
@@ -2033,8 +2051,9 @@ ParsedFile {
                             pattern: MatchClass(
                                 PatternMatchClass {
                                     cls: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "Point2D",
+                                            ctx: Load,
                                             range: 1457..1464,
                                         },
                                     ),
@@ -2135,14 +2154,16 @@ ParsedFile {
                     subject: Named(
                         NamedExpr {
                             target: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "x",
+                                    ctx: Store,
                                     range: 1522..1523,
                                 },
                             ),
                             value: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "b",
+                                    ctx: Load,
                                     range: 1527..1528,
                                 },
                             ),
@@ -2292,8 +2313,9 @@ ParsedFile {
             Match(
                 MatchStmt {
                     subject: Id(
-                        Identifier {
+                        IdExpr {
                             id: "y",
+                            ctx: Load,
                             range: 1618..1619,
                         },
                     ),
@@ -2317,14 +2339,16 @@ ParsedFile {
                                 Named(
                                     NamedExpr {
                                         target: Id(
-                                            Identifier {
+                                            IdExpr {
                                                 id: "b",
+                                                ctx: Store,
                                                 range: 1635..1636,
                                             },
                                         ),
                                         value: Id(
-                                            Identifier {
+                                            IdExpr {
                                                 id: "c",
+                                                ctx: Load,
                                                 range: 1640..1641,
                                             },
                                         ),

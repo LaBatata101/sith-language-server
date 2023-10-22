@@ -10,8 +10,9 @@ ParsedFile {
                     value: Starred(
                         StarredExpr {
                             value: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "a",
+                                    ctx: Load,
                                     range: 2..3,
                                 },
                             ),
@@ -28,8 +29,9 @@ ParsedFile {
                             value: BinaryOp(
                                 BinaryOpExpr {
                                     left: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "a",
+                                            ctx: Load,
                                             range: 6..7,
                                         },
                                     ),
@@ -58,8 +60,9 @@ ParsedFile {
                             value: Attribute(
                                 AttributeExpr {
                                     value: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "x",
+                                            ctx: Load,
                                             range: 14..15,
                                         },
                                     ),

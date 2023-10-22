@@ -8,14 +8,16 @@ ParsedFile {
             AnnAssign(
                 AnnAssignStmt {
                     target: Id(
-                        Identifier {
+                        IdExpr {
                             id: "x",
+                            ctx: Store,
                             range: 1..2,
                         },
                     ),
                     annotation: Id(
-                        Identifier {
+                        IdExpr {
                             id: "int",
+                            ctx: Load,
                             range: 4..7,
                         },
                     ),
@@ -27,8 +29,9 @@ ParsedFile {
             AnnAssign(
                 AnnAssignStmt {
                     target: Id(
-                        Identifier {
+                        IdExpr {
                             id: "y",
+                            ctx: Store,
                             range: 9..10,
                         },
                     ),
@@ -62,8 +65,9 @@ ParsedFile {
             AnnAssign(
                 AnnAssignStmt {
                     target: Id(
-                        Identifier {
+                        IdExpr {
                             id: "var",
+                            ctx: Store,
                             range: 19..22,
                         },
                     ),
@@ -72,14 +76,16 @@ ParsedFile {
                             left: Subscript(
                                 SubscriptExpr {
                                     value: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "tuple",
+                                            ctx: Load,
                                             range: 24..29,
                                         },
                                     ),
                                     slice: Id(
-                                        Identifier {
+                                        IdExpr {
                                             id: "int",
+                                            ctx: Load,
                                             range: 30..33,
                                         },
                                     ),
@@ -88,8 +94,9 @@ ParsedFile {
                             ),
                             op: BitOr,
                             right: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "int",
+                                    ctx: Load,
                                     range: 37..40,
                                 },
                             ),

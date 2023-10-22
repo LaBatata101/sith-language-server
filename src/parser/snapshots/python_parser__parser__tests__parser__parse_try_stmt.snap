@@ -62,8 +62,9 @@ ParsedFile {
                         ExceptHandler {
                             ty: Some(
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "Exception1",
+                                        ctx: Load,
                                         range: 51..61,
                                     },
                                 ),
@@ -93,8 +94,9 @@ ParsedFile {
                         ExceptHandler {
                             ty: Some(
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "Exception2",
+                                        ctx: Load,
                                         range: 83..93,
                                     },
                                 ),
@@ -146,8 +148,9 @@ ParsedFile {
                         ExceptHandler {
                             ty: Some(
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "Exception",
+                                        ctx: Load,
                                         range: 129..138,
                                     },
                                 ),
@@ -413,8 +416,9 @@ ParsedFile {
                         ExceptHandler {
                             ty: Some(
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "a",
+                                        ctx: Load,
                                         range: 389..390,
                                     },
                                 ),
@@ -444,8 +448,9 @@ ParsedFile {
                         ExceptHandler {
                             ty: Some(
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "b",
+                                        ctx: Load,
                                         range: 413..414,
                                     },
                                 ),

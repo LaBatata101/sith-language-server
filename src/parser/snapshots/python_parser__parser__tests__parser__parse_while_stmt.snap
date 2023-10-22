@@ -8,8 +8,9 @@ ParsedFile {
             While(
                 WhileStmt {
                     test: Id(
-                        Identifier {
+                        IdExpr {
                             id: "x",
+                            ctx: Load,
                             range: 7..8,
                         },
                     ),
@@ -38,8 +39,9 @@ ParsedFile {
                                 Compare(
                                     CompareExpr {
                                         left: Id(
-                                            Identifier {
+                                            IdExpr {
                                                 id: "x",
+                                                ctx: Load,
                                                 range: 25..26,
                                             },
                                         ),
@@ -60,8 +62,9 @@ ParsedFile {
                                     },
                                 ),
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "y",
+                                        ctx: Load,
                                         range: 36..37,
                                     },
                                 ),
@@ -101,14 +104,16 @@ ParsedFile {
                             op: And,
                             values: [
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "x",
+                                        ctx: Load,
                                         range: 70..71,
                                     },
                                 ),
                                 Id(
-                                    Identifier {
+                                    IdExpr {
                                         id: "y",
+                                        ctx: Load,
                                         range: 76..77,
                                     },
                                 ),
@@ -132,8 +137,9 @@ ParsedFile {
                                 value: Call(
                                     CallExpr {
                                         func: Id(
-                                            Identifier {
+                                            IdExpr {
                                                 id: "print",
+                                                ctx: Load,
                                                 range: 91..96,
                                             },
                                         ),
@@ -164,8 +170,9 @@ ParsedFile {
                                 value: Call(
                                     CallExpr {
                                         func: Id(
-                                            Identifier {
+                                            IdExpr {
                                                 id: "print",
+                                                ctx: Load,
                                                 range: 124..129,
                                             },
                                         ),
@@ -208,14 +215,16 @@ ParsedFile {
                     test: Named(
                         NamedExpr {
                             target: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "a",
+                                    ctx: Store,
                                     range: 160..161,
                                 },
                             ),
                             value: Id(
-                                Identifier {
+                                IdExpr {
                                     id: "b",
+                                    ctx: Load,
                                     range: 165..166,
                                 },
                             ),
