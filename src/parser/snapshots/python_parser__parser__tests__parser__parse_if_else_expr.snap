@@ -382,6 +382,7 @@ ParsedFile {
                                     },
                                 ),
                             ],
+                            ctx: Load,
                             range: 156..172,
                         },
                     ),

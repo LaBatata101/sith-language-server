@@ -358,6 +358,7 @@ pub struct KeywordArg<'a> {
 pub struct SubscriptExpr<'a> {
     pub value: Box<Expression<'a>>,
     pub slice: Box<Expression<'a>>,
+    pub ctx: ContextExpr,
     pub range: TextRange,
 }
 
@@ -687,6 +688,7 @@ impl Ranged for EllipsisExpr {
 #[derive(Debug, PartialEq, Eq)]
 pub struct ListExpr<'a> {
     pub elements: Vec<Expression<'a>>,
+    pub ctx: ContextExpr,
     pub range: TextRange,
 }
 
@@ -724,6 +726,7 @@ impl Ranged for SetExpr<'_> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct TupleExpr<'a> {
     pub elements: Vec<Expression<'a>>,
+    pub ctx: ContextExpr,
     pub range: TextRange,
 }
 
@@ -873,6 +876,7 @@ impl Ranged for UnaryOpExpr<'_> {
 pub struct AttributeExpr<'a> {
     pub value: Box<Expression<'a>>,
     pub attr: MaybeIdentifier<'a>,
+    pub ctx: ContextExpr,
     pub range: TextRange,
 }
 
@@ -964,6 +968,7 @@ impl TryFrom<[TokenKind; 2]> for CompareOp {
 #[derive(Debug, PartialEq, Eq)]
 pub struct StarredExpr<'a> {
     pub value: Box<Expression<'a>>,
+    pub ctx: ContextExpr,
     pub range: TextRange,
 }
 
@@ -1011,7 +1016,7 @@ impl Ranged for NamedExpr<'_> {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum Context {
+pub enum ContextExpr {
     Load,
     Store,
     Del,
@@ -1020,7 +1025,7 @@ pub enum Context {
 #[derive(Debug, PartialEq, Eq)]
 pub struct IdExpr<'a> {
     pub id: &'a str,
-    pub ctx: Context,
+    pub ctx: ContextExpr,
     pub range: TextRange,
 }
 

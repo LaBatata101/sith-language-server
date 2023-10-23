@@ -771,6 +771,8 @@ a and b = None
 a < b = True
 a = b = c
 ... = f() = c, = 1
+foo.bar = False
+baz[0] = 42
 "
         ));
     }
