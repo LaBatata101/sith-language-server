@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use ruff_text_size::TextRange;
+use ruff_text_size::{Ranged, TextRange};
 
 use crate::lexer::types::{KeywordKind, OperatorKind, TokenKind};
 
@@ -72,11 +72,52 @@ pub enum Expression<'a> {
     Named(NamedExpr<'a>),
 }
 
+impl Ranged for Expression<'_> {
+    fn range(&self) -> TextRange {
+        match self {
+            Expression::Attribute(node) => node.range(),
+            Expression::Await(node) => node.range(),
+            Expression::BinaryOp(node) => node.range(),
+            Expression::BoolOp(node) => node.range(),
+            Expression::Call(node) => node.range(),
+            Expression::Compare(node) => node.range(),
+            Expression::Dict(node) => node.range(),
+            Expression::DictComp(node) => node.range(),
+            Expression::Ellipsis(node) => node.range(),
+            Expression::FString(node) => node.range(),
+            Expression::Generator(node) => node.range(),
+            Expression::Id(node) => node.range(),
+            Expression::IfElse(node) => node.range(),
+            Expression::Invalid(range) => *range,
+            Expression::Lambda(node) => node.range(),
+            Expression::List(node) => node.range(),
+            Expression::ListComp(node) => node.range(),
+            Expression::Literal(node) => node.range(),
+            Expression::Set(node) => node.range(),
+            Expression::SetComp(node) => node.range(),
+            Expression::Slice(node) => node.range(),
+            Expression::Subscript(node) => node.range(),
+            Expression::Starred(node) => node.range(),
+            Expression::Tuple(node) => node.range(),
+            Expression::UnaryOp(node) => node.range(),
+            Expression::Yield(node) => node.range(),
+            Expression::YieldFrom(node) => node.range(),
+            Expression::Named(node) => node.range(),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct LambdaExpr<'a> {
     pub parameters: Option<Box<Parameters<'a>>>,
     pub body: Box<Expression<'a>>,
     pub range: TextRange,
+}
+
+impl Ranged for LambdaExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -199,6 +240,12 @@ pub struct IfElseExpr<'a> {
     pub range: TextRange,
 }
 
+impl Ranged for IfElseExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct Alias<'a> {
     pub name: Identifier<'a>,
@@ -287,6 +334,12 @@ pub struct CallExpr<'a> {
     pub range: TextRange,
 }
 
+impl Ranged for CallExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct Arguments<'a> {
     pub args: Vec<Expression<'a>>,
@@ -308,12 +361,24 @@ pub struct SubscriptExpr<'a> {
     pub range: TextRange,
 }
 
+impl Ranged for SubscriptExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct SliceExpr<'a> {
     pub lower: Option<Box<Expression<'a>>>,
     pub upper: Option<Box<Expression<'a>>>,
     pub step: Option<Box<Expression<'a>>>,
     pub range: TextRange,
+}
+
+impl Ranged for SliceExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -323,11 +388,23 @@ pub struct ListCompExpr<'a> {
     pub range: TextRange,
 }
 
+impl Ranged for ListCompExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct GeneratorExpr<'a> {
     pub element: Box<Expression<'a>>,
     pub generators: Vec<Comprehension<'a>>,
     pub range: TextRange,
+}
+
+impl Ranged for GeneratorExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -381,12 +458,24 @@ pub struct SetCompExpr<'a> {
     pub range: TextRange,
 }
 
+impl Ranged for SetCompExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct DictCompExpr<'a> {
     pub key: Box<Expression<'a>>,
     pub value: Box<Expression<'a>>,
     pub generators: Vec<Comprehension<'a>>,
     pub range: TextRange,
+}
+
+impl Ranged for DictCompExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -555,6 +644,12 @@ pub struct AwaitExpr<'a> {
     pub range: TextRange,
 }
 
+impl Ranged for AwaitExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Literal<'a> {
     None,
@@ -572,15 +667,33 @@ pub struct LiteralExpr<'a> {
     pub range: TextRange,
 }
 
+impl Ranged for LiteralExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct EllipsisExpr {
     pub range: TextRange,
+}
+
+impl Ranged for EllipsisExpr {
+    fn range(&self) -> TextRange {
+        self.range
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ListExpr<'a> {
     pub elements: Vec<Expression<'a>>,
     pub range: TextRange,
+}
+
+impl Ranged for ListExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -590,10 +703,22 @@ pub struct DictExpr<'a> {
     pub range: TextRange,
 }
 
+impl Ranged for DictExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct SetExpr<'a> {
     pub elements: Vec<Expression<'a>>,
     pub range: TextRange,
+}
+
+impl Ranged for SetExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -602,16 +727,34 @@ pub struct TupleExpr<'a> {
     pub range: TextRange,
 }
 
+impl Ranged for TupleExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct YieldExpr<'a> {
     pub value: Option<Box<Expression<'a>>>,
     pub range: TextRange,
 }
 
+impl Ranged for YieldExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct YieldFromExpr<'a> {
     pub value: Box<Expression<'a>>,
     pub range: TextRange,
+}
+
+impl Ranged for YieldFromExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -707,6 +850,12 @@ pub struct BinaryOpExpr<'a> {
     pub range: TextRange,
 }
 
+impl Ranged for BinaryOpExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct UnaryOpExpr<'a> {
     pub op: UnaryOp,
@@ -714,11 +863,23 @@ pub struct UnaryOpExpr<'a> {
     pub range: TextRange,
 }
 
+impl Ranged for UnaryOpExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct AttributeExpr<'a> {
     pub value: Box<Expression<'a>>,
     pub attr: MaybeIdentifier<'a>,
     pub range: TextRange,
+}
+
+impl Ranged for AttributeExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -746,12 +907,24 @@ pub struct BoolOpExpr<'a> {
     pub range: TextRange,
 }
 
+impl Ranged for BoolOpExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct CompareExpr<'a> {
     pub left: Box<Expression<'a>>,
     pub ops: Vec<CompareOp>,
     pub comparators: Vec<Expression<'a>>,
     pub range: TextRange,
+}
+
+impl Ranged for CompareExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
@@ -794,6 +967,12 @@ pub struct StarredExpr<'a> {
     pub range: TextRange,
 }
 
+impl Ranged for StarredExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct Parameter<'a> {
     pub name: MaybeIdentifier<'a>,
@@ -825,6 +1004,12 @@ pub struct NamedExpr<'a> {
     pub range: TextRange,
 }
 
+impl Ranged for NamedExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Context {
     Load,
@@ -839,10 +1024,22 @@ pub struct IdExpr<'a> {
     pub range: TextRange,
 }
 
+impl Ranged for IdExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct FStringExpr<'a> {
     pub values: Vec<Expression<'a>>,
     pub range: TextRange,
+}
+
+impl Ranged for FStringExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
