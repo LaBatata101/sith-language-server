@@ -30,3 +30,36 @@ pub fn set_expr_ctx(expr: &mut Expression, ctx: ContextExpr) {
         _ => {}
     }
 }
+
+pub fn set_expr_range(expr: &mut Expression, range: TextRange) {
+    match expr {
+        Expression::Invalid(r) => *r = range,
+        Expression::Id(node) => node.range = range,
+        Expression::Set(node) => node.range = range,
+        Expression::Call(node) => node.range = range,
+        Expression::Dict(node) => node.range = range,
+        Expression::List(node) => node.range = range,
+        Expression::Named(node) => node.range = range,
+        Expression::Yield(node) => node.range = range,
+        Expression::Await(node) => node.range = range,
+        Expression::Slice(node) => node.range = range,
+        Expression::Tuple(node) => node.range = range,
+        Expression::Ellipsis(node) => node.range = range,
+        Expression::BoolOp(node) => node.range = range,
+        Expression::IfElse(node) => node.range = range,
+        Expression::Lambda(node) => node.range = range,
+        Expression::Compare(node) => node.range = range,
+        Expression::UnaryOp(node) => node.range = range,
+        Expression::FString(node) => node.range = range,
+        Expression::Literal(node) => node.range = range,
+        Expression::SetComp(node) => node.range = range,
+        Expression::Starred(node) => node.range = range,
+        Expression::BinaryOp(node) => node.range = range,
+        Expression::DictComp(node) => node.range = range,
+        Expression::ListComp(node) => node.range = range,
+        Expression::Attribute(node) => node.range = range,
+        Expression::Generator(node) => node.range = range,
+        Expression::Subscript(node) => node.range = range,
+        Expression::YieldFrom(node) => node.range = range,
+    }
+}

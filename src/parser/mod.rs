@@ -2863,14 +2863,10 @@ where
 
         let range = open_bracket_range.cover(close_bracket_range);
 
-        // Probably not the best way to update the `ListExpr` and `ListCompExpr`
-        // range to include the brackets.
-        if let Expression::List(mut list) = expr {
-            list.range = range;
-            expr = Expression::List(list);
-        } else if let Expression::ListComp(mut list_comp) = expr {
-            list_comp.range = range;
-            expr = Expression::ListComp(list_comp);
+        // Update the range of `Expression::List` or `Expression::ListComp` to
+        // include the parenthesis.
+        if matches!(expr, Expression::List(_) | Expression::ListComp(_)) {
+            helpers::set_expr_range(&mut expr, range);
         }
 
         self.clear_ctx(ParserCtxFlags::LIST_EXPR);
@@ -2932,17 +2928,10 @@ where
 
         let range = open_brace_range.cover(close_brace_range);
 
-        // Probably not the best way to update the `SetExpr` and `ListCompExpr`
-        // range to include the brackets.
-        if let Expression::Set(mut set) = expr {
-            set.range = range;
-            expr = Expression::Set(set);
-        } else if let Expression::Dict(mut dict) = expr {
-            dict.range = range;
-            expr = Expression::Dict(dict);
-        } else if let Expression::DictComp(mut dict_comp) = expr {
-            dict_comp.range = range;
-            expr = Expression::DictComp(dict_comp);
+        // Update the range of `Expression::Set`, `Expression::Dict` and
+        // `Expression::DictComp` to include the parenthesis.
+        if matches!(expr, Expression::Set(_) | Expression::Dict(_) | Expression::DictComp(_)) {
+            helpers::set_expr_range(&mut expr, range);
         }
 
         self.clear_ctx(ParserCtxFlags::BRACESIZED_EXPR);
@@ -2990,14 +2979,10 @@ where
 
         let range = open_paren_range.cover(close_paren_range);
 
-        // Probably not the best way to update the `TupleExpr` and `GeneratorExpr`
-        // range to include the parenthesis.
-        if let Expression::Tuple(mut tuple) = expr {
-            tuple.range = range;
-            expr = Expression::Tuple(tuple);
-        } else if let Expression::Generator(mut generator) = expr {
-            generator.range = range;
-            expr = Expression::Generator(generator);
+        // Update the range of `Expression::Tuple` or `Expression::Generator` to
+        // include the parenthesis.
+        if matches!(expr, Expression::Tuple(_) | Expression::Generator(_)) {
+            helpers::set_expr_range(&mut expr, range);
         }
 
         self.clear_ctx(ParserCtxFlags::PARENTHESIZED_EXPR);
@@ -3190,8 +3175,6 @@ where
     }
 
     fn parse_generator_expr(&mut self, element: Expression<'src>, element_range: TextRange) -> ExprWithRange<'src> {
-        // Clear `PARENTHESIZED_EXPR` so we can parse tuples in `for` comprehension's `target`
-        // self.clear_ctx(ParserCtxFlags::PARENTHESIZED_EXPR);
         self.set_ctx(ParserCtxFlags::GENERATOR_EXPR);
         let (generators, range) = self.parse_generators(element_range);
         self.clear_ctx(ParserCtxFlags::GENERATOR_EXPR);
@@ -3211,8 +3194,6 @@ where
         element: Expression<'src>,
         element_range: TextRange,
     ) -> ExprWithRange<'src> {
-        // Clear `LIST_EXPR` so we can parse tuples in `for` comprehension's `target`
-        // self.clear_ctx(ParserCtxFlags::LIST_EXPR);
         self.set_ctx(ParserCtxFlags::LIST_COMP_EXPR);
         let (generators, range) = self.parse_generators(element_range);
         self.clear_ctx(ParserCtxFlags::LIST_COMP_EXPR);
