@@ -191,6 +191,7 @@ ParsedFile {
                                     },
                                 ),
                             ],
+                            ctx: Load,
                             range: 61..66,
                         },
                     ),

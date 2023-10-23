@@ -1,6 +1,6 @@
 use ruff_text_size::{TextRange, TextSize};
 
-use super::nodes::{Context, Expression};
+use super::nodes::{ContextExpr, Expression};
 
 /// Return the range of the string token without the quotes
 pub fn remove_str_quotes(str_range: TextRange, prefix_size: u32, is_triple_quote: bool) -> TextRange {
@@ -10,16 +10,22 @@ pub fn remove_str_quotes(str_range: TextRange, prefix_size: u32, is_triple_quote
         .sub_end(TextSize::from(quote_size))
 }
 
-/// Set the `ctx` for `Expression::Id`. If `expr` is `Expression::Tuple` set the
-/// `ctx` for every `Expression::Id` found in `Expression::Tuple`.
-pub fn set_ctx_in_expr(expr: &mut Expression, ctx: Context) {
+/// Set the `ctx` for `Expression::Id`, `Expression::Attribute`, `Expression::Subscript`,
+/// `Expression::Starred`, `Expression::Tuple` and `Expression::List`. If `expr` is either
+/// `Expression::Tuple` or `Expression::List`, recursively sets the `ctx` for their elements.
+pub fn set_expr_ctx(expr: &mut Expression, ctx: ContextExpr) {
     match expr {
         Expression::Id(ident) => ident.ctx = ctx,
+        Expression::Attribute(attrib) => attrib.ctx = ctx,
+        Expression::Subscript(subscript) => subscript.ctx = ctx,
+        Expression::Starred(starred) => starred.ctx = ctx,
+        Expression::List(list) => {
+            list.ctx = ctx;
+            list.elements.iter_mut().for_each(|element| set_expr_ctx(element, ctx));
+        }
         Expression::Tuple(tuple) => {
-            tuple
-                .elements
-                .iter_mut()
-                .for_each(|element| set_ctx_in_expr(element, ctx));
+            tuple.ctx = ctx;
+            tuple.elements.iter_mut().for_each(|element| set_expr_ctx(element, ctx));
         }
         _ => {}
     }

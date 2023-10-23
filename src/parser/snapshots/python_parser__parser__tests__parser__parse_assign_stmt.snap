@@ -1,6 +1,6 @@
 ---
 source: src/parser/tests.rs
-expression: "parse(\"\nx = 1\n[] = *l\n() = *t\n{} = *d\na, b = ab\n1 + 1 = a and b\n*a = 1 + 2\na and b = None\na < b = True\na = b = c\n... = f() = c, = 1\n\")"
+expression: "parse(\"\nx = 1\n[] = *l\n() = *t\n{} = *d\na, b = ab\n1 + 1 = a and b\n*a = 1 + 2\na and b = None\na < b = True\na = b = c\n... = f() = c, = 1\nfoo.bar = False\nbaz[0] = 42\n\")"
 ---
 ParsedFile {
     ast: Module {
@@ -33,6 +33,7 @@ ParsedFile {
                         List(
                             ListExpr {
                                 elements: [],
+                                ctx: Store,
                                 range: 7..9,
                             },
                         ),
@@ -46,6 +47,7 @@ ParsedFile {
                                     range: 13..14,
                                 },
                             ),
+                            ctx: Load,
                             range: 12..14,
                         },
                     ),
@@ -58,6 +60,7 @@ ParsedFile {
                         Tuple(
                             TupleExpr {
                                 elements: [],
+                                ctx: Store,
                                 range: 15..17,
                             },
                         ),
@@ -71,6 +74,7 @@ ParsedFile {
                                     range: 21..22,
                                 },
                             ),
+                            ctx: Load,
                             range: 20..22,
                         },
                     ),
@@ -97,6 +101,7 @@ ParsedFile {
                                     range: 29..30,
                                 },
                             ),
+                            ctx: Load,
                             range: 28..30,
                         },
                     ),
@@ -124,6 +129,7 @@ ParsedFile {
                                         },
                                     ),
                                 ],
+                                ctx: Store,
                                 range: 31..36,
                             },
                         ),
@@ -201,6 +207,7 @@ ParsedFile {
                                         range: 58..59,
                                     },
                                 ),
+                                ctx: Store,
                                 range: 57..59,
                             },
                         ),
@@ -368,6 +375,7 @@ ParsedFile {
                                         },
                                     ),
                                 ],
+                                ctx: Load,
                                 range: 118..121,
                             },
                         ),
@@ -383,8 +391,78 @@ ParsedFile {
                     range: 106..124,
                 },
             ),
+            Assign(
+                AssignStmt {
+                    targets: [
+                        Attribute(
+                            AttributeExpr {
+                                value: Id(
+                                    IdExpr {
+                                        id: "foo",
+                                        ctx: Load,
+                                        range: 125..128,
+                                    },
+                                ),
+                                attr: Valid(
+                                    Identifier {
+                                        id: "bar",
+                                        range: 129..132,
+                                    },
+                                ),
+                                ctx: Store,
+                                range: 125..132,
+                            },
+                        ),
+                    ],
+                    value: Literal(
+                        LiteralExpr {
+                            value: Bool(
+                                False,
+                            ),
+                            range: 135..140,
+                        },
+                    ),
+                    range: 125..140,
+                },
+            ),
+            Assign(
+                AssignStmt {
+                    targets: [
+                        Subscript(
+                            SubscriptExpr {
+                                value: Id(
+                                    IdExpr {
+                                        id: "baz",
+                                        ctx: Load,
+                                        range: 141..144,
+                                    },
+                                ),
+                                slice: Literal(
+                                    LiteralExpr {
+                                        value: Int(
+                                            "0",
+                                        ),
+                                        range: 145..146,
+                                    },
+                                ),
+                                ctx: Store,
+                                range: 141..147,
+                            },
+                        ),
+                    ],
+                    value: Literal(
+                        LiteralExpr {
+                            value: Int(
+                                "42",
+                            ),
+                            range: 150..152,
+                        },
+                    ),
+                    range: 141..152,
+                },
+            ),
         ],
-        range: 0..124,
+        range: 0..152,
     },
     parse_errors: [],
 }

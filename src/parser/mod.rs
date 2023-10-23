@@ -16,7 +16,7 @@ use crate::{
 use self::{
     helpers::remove_str_quotes,
     nodes::{
-        BinaryOp, BoolOp, BoolValue, CompareOp, Context, Expression, Literal, Operator, Pattern, Statement, UnaryOp,
+        BinaryOp, BoolOp, BoolValue, CompareOp, ContextExpr, Expression, Literal, Operator, Pattern, Statement, UnaryOp,
     },
 };
 
@@ -522,6 +522,15 @@ where
         range
     }
 
+    fn get_expr_ctx(&self) -> ContextExpr {
+        match self.ctx {
+            ParserCtxFlags::DEL_STMT => ContextExpr::Del,
+            // Context for assignments can't be handled here
+            ParserCtxFlags::FOR_TARGET | ParserCtxFlags::COMPREHENSION_TARGET => ContextExpr::Store,
+            _ => ContextExpr::Load,
+        }
+    }
+
     fn parse_statement(&mut self) -> StmtWithRange<'src> {
         let token = self.current_token();
         match token.kind() {
@@ -1001,7 +1010,7 @@ where
                 if ident.is_valid() {
                     Box::new(Expression::Id(nodes::IdExpr {
                         id: self.src_text(cls_range),
-                        ctx: Context::Load,
+                        ctx: ContextExpr::Load,
                         range: cls_range,
                     }))
                 } else {
@@ -1462,7 +1471,7 @@ where
                 )));
             }
 
-            helpers::set_ctx_in_expr(&mut target, Context::Store);
+            helpers::set_expr_ctx(&mut target, ContextExpr::Store);
 
             Some(target)
         } else {
@@ -1572,7 +1581,7 @@ where
             unreachable!()
         };
 
-        helpers::set_ctx_in_expr(&mut target.value, Context::Store);
+        helpers::set_expr_ctx(&mut target.value, ContextExpr::Store);
 
         let mut targets = vec![*target.value];
         let (mut value, value_range) = self.parse_expr();
@@ -1610,7 +1619,7 @@ where
             ));
         }
 
-        helpers::set_ctx_in_expr(&mut target.value, Context::Store);
+        helpers::set_expr_ctx(&mut target.value, ContextExpr::Store);
 
         let simple = matches!(target.value.as_ref(), Expression::Id(_))
             && !self.last_ctx.intersects(ParserCtxFlags::PARENTHESIZED_EXPR);
@@ -1650,7 +1659,7 @@ where
             unreachable!()
         };
 
-        helpers::set_ctx_in_expr(&mut target.value, Context::Store);
+        helpers::set_expr_ctx(&mut target.value, ContextExpr::Store);
 
         let (value, value_range) = self.parse_expr();
         range = range.cover(value_range);
@@ -2356,12 +2365,7 @@ where
             (
                 Expression::Id(nodes::IdExpr {
                     id: self.src_text(range),
-                    ctx: match self.ctx {
-                        ParserCtxFlags::DEL_STMT => Context::Del,
-                        // Context for assignments can't be handled here
-                        ParserCtxFlags::FOR_TARGET | ParserCtxFlags::COMPREHENSION_TARGET => Context::Store,
-                        _ => Context::Load,
-                    },
+                    ctx: self.get_expr_ctx(),
                     range,
                 }),
                 range,
@@ -2576,6 +2580,7 @@ where
                 Expression::Subscript(nodes::SubscriptExpr {
                     value: Box::new(value),
                     slice: Box::new(Expression::Invalid(close_bracket_range.sub_start(1.into()))),
+                    ctx: self.get_expr_ctx(),
                     range,
                 }),
                 range,
@@ -2604,6 +2609,7 @@ where
             Expression::Subscript(nodes::SubscriptExpr {
                 value: Box::new(value),
                 slice: Box::new(slice),
+                ctx: self.get_expr_ctx(),
                 range,
             }),
             range,
@@ -2686,6 +2692,7 @@ where
             Expression::Attribute(nodes::AttributeExpr {
                 value: Box::new(lhs),
                 attr,
+                ctx: self.get_expr_ctx(),
                 range,
             }),
             range,
@@ -2838,6 +2845,7 @@ where
             return (
                 Expression::List(nodes::ListExpr {
                     elements: vec![],
+                    ctx: self.get_expr_ctx(),
                     range,
                 }),
                 range,
@@ -2964,6 +2972,7 @@ where
             return (
                 Expression::Tuple(nodes::TupleExpr {
                     elements: vec![],
+                    ctx: self.get_expr_ctx(),
                     range,
                 }),
                 range,
@@ -3023,7 +3032,14 @@ where
         let range = first_element_range.cover_offset(self.current_range().start());
         self.clear_ctx(ParserCtxFlags::TUPLE_EXPR);
 
-        (Expression::Tuple(nodes::TupleExpr { elements, range }), range)
+        (
+            Expression::Tuple(nodes::TupleExpr {
+                elements,
+                ctx: self.get_expr_ctx(),
+                range,
+            }),
+            range,
+        )
     }
 
     fn parse_list_expr(&mut self, first_element: Expression<'src>) -> ExprWithRange<'src> {
@@ -3041,7 +3057,14 @@ where
             }
         };
 
-        (Expression::List(nodes::ListExpr { elements, range }), range)
+        (
+            Expression::List(nodes::ListExpr {
+                elements,
+                ctx: self.get_expr_ctx(),
+                range,
+            }),
+            range,
+        )
     }
 
     fn parse_set_expr(&mut self, first_element: Expression<'src>) -> ExprWithRange<'src> {
@@ -3252,6 +3275,7 @@ where
         (
             Expression::Starred(nodes::StarredExpr {
                 value: Box::new(expr),
+                ctx: self.get_expr_ctx(),
                 range: star_range,
             }),
             star_range,
@@ -3540,10 +3564,11 @@ where
         }
     }
 
+    // FIXME: In `target` only identifier and tuple without parens are valid
     fn parse_named_expr(&mut self, mut target: Expression<'src>, target_range: TextRange) -> ExprWithRange<'src> {
         assert!(self.eat(TokenKind::Operator(OperatorKind::ColonEqual)));
 
-        helpers::set_ctx_in_expr(&mut target, Context::Store);
+        helpers::set_expr_ctx(&mut target, ContextExpr::Store);
 
         let (value, value_range) = self.parse_expr();
         let range = target_range.cover(value_range);
