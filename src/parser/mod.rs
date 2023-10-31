@@ -23,7 +23,7 @@ use self::{
 #[derive(Debug)]
 pub struct ParsedFile<'a> {
     pub ast: nodes::Module<'a>,
-    pub parse_errors: Vec<ParseErrorType>,
+    pub parse_errors: Vec<ParseError>,
 }
 
 pub fn parse(src: &str) -> ParsedFile<'_> {
@@ -83,6 +83,12 @@ bitflags! {
         const WITH_ITEM = 1 << 42;
         const FOR_TARGET = 1 << 43;
     }
+}
+
+#[derive(Debug)]
+pub struct ParseError {
+    pub kind: ParseErrorType,
+    pub range: TextRange,
 }
 
 #[derive(Debug)]
@@ -149,7 +155,7 @@ where
     source: &'src str,
     lexer: PeekNth<I>,
     /// Stores all the syntax errors found during the parsing.
-    errors: Vec<ParseErrorType>,
+    errors: Vec<ParseError>,
     /// This tracks the current expression or statement being parsed. For example,
     /// if we're parsing a list expression, e.g. `[1, 2]`, `ctx` has the value
     /// `ParserCtxFlags::LIST_EXPR`.
@@ -340,7 +346,7 @@ where
             .map(|result| match result {
                 Ok(token) => token,
                 Err(lex_error) => {
-                    self.add_error(ParseErrorType::Lexical(lex_error.error));
+                    self.add_error(ParseErrorType::Lexical(lex_error.error), lex_error.range);
 
                     // Return a `Invalid` token when encoutering an error
                     Token::new(TokenKind::Invalid, lex_error.range)
@@ -388,13 +394,14 @@ where
             return true;
         }
 
-        let found = self.current_token().kind();
-        self.add_error(ParseErrorType::ExpectedToken { found, expected: kind });
+        let token = self.current_token();
+        let found = token.kind();
+        self.add_error(ParseErrorType::ExpectedToken { found, expected: kind }, token.range());
         false
     }
 
-    fn add_error(&mut self, error: ParseErrorType) {
-        self.errors.push(error);
+    fn add_error(&mut self, error: ParseErrorType, range: TextRange) {
+        self.errors.push(ParseError { kind: error, range });
     }
 
     fn advance_until(&mut self, target: TokenKind) {
@@ -483,7 +490,8 @@ where
     fn handle_unexpected_indentation(&mut self, stmts: &mut Vec<Statement<'src>>, error_msg: &str) -> TextRange {
         self.eat(TokenKind::Indent);
 
-        self.add_error(ParseErrorType::Other(error_msg.to_string()));
+        let range = self.current_range();
+        self.add_error(ParseErrorType::Other(error_msg.to_string()), range);
 
         let mut i = 0;
         let mut count_stmt = 0;
@@ -556,19 +564,22 @@ where
         let (subject, _) = if self.at_expr() {
             self.parse_expr()
         } else {
-            self.add_error(ParseErrorType::Other(
-                "expecting expression after `match` keyword".to_string(),
-            ));
             let range = self.current_range();
+            self.add_error(
+                ParseErrorType::Other("expecting expression after `match` keyword".to_string()),
+                range,
+            );
             (Expression::Invalid(range), range)
         };
         self.expect(TokenKind::Colon);
 
         self.eat(TokenKind::NewLine);
         if !self.eat(TokenKind::Indent) {
-            self.add_error(ParseErrorType::Other(
-                "expected an indented block after `match` statement".to_string(),
-            ));
+            let range = self.current_range();
+            self.add_error(
+                ParseErrorType::Other("expected an indented block after `match` statement".to_string()),
+                range,
+            );
         }
 
         let (cases, cases_range) = self.parse_match_cases();
@@ -615,12 +626,13 @@ where
     fn parse_match_cases(&mut self) -> (Vec<nodes::MatchCase<'src>>, TextRange) {
         let mut range = self.current_range();
 
-        // FIX: something is wrong is `soft_keywords.rs`. When having a `case (:`
+        // FIX: change heuristic in `soft_keywords.rs`. When having a `case (:`
         // `case` is an `Id` instead of a `SoftKeyword`
         if !self.at(TokenKind::SoftKeyword(SoftKeywordKind::Case)) {
-            self.add_error(ParseErrorType::Other(
-                "expecting `case` block after `match`".to_string(),
-            ));
+            self.add_error(
+                ParseErrorType::Other("expecting `case` block after `match`".to_string()),
+                range,
+            );
         }
 
         let mut cases = vec![];
@@ -730,7 +742,7 @@ where
                 )
             }
             kind => {
-                self.add_error(ParseErrorType::InvalidMatchPattern { pattern: kind });
+                self.add_error(ParseErrorType::InvalidMatchPattern { pattern: kind }, token.range());
                 self.advance_until(TokenKind::Colon);
                 (
                     Pattern::Invalid,
@@ -756,10 +768,11 @@ where
         };
 
         if matches!(self.current_token().kind(), TokenKind::NewLine | TokenKind::Colon) {
-            self.add_error(ParseErrorType::Other(format!(
-                "missing `{}`",
-                if is_paren { ')' } else { ']' }
-            )))
+            let range = self.current_range();
+            self.add_error(
+                ParseErrorType::Other(format!("missing `{}`", if is_paren { ')' } else { ']' })),
+                range,
+            );
         }
 
         if self.at(closing) {
@@ -843,28 +856,34 @@ where
 
             let (lhs_value, lhs_range) = if let Pattern::MatchValue(lhs) = lhs {
                 if !matches!(lhs.value.as_ref(), Expression::Literal(_)) {
-                    self.add_error(ParseErrorType::Other(format!(
-                        "invalid `{}` expression for match pattern",
-                        self.src_text(lhs.range)
-                    )));
+                    self.add_error(
+                        ParseErrorType::Other(format!(
+                            "invalid `{}` expression for match pattern",
+                            self.src_text(lhs.range)
+                        )),
+                        lhs.range,
+                    );
                 }
                 (lhs.value, lhs.range)
             } else {
-                self.add_error(ParseErrorType::Other("invalid lhs pattern".to_string()));
+                self.add_error(ParseErrorType::Other("invalid lhs pattern".to_string()), range);
                 (Box::new(Expression::Invalid(range)), range)
             };
 
             let (rhs_pattern, rhs_range) = self.parse_match_pattern_lhs();
             let (rhs_value, rhs_range) = if let Pattern::MatchValue(rhs) = rhs_pattern {
                 if !matches!(rhs.value.as_ref(), Expression::Literal(_)) {
-                    self.add_error(ParseErrorType::Other(format!(
-                        "invalid `{}` expression for match pattern",
-                        self.src_text(rhs_range)
-                    )));
+                    self.add_error(
+                        ParseErrorType::Other(format!(
+                            "invalid `{}` expression for match pattern",
+                            self.src_text(rhs_range)
+                        )),
+                        rhs_range,
+                    );
                 }
                 (rhs.value, rhs.range)
             } else {
-                self.add_error(ParseErrorType::Other("invalid rhs pattern".to_string()));
+                self.add_error(ParseErrorType::Other("invalid rhs pattern".to_string()), rhs_range);
                 (Box::new(Expression::Invalid(rhs_range)), rhs_range)
             };
 
@@ -872,9 +891,10 @@ where
                 rhs_value.as_ref(),
                 Expression::UnaryOp(nodes::UnaryOpExpr { op: UnaryOp::USub, .. })
             ) {
-                self.add_error(ParseErrorType::Other(
-                    "`-` not allowed in rhs of match pattern".to_string(),
-                ));
+                self.add_error(
+                    ParseErrorType::Other("`-` not allowed in rhs of match pattern".to_string()),
+                    rhs_range,
+                );
             }
 
             let op = if op_kind == TokenKind::Operator(OperatorKind::Plus) {
@@ -991,7 +1011,7 @@ where
                         self.add_error(ParseErrorType::Other(format!(
                             "`{}` not valid keyword pattern",
                             self.src_text(pattern_range)
-                        )));
+                        )), pattern_range);
                     }
                 } else {
                     has_seen_pattern = true;
@@ -999,7 +1019,10 @@ where
                 }
 
                 if has_seen_keyword_pattern && has_seen_pattern {
-                    self.add_error(ParseErrorType::Other("pattern not allowed after keyword pattern".to_string()));
+                    self.add_error(
+                        ParseErrorType::Other("pattern not allowed after keyword pattern".to_string()),
+                        pattern_range,
+                    );
                 }
             }
         };
@@ -1025,10 +1048,10 @@ where
                 value
             }
             _ => {
-                self.add_error(ParseErrorType::Other(format!(
-                    "`{}` invalid pattern match class",
-                    self.src_text(cls_range)
-                )));
+                self.add_error(
+                    ParseErrorType::Other(format!("`{}` invalid pattern match class", self.src_text(cls_range))),
+                    cls_range,
+                );
                 Box::new(Expression::Invalid(cls_range))
             }
         };
@@ -1081,7 +1104,7 @@ where
                         self.add_error(ParseErrorType::Other(format!(
                             "invalid mapping pattern key `{}`",
                             self.src_text(pattern_range)
-                        )));
+                        )), pattern_range);
                         Expression::Invalid(pattern_range)
                     }
                 };
@@ -1118,7 +1141,7 @@ where
             kind => {
                 // Although this statement is not a valid `async` statement,
                 // we still parse it.
-                self.add_error(ParseErrorType::StmtIsNotAsync(kind));
+                self.add_error(ParseErrorType::StmtIsNotAsync(kind), token.range());
                 self.parse_statement()
             }
         };
@@ -1151,10 +1174,11 @@ where
         let (test, _) = if self.at_expr() {
             self.parse_expr()
         } else {
-            self.add_error(ParseErrorType::Other(
-                "expecting expression after `while` keyword".to_string(),
-            ));
             let range = self.current_range();
+            self.add_error(
+                ParseErrorType::Other("expecting expression after `while` keyword".to_string()),
+                range,
+            );
             (Expression::Invalid(range), range)
         };
         self.expect(TokenKind::Colon);
@@ -1196,10 +1220,11 @@ where
             self.clear_ctx(ParserCtxFlags::FOR_TARGET);
             target
         } else {
-            self.add_error(ParseErrorType::Other(
-                "expecting expression after `for` keyword".to_string(),
-            ));
             let range = self.current_range();
+            self.add_error(
+                ParseErrorType::Other("expecting expression after `for` keyword".to_string()),
+                range,
+            );
             (Expression::Invalid(range), range)
         };
 
@@ -1210,10 +1235,11 @@ where
         let (iter, _) = if self.at_expr() {
             self.parse_expr()
         } else {
-            self.add_error(ParseErrorType::Other(
-                "expecting an expression after `in` keyword".to_string(),
-            ));
             let range = self.current_range();
+            self.add_error(
+                ParseErrorType::Other("expecting an expression after `in` keyword".to_string()),
+                range,
+            );
             (Expression::Invalid(range), range)
         };
 
@@ -1321,9 +1347,11 @@ where
         };
 
         if !has_except && !has_finally {
-            self.add_error(ParseErrorType::Other(
-                "expecting `except` or `finally` after `try` block".to_string(),
-            ));
+            let range = self.current_range();
+            self.add_error(
+                ParseErrorType::Other("expecting `except` or `finally` after `try` block".to_string()),
+                range,
+            );
         }
 
         (
@@ -1352,7 +1380,8 @@ where
             self.eat(TokenKind::NewLine);
         }
 
-        match self.current_token().kind() {
+        let token = self.current_token();
+        match token.kind() {
             TokenKind::Keyword(KeywordKind::Def) => self.parse_func_def_stmt(decorators, range),
             TokenKind::Keyword(KeywordKind::Class) => self.parse_class_def_stmt(decorators, range),
             TokenKind::Keyword(KeywordKind::Async)
@@ -1371,9 +1400,12 @@ where
                 (Statement::AsyncFunctionDef(func), async_range)
             }
             _ => {
-                self.add_error(ParseErrorType::Other(
-                    "expected class, function definition or async function definition after decorator".to_string(),
-                ));
+                self.add_error(
+                    ParseErrorType::Other(
+                        "expected class, function definition or async function definition after decorator".to_string(),
+                    ),
+                    token.range(),
+                );
                 self.parse_statement()
             }
         }
@@ -1465,10 +1497,10 @@ where
 
             if matches!(target, Expression::BoolOp(_) | Expression::Compare(_)) {
                 // Should we make `target` an `Expression::Invalid` here?
-                self.add_error(ParseErrorType::Other(format!(
-                    "expression `{:?}` not allowed in `with` statement",
-                    target
-                )));
+                self.add_error(
+                    ParseErrorType::Other(format!("expression `{:?}` not allowed in `with` statement", target)),
+                    target_range,
+                );
             }
 
             helpers::set_expr_ctx(&mut target, ContextExpr::Store);
@@ -1486,9 +1518,11 @@ where
         let mut items = vec![];
 
         if !self.at_expr() {
-            self.add_error(ParseErrorType::Other(
-                "expecting expression after `with` keyword".to_string(),
-            ));
+            let range = self.current_range();
+            self.add_error(
+                ParseErrorType::Other("expecting expression after `with` keyword".to_string()),
+                range,
+            );
             return items;
         }
 
@@ -1614,9 +1648,10 @@ where
 
         if self.last_ctx.intersects(ParserCtxFlags::TUPLE_EXPR) {
             // Should we make `target` an `Expression::Invalid` here?
-            self.add_error(ParseErrorType::Other(
-                "unparenthesized tuple cannot have type annotation".to_string(),
-            ));
+            self.add_error(
+                ParseErrorType::Other("unparenthesized tuple cannot have type annotation".to_string()),
+                range,
+            );
         }
 
         helpers::set_expr_ctx(&mut target.value, ContextExpr::Store);
@@ -1683,11 +1718,13 @@ where
         let has_eaten_newline = self.eat(TokenKind::NewLine);
 
         if !has_eaten_newline && !has_eaten_semicolon && self.at_simple_stmt() {
-            self.add_error(ParseErrorType::SimpleStmtsInSameLine);
+            let range = self.current_range();
+            self.add_error(ParseErrorType::SimpleStmtsInSameLine, stmt.1.cover(range));
         }
 
         if !has_eaten_newline && self.at_compound_stmt() {
-            self.add_error(ParseErrorType::SimpleStmtAndCompoundStmtInSameLine);
+            let range = self.current_range();
+            self.add_error(ParseErrorType::SimpleStmtAndCompoundStmtInSameLine, stmt.1.cover(range));
         }
 
         stmt
@@ -1704,7 +1741,8 @@ where
 
             if !self.eat(TokenKind::SemiColon) {
                 if self.at_simple_stmt() {
-                    self.add_error(ParseErrorType::SimpleStmtsInSameLine);
+                    // TODO: cover range here?
+                    self.add_error(ParseErrorType::SimpleStmtsInSameLine, range);
                 } else {
                     break;
                 }
@@ -1716,7 +1754,7 @@ where
         }
 
         if !self.eat(TokenKind::NewLine) && self.at_compound_stmt() {
-            self.add_error(ParseErrorType::SimpleStmtAndCompoundStmtInSameLine);
+            self.add_error(ParseErrorType::SimpleStmtAndCompoundStmtInSameLine, range);
         }
 
         (stmts, range)
@@ -1792,7 +1830,7 @@ where
                     self.add_error(ParseErrorType::Other(format!(
                         "`{}` not allowed in `del` statement",
                         self.src_text(target_range)
-                    )));
+                    )), target_range);
                 }
                 targets.push(target);
             }
@@ -1899,10 +1937,12 @@ where
             .is_some_and(|expr| matches!(expr.as_ref(), Expression::Tuple(_)))
             && !self.last_ctx.intersects(ParserCtxFlags::PARENTHESIZED_EXPR)
         {
+            // TODO: use only the tuple range here
             // Should we make `exc` an `Expression::Invalid` here?
-            self.add_error(ParseErrorType::Other(
-                "unparenthesized tuple not allowed in `raise` statement".to_string(),
-            ));
+            self.add_error(
+                ParseErrorType::Other("unparenthesized tuple not allowed in `raise` statement".to_string()),
+                range,
+            );
         }
 
         let cause = if exc.is_some() && self.eat(TokenKind::Keyword(KeywordKind::From)) {
@@ -1919,9 +1959,11 @@ where
             .is_some_and(|expr| matches!(expr.as_ref(), Expression::Tuple(_)))
             && !self.last_ctx.intersects(ParserCtxFlags::PARENTHESIZED_EXPR)
         {
-            self.add_error(ParseErrorType::Other(
-                "unparenthesized tuple not allowed in `raise from` statement".to_string(),
-            ));
+            // TODO: use only the tuple range here
+            self.add_error(
+                ParseErrorType::Other("unparenthesized tuple not allowed in `raise from` statement".to_string()),
+                range,
+            );
         }
 
         (Statement::Raise(nodes::RaiseStmt { exc, cause, range }), range)
@@ -1934,7 +1976,7 @@ where
         while self.eat(TokenKind::Dot) {
             let id = self.parse_identifier();
             if !id.is_valid() {
-                self.add_error(ParseErrorType::InvalidIdentifier);
+                self.add_error(ParseErrorType::InvalidIdentifier, id.range());
             }
             range = range.cover(id.range());
         }
@@ -2015,7 +2057,8 @@ where
         };
 
         if level == 0 && module.is_none() {
-            self.add_error(ParseErrorType::Other("missing module name".to_string()));
+            let range = self.current_range();
+            self.add_error(ParseErrorType::Other("missing module name".to_string()), range);
         }
 
         self.expect(TokenKind::Keyword(KeywordKind::Import));
@@ -2064,10 +2107,11 @@ where
         let (test, _) = if self.at_expr() {
             self.parse_expr()
         } else {
-            self.add_error(ParseErrorType::Other(
-                "expecting expression after `if` keyword".to_string(),
-            ));
             let range = self.current_range();
+            self.add_error(
+                ParseErrorType::Other("expecting expression after `if` keyword".to_string()),
+                range,
+            );
             (Expression::Invalid(range), range)
         };
         self.expect(TokenKind::Colon);
@@ -2170,9 +2214,11 @@ where
                 ParserCtxFlags::FUNC_DEF_STMT => "function definition",
                 _ => unreachable!(),
             };
-            self.add_error(ParseErrorType::Other(format!(
-                "expected an indented block after {ctx_str}"
-            )));
+            let range = self.current_range();
+            self.add_error(
+                ParseErrorType::Other(format!("expected an indented block after {ctx_str}")),
+                range,
+            );
         }
 
         (stmts, last_stmt_range)
@@ -2424,10 +2470,10 @@ where
     /// current context and unexpected token received, a very specific error
     /// message can be created.
     fn handle_unexpected_token(&mut self, token: Token) -> ExprWithRange<'src> {
-        self.add_error(ParseErrorType::Other(format!(
-            "unexpected token `{}`",
-            self.src_text(token.range())
-        )));
+        self.add_error(
+            ParseErrorType::Other(format!("unexpected token `{}`", self.src_text(token.range()))),
+            token.range(),
+        );
         self.next_token();
 
         (Expression::Invalid(token.range()), token.range())
@@ -2520,7 +2566,7 @@ where
                     let (expr, expr_range) = self.parse_expr();
 
                     if is_keyword_unpack && matches!(expr, Expression::Starred(_)) {
-                        self.add_error(ParseErrorType::IterableUnpackFollowsKeywordArg);
+                        self.add_error(ParseErrorType::IterableUnpackFollowsKeywordArg, expr_range);
                     }
 
                     if self.eat(TokenKind::Operator(OperatorKind::Assign)) {
@@ -2531,10 +2577,13 @@ where
                                 range: ident_expr.range,
                             })
                         } else {
-                            self.add_error(ParseErrorType::Other(format!(
-                                "`{}` cannot be used as a keyword argument!",
-                                self.src_text(expr_range)
-                            )));
+                            self.add_error(
+                                ParseErrorType::Other(format!(
+                                    "`{}` cannot be used as a keyword argument!",
+                                    self.src_text(expr_range)
+                                )),
+                                expr_range,
+                            );
                             nodes::MaybeIdentifier::Invalid(expr_range)
                         };
 
@@ -2550,7 +2599,7 @@ where
                     }
 
                     if is_keyword_unpack && is_pos_arg {
-                        self.add_error(ParseErrorType::PosArgFollowsKeywordArgUnpack);
+                        self.add_error(ParseErrorType::PosArgFollowsKeywordArgUnpack, expr_range);
                     }
                 }
                 is_pos_arg = true;
@@ -2570,11 +2619,11 @@ where
         let is_current_token_colon = matches!(self.current_token().kind(), TokenKind::Colon);
         // Create an error when receiving a empty slice to parse, e.g. `l[]`
         if !is_current_token_colon && !self.at_expr() {
-            self.add_error(ParseErrorType::EmptySubscript);
             let close_bracket_range = self.current_range();
             self.expect(TokenKind::CloseBracket);
 
             let range = value_range.cover(close_bracket_range);
+            self.add_error(ParseErrorType::EmptySubscript, range);
             self.clear_ctx(ParserCtxFlags::SUBSCRIPT_EXPR);
             return (
                 Expression::Subscript(nodes::SubscriptExpr {
@@ -2831,7 +2880,8 @@ where
 
         // Nice error message when having a unclosed open bracket `[`
         if matches!(self.current_token().kind(), TokenKind::NewLine | TokenKind::Eof) {
-            self.add_error(ParseErrorType::Other("missing closing bracket `]`".to_string()));
+            let range = self.current_range();
+            self.add_error(ParseErrorType::Other("missing closing bracket `]`".to_string()), range);
         }
 
         // Return an empty `ListExpr` when finding a `]` right after the `[`
@@ -2882,7 +2932,8 @@ where
 
         // Nice error message when having a unclosed open brace `{`
         if matches!(self.current_token().kind(), TokenKind::NewLine | TokenKind::Eof) {
-            self.add_error(ParseErrorType::Other("missing closing brace `}`".to_string()));
+            let range = self.current_range();
+            self.add_error(ParseErrorType::Other("missing closing brace `}`".to_string()), range);
         }
 
         // Return an empty `DictExpr` when finding a `}` right after the `{`
@@ -2947,7 +2998,11 @@ where
 
         // Nice error message when having a unclosed open parenthesis `(`
         if matches!(self.current_token().kind(), TokenKind::NewLine | TokenKind::Eof) {
-            self.add_error(ParseErrorType::Other("missing closing parenthesis `)`".to_string()));
+            let range = self.current_range();
+            self.add_error(
+                ParseErrorType::Other("missing closing parenthesis `)`".to_string()),
+                range,
+            );
         }
 
         // Return an empty `TupleExpr` when finding a `)` right after the `(`
@@ -3119,10 +3174,11 @@ where
             self.clear_ctx(ParserCtxFlags::COMPREHENSION_TARGET);
             target
         } else {
-            self.add_error(ParseErrorType::Other(
-                "expecting expression after `for` keyword".to_string(),
-            ));
             let range = self.current_range();
+            self.add_error(
+                ParseErrorType::Other("expecting expression after `for` keyword".to_string()),
+                range,
+            );
             (Expression::Invalid(range), range)
         };
         self.expect(TokenKind::Keyword(KeywordKind::In));
@@ -3273,10 +3329,13 @@ where
         await_range = await_range.cover(expr_range);
 
         if matches!(expr, Expression::Starred(_)) {
-            self.add_error(ParseErrorType::Other(format!(
-                "starred expression `{}` is not allowed in an `await` statement",
-                self.src_text(expr_range)
-            )));
+            self.add_error(
+                ParseErrorType::Other(format!(
+                    "starred expression `{}` is not allowed in an `await` statement",
+                    self.src_text(expr_range)
+                )),
+                expr_range,
+            );
         }
 
         self.clear_ctx(ParserCtxFlags::AWAIT_EXPR);
@@ -3328,10 +3387,13 @@ where
 
         if matches!(expr, Expression::Starred(_)) {
             // Should we make `expr` an `Expression::Invalid` here?
-            self.add_error(ParseErrorType::Other(format!(
-                "starred expression `{}` is not allowed in a `yield from` statement",
-                self.src_text(expr_range)
-            )));
+            self.add_error(
+                ParseErrorType::Other(format!(
+                    "starred expression `{}` is not allowed in a `yield from` statement",
+                    self.src_text(expr_range)
+                )),
+                expr_range,
+            );
         }
 
         self.clear_ctx(ParserCtxFlags::YIELD_FROM_EXPR);
@@ -3383,19 +3445,23 @@ where
         self.expect(TokenKind::Colon);
 
         // Check for forbidden tokens in the `lambda`'s body
-        match self.current_token().kind() {
-            TokenKind::Keyword(KeywordKind::Yield) => self.add_error(ParseErrorType::Other(
-                "`yield` not allowed in a `lambda` expression".to_string(),
-            )),
+        let token = self.current_token();
+        match token.kind() {
+            TokenKind::Keyword(KeywordKind::Yield) => self.add_error(
+                ParseErrorType::Other("`yield` not allowed in a `lambda` expression".to_string()),
+                token.range(),
+            ),
             TokenKind::Operator(OperatorKind::Asterisk) => {
-                self.add_error(ParseErrorType::Other(
-                    "starred expression not allowed in a `lambda` expression".to_string(),
-                ));
+                self.add_error(
+                    ParseErrorType::Other("starred expression not allowed in a `lambda` expression".to_string()),
+                    token.range(),
+                );
             }
             TokenKind::Operator(OperatorKind::Exponent) => {
-                self.add_error(ParseErrorType::Other(
-                    "double starred expression not allowed in a `lambda` expression".to_string(),
-                ));
+                self.add_error(
+                    ParseErrorType::Other("double starred expression not allowed in a `lambda` expression".to_string()),
+                    token.range(),
+                );
             }
             _ => {}
         }
@@ -3484,7 +3550,8 @@ where
             parsing={
                 // Don't allow any parameter after we have seen a vararg `**kwargs`
                 if has_seen_vararg {
-                    self.add_error(ParseErrorType::ParamFollowsVarKeywordParam);
+                    let range = self.current_range();
+                    self.add_error(ParseErrorType::ParamFollowsVarKeywordParam, range);
                 }
 
                 if self.eat(TokenKind::Operator(OperatorKind::Asterisk)) {
@@ -3500,7 +3567,11 @@ where
                 } else if self.eat(TokenKind::Operator(OperatorKind::Slash)) {
                     // Don't allow `/` after a `*`
                     if has_seen_asterisk {
-                        self.add_error(ParseErrorType::Other("`/` must be ahead of `*`".to_string()));
+                        let range = self.current_range();
+                        self.add_error(
+                            ParseErrorType::Other("`/` must be ahead of `*`".to_string()),
+                            range
+                        );
                     }
                     std::mem::swap(&mut args, &mut posonlyargs);
                 } else if self.at(TokenKind::Id) {
@@ -3508,7 +3579,8 @@ where
                     // can't place `b` after `a=1`. Non-default parameters are only allowed after
                     // default parameters if we have a `*` before them, e.g. `a=1, *, b`.
                     if has_seen_default_param && has_seen_non_default_param {
-                        self.add_error(ParseErrorType::NonDefaultParamFollowsDefaultParam);
+                        let range = self.current_range();
+                        self.add_error(ParseErrorType::NonDefaultParamFollowsDefaultParam, range);
                     }
                     let param = self.parse_parameter_with_default();
                     has_seen_default_param = param.default.is_some();
@@ -3528,7 +3600,8 @@ where
                     {
                         break;
                     }
-                    self.add_error(ParseErrorType::Other("expected parameter".to_string()));
+                    let range = self.current_range();
+                    self.add_error(ParseErrorType::Other("expected parameter".to_string()), range);
                     self.next_token();
                 }
             }
