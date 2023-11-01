@@ -34,54 +34,41 @@ pub fn parse(src: &str) -> ParsedFile<'_> {
     }
 }
 
-// TODO: check the flags that are really used
 bitflags! {
     #[derive(Default)]
-    struct ParserCtxFlags: u64 {
+    struct ParserCtxFlags: u32 {
         const ID_EXPR = 1 << 0;
-        const SET_EXPR = 1 << 1;
-        const ATTR_EXPR = 1 << 2;
-        const CALL_EXPR = 1 << 3;
-        const DICT_EXPR = 1 << 4;
-        const LIST_EXPR = 1 << 5;
-        const SLICE_EXPR = 1 << 6;
-        const TUPLE_EXPR = 1 << 7;
-        const UNARY_EXPR = 1 << 8;
-        const BINARY_EXPR = 1 << 9;
-        const LITERAL_EXPR = 1 << 10;
-        const SUBSCRIPT_EXPR = 1 << 11;
-        const PARENTHESIZED_EXPR = 1 << 12;
-        const BRACKETSIZED_EXPR = 1 << 13;
-        const BRACESIZED_EXPR = 1 << 14;
-        const AWAIT_EXPR = 1 << 16;
-        const YIELD_EXPR = 1 << 17;
-        const YIELD_FROM_EXPR = 1 << 18;
-        const LIST_COMP_EXPR = 1 << 20;
-        const GENERATOR_EXPR = 1 << 21;
-        const DICT_COMP_EXPR = 1 << 22;
-        const SET_COMP_EXPR = 1 << 23;
-        const IF_EXPR = 1 << 24;
-        const LAMBDA_EXPR = 1 << 25;
+        const DICT_EXPR = 1 << 1;
+        const LIST_EXPR = 1 << 2;
+        const SLICE_EXPR = 1 << 3;
+        const TUPLE_EXPR = 1 << 4;
+        const SUBSCRIPT_EXPR = 1 << 5;
+        const PARENTHESIZED_EXPR = 1 << 6;
+        const BRACESIZED_EXPR = 1 << 7;
+        const AWAIT_EXPR = 1 << 8;
+        const SET_COMP_EXPR = 1 << 9;
+        const IF_EXPR = 1 << 10;
+        const LAMBDA_EXPR = 1 << 11;
+        const LIST_COMP_EXPR = 1 << 12;
+        const GENERATOR_EXPR = 1 << 13;
+        const DICT_COMP_EXPR = 1 << 14;
 
-        const EXPR_STMT = 1 << 26;
-        const IF_STMT = 1 << 27;
-        const DEL_STMT = 1 << 28;
-        const ASSERT_STMT = 1 << 29;
-        const FUNC_DEF_STMT = 1 << 30;
-        const CLASS_DEF_STMT = 1 << 31;
-        const WITH_STMT = 1 << 32;
-        const FOR_STMT = 1 << 33;
-        const WHILE_STMT  = 1 << 34;
-        const MATCH_STMT  = 1 << 35;
+        const IF_STMT = 1 << 15;
+        const DEL_STMT = 1 << 16;
+        const FUNC_DEF_STMT = 1 << 17;
+        const CLASS_DEF_STMT = 1 << 18;
+        const WITH_STMT = 1 << 19;
+        const FOR_STMT = 1 << 20;
+        const WHILE_STMT  = 1 << 21;
+        const MATCH_STMT  = 1 << 22;
 
-        const COMPREHENSION_TARGET = 1 << 36;
-        const PARAMETERS = 1 << 37;
-        const ARGUMENTS = 1 << 38;
-        const SEQUENCE_PATTERN = 1 << 39;
-        const CLASS_PATTERN = 1 << 40;
-        const MAPPING_PATTERN = 1 << 41;
-        const WITH_ITEM = 1 << 42;
-        const FOR_TARGET = 1 << 43;
+        const COMPREHENSION_TARGET = 1 << 23;
+        const COMPREHENSION_ITER = 1 << 24;
+        const ARGUMENTS = 1 << 25;
+        const SEQUENCE_PATTERN = 1 << 26;
+        const CLASS_PATTERN = 1 << 27;
+        const MAPPING_PATTERN = 1 << 28;
+        const FOR_TARGET = 1 << 29;
     }
 }
 
@@ -166,8 +153,7 @@ where
     ctx: ParserCtxFlags,
     /// During the parsing of expression or statement, multiple `ctx`s can be created.
     /// This stores the previous `ctx`s during the parsing, for example, when parsing
-    /// a list expression, e.g. `[1, 2, 3]`, two `ctx`s are created `ParserCtxFlags::BRACKETSIZED_EXPR`
-    /// and `ParserCtxFlags::LIST_EXPR`.
+    /// a list expression, e.g. `[1, 2, 3]`, the `ParserCtxFlags::LIST_EXPR` context is created.
     ///
     /// When the parsing for the list starts, the first `ctx` created is `ParserCtxFlags::BRACKETSIZED_EXPR`,
     /// this is because we cannot be sure if we're actually parsing a list expression.
@@ -562,7 +548,7 @@ where
 
         self.eat(TokenKind::SoftKeyword(SoftKeywordKind::Match));
         let (subject, _) = if self.at_expr() {
-            self.parse_expr()
+            self.parse_exprs()
         } else {
             let range = self.current_range();
             self.add_error(
@@ -605,7 +591,7 @@ where
         let (pattern, _) = self.parse_match_pattern();
 
         let guard = if self.eat(TokenKind::Keyword(KeywordKind::If)) {
-            let (expr, _) = self.parse_expr();
+            let (expr, _) = self.parse_exprs();
             Some(Box::new(expr))
         } else {
             None
@@ -1172,7 +1158,7 @@ where
         self.eat(TokenKind::Keyword(KeywordKind::While));
 
         let (test, _) = if self.at_expr() {
-            self.parse_expr()
+            self.parse_exprs()
         } else {
             let range = self.current_range();
             self.add_error(
@@ -1216,7 +1202,7 @@ where
 
         let (target, _) = if self.at_expr() {
             self.set_ctx(ParserCtxFlags::FOR_TARGET);
-            let target = self.parse_expr();
+            let target = self.parse_exprs();
             self.clear_ctx(ParserCtxFlags::FOR_TARGET);
             target
         } else {
@@ -1233,7 +1219,7 @@ where
         }
 
         let (iter, _) = if self.at_expr() {
-            self.parse_expr()
+            self.parse_exprs()
         } else {
             let range = self.current_range();
             self.add_error(
@@ -1296,7 +1282,9 @@ where
             let ty = if self.at(TokenKind::Colon) && !is_star {
                 None
             } else {
-                let (expr, _) = self.parse_expr();
+                // TODO: don't allow unparenthesized tuples
+                // TODO: create error message "SyntaxError: multiple exception types must be parenthesized"
+                let (expr, _) = self.parse_exprs();
                 Some(Box::new(expr))
             };
 
@@ -1372,7 +1360,7 @@ where
         let mut decorators = vec![];
 
         while self.eat(TokenKind::Operator(OperatorKind::At)) {
-            let (expr, expr_range) = self.parse_expr();
+            let (expr, expr_range) = self.parse_exprs();
             decorators.push(nodes::Decorator {
                 expr,
                 range: range.cover(expr_range),
@@ -1426,7 +1414,8 @@ where
         self.expect(TokenKind::CloseParenthesis);
 
         let returns = if self.eat(TokenKind::RightArrow) {
-            let (returns, _) = self.parse_expr();
+            // TODO: don't allow unparenthesized tuples here
+            let (returns, _) = self.parse_exprs();
             Some(Box::new(returns))
         } else {
             None
@@ -1488,7 +1477,6 @@ where
     }
 
     fn parse_with_item(&mut self) -> nodes::WithItem<'src> {
-        self.set_ctx(ParserCtxFlags::WITH_ITEM);
         let (item, mut range) = self.parse_expr();
 
         let target = if self.eat(TokenKind::Keyword(KeywordKind::As)) {
@@ -1509,7 +1497,6 @@ where
         } else {
             None
         };
-        self.clear_ctx(ParserCtxFlags::WITH_ITEM);
 
         nodes::WithItem { item, target, range }
     }
@@ -1618,11 +1605,11 @@ where
         helpers::set_expr_ctx(&mut target.value, ContextExpr::Store);
 
         let mut targets = vec![*target.value];
-        let (mut value, value_range) = self.parse_expr();
+        let (mut value, value_range) = self.parse_exprs();
         range = range.cover(value_range);
 
         while self.eat(TokenKind::Operator(OperatorKind::Assign)) {
-            let (mut expr, expr_range) = self.parse_expr();
+            let (mut expr, expr_range) = self.parse_exprs();
 
             std::mem::swap(&mut value, &mut expr);
 
@@ -1662,7 +1649,7 @@ where
         range = range.cover(ann_range);
 
         let value = if self.eat(TokenKind::Operator(OperatorKind::Assign)) {
-            let (value, value_range) = self.parse_expr();
+            let (value, value_range) = self.parse_exprs();
             range = range.cover(value_range);
 
             Some(Box::new(value))
@@ -1696,7 +1683,7 @@ where
 
         helpers::set_expr_ctx(&mut target.value, ContextExpr::Store);
 
-        let (value, value_range) = self.parse_expr();
+        let (value, value_range) = self.parse_exprs();
         range = range.cover(value_range);
 
         (
@@ -1842,7 +1829,6 @@ where
     }
 
     fn parse_assert_stmt(&mut self, mut range: TextRange) -> StmtWithRange<'src> {
-        self.set_ctx(ParserCtxFlags::ASSERT_STMT);
         self.eat(TokenKind::Keyword(KeywordKind::Assert));
 
         let (test, test_range) = self.parse_expr();
@@ -1856,7 +1842,6 @@ where
         } else {
             None
         };
-        self.clear_ctx(ParserCtxFlags::ASSERT_STMT);
 
         (
             Statement::Assert(nodes::AssertStmt {
@@ -1912,7 +1897,7 @@ where
         let value = if self.at(TokenKind::NewLine) {
             None
         } else {
-            let (value, value_range) = self.parse_expr();
+            let (value, value_range) = self.parse_exprs();
             range = range.cover(value_range);
             Some(Box::new(value))
         };
@@ -1926,7 +1911,7 @@ where
         let exc = if self.at(TokenKind::NewLine) {
             None
         } else {
-            let (exc, exc_range) = self.parse_expr();
+            let (exc, exc_range) = self.parse_exprs();
             range = range.cover(exc_range);
 
             Some(Box::new(exc))
@@ -1946,7 +1931,7 @@ where
         }
 
         let cause = if exc.is_some() && self.eat(TokenKind::Keyword(KeywordKind::From)) {
-            let (cause, cause_range) = self.parse_expr();
+            let (cause, cause_range) = self.parse_exprs();
             range = range.cover(cause_range);
 
             Some(Box::new(cause))
@@ -2104,8 +2089,9 @@ where
         let mut if_range = self.current_range();
         assert!(self.eat(TokenKind::Keyword(KeywordKind::If)));
 
+        // TODO: don't allow unparenthesized tuple in `test`
         let (test, _) = if self.at_expr() {
-            self.parse_expr()
+            self.parse_exprs()
         } else {
             let range = self.current_range();
             self.add_error(
@@ -2150,7 +2136,7 @@ where
             let elif_range = self.current_range();
             self.eat(TokenKind::Keyword(KeywordKind::Elif));
 
-            let (test, _) = self.parse_expr();
+            let (test, _) = self.parse_exprs();
             self.expect(TokenKind::Colon);
 
             let (body, body_range) = self.parse_body();
@@ -2225,7 +2211,7 @@ where
     }
 
     fn parse_expr_stmt(&mut self) -> StmtWithRange<'src> {
-        let (expr, range) = self.parse_expr();
+        let (expr, range) = self.parse_exprs();
 
         (
             Statement::Expression(nodes::ExpressionStmt {
@@ -2236,38 +2222,28 @@ where
         )
     }
 
+    /// Parses every Python expression.
+    fn parse_exprs(&mut self) -> ExprWithRange<'src> {
+        let (expr, expr_range) = self.parse_expr();
+
+        if self.at(TokenKind::Comma) {
+            return self.parse_tuple_expr(expr, expr_range);
+        }
+        (expr, expr_range)
+    }
+
+    /// Parses every Python expression except unparenthesized tuple.
+    ///
+    /// If you have expressions separated by commas and want to parse then individually,
+    /// instead of a tuple, use this function!
     fn parse_expr(&mut self) -> ExprWithRange<'src> {
         let (expr, expr_range) = self.expr_bp(1);
 
-        // Don't parse a tuple if we are in one of the following parser contexts.
-        if !self.has_in_curr_or_parent_ctx(
-            ParserCtxFlags::PARENTHESIZED_EXPR
-                | ParserCtxFlags::BRACESIZED_EXPR
-                | ParserCtxFlags::PARAMETERS
-                | ParserCtxFlags::ARGUMENTS
-                | ParserCtxFlags::SUBSCRIPT_EXPR
-                | ParserCtxFlags::SET_EXPR
-                | ParserCtxFlags::DICT_EXPR
-                | ParserCtxFlags::LIST_EXPR
-                | ParserCtxFlags::TUPLE_EXPR
-                | ParserCtxFlags::SLICE_EXPR
-                | ParserCtxFlags::AWAIT_EXPR
-                | ParserCtxFlags::DEL_STMT
-                | ParserCtxFlags::WITH_ITEM
-                | ParserCtxFlags::ASSERT_STMT,
-        ) && self.at(TokenKind::Comma)
-        {
-            return self.parse_tuple_expr(expr, expr_range);
-        }
-        // Don't parse an `if` expression, if we are currently parsing a comprehension expression
-        // or an `if` expression.
-        if !self.has_ctx(
-            ParserCtxFlags::GENERATOR_EXPR
-                | ParserCtxFlags::LIST_COMP_EXPR
-                | ParserCtxFlags::DICT_COMP_EXPR
-                | ParserCtxFlags::SET_COMP_EXPR
-                | ParserCtxFlags::IF_EXPR,
-        ) && self.at(TokenKind::Keyword(KeywordKind::If))
+        // Don't parse an `if` expression if we are currently parsing an `if` expression
+        // or the comprehension `iter`.
+        if (!self.has_in_curr_or_parent_ctx(ParserCtxFlags::IF_EXPR | ParserCtxFlags::COMPREHENSION_ITER)
+            || self.has_in_curr_or_parent_ctx(ParserCtxFlags::PARENTHESIZED_EXPR | ParserCtxFlags::ARGUMENTS))
+            && self.at(TokenKind::Keyword(KeywordKind::If))
         {
             return self.parse_if_expr(expr, expr_range);
         }
@@ -2517,13 +2493,9 @@ where
 
     fn parse_call_expr(&mut self, lhs: Expression<'src>, lhs_range: TextRange) -> ExprWithRange<'src> {
         assert!(self.at(TokenKind::OpenParenthesis));
-        self.set_ctx(ParserCtxFlags::CALL_EXPR);
-
         let args = self.parse_arguments();
 
         let range = lhs_range.cover(args.range);
-
-        self.clear_ctx(ParserCtxFlags::CALL_EXPR);
 
         (
             Expression::Call(nodes::CallExpr {
@@ -2640,7 +2612,7 @@ where
             let range = self.current_range();
             self.parse_slice(None, range)
         } else {
-            self.parse_expr()
+            self.parse_exprs()
         };
 
         if self.at(TokenKind::Comma) {
@@ -2730,12 +2702,9 @@ where
 
     fn parse_attribute_expr(&mut self, lhs: Expression<'src>, lhs_range: TextRange) -> ExprWithRange<'src> {
         assert!(self.eat(TokenKind::Dot));
-        self.set_ctx(ParserCtxFlags::ATTR_EXPR);
-
         let attr = self.parse_identifier();
 
         let range = lhs_range.cover(attr.range());
-        self.clear_ctx(ParserCtxFlags::ATTR_EXPR);
 
         (
             Expression::Attribute(nodes::AttributeExpr {
@@ -3108,8 +3077,6 @@ where
     }
 
     fn parse_set_expr(&mut self, first_element: Expression<'src>) -> ExprWithRange<'src> {
-        self.set_ctx(ParserCtxFlags::SET_EXPR);
-
         self.eat(TokenKind::Comma);
         let mut elements = vec![first_element];
 
@@ -3123,8 +3090,6 @@ where
                 elements.push(expr);
             }
         };
-
-        self.clear_ctx(ParserCtxFlags::SET_EXPR);
 
         (Expression::Set(nodes::SetExpr { elements, range }), range)
     }
@@ -3170,7 +3135,7 @@ where
         let mut ifs = vec![];
         let (target, _) = if self.at_expr() {
             self.set_ctx(ParserCtxFlags::COMPREHENSION_TARGET);
-            let target = self.parse_expr();
+            let target = self.parse_exprs();
             self.clear_ctx(ParserCtxFlags::COMPREHENSION_TARGET);
             target
         } else {
@@ -3183,11 +3148,14 @@ where
         };
         self.expect(TokenKind::Keyword(KeywordKind::In));
 
-        let (iter, iter_expr) = self.parse_expr();
+        // TODO: don't parse tuple in `iter`
+        self.set_ctx(ParserCtxFlags::COMPREHENSION_ITER);
+        let (iter, iter_expr) = self.parse_exprs();
         range = range.cover(iter_expr);
+        self.clear_ctx(ParserCtxFlags::COMPREHENSION_ITER);
 
         while self.eat(TokenKind::Keyword(KeywordKind::If)) {
-            let (if_expr, if_range) = self.parse_expr();
+            let (if_expr, if_range) = self.expr_bp(1);
             ifs.push(if_expr);
             range = range.cover(if_range);
         }
@@ -3349,26 +3317,21 @@ where
     }
 
     fn parse_yield_expr(&mut self) -> ExprWithRange<'src> {
-        self.set_ctx(ParserCtxFlags::YIELD_EXPR);
-
         let mut yield_range = self.current_range();
         self.eat(TokenKind::Keyword(KeywordKind::Yield));
 
         if self.eat(TokenKind::Keyword(KeywordKind::From)) {
-            self.clear_ctx(ParserCtxFlags::YIELD_EXPR);
             return self.parse_yield_from_expr(yield_range);
         }
 
         let value = if self.at_expr() {
-            let (expr, expr_range) = self.parse_expr();
+            let (expr, expr_range) = self.parse_exprs();
             yield_range = yield_range.cover(expr_range);
 
             Some(Box::new(expr))
         } else {
             None
         };
-
-        self.clear_ctx(ParserCtxFlags::YIELD_EXPR);
 
         (
             Expression::Yield(nodes::YieldExpr {
@@ -3380,9 +3343,8 @@ where
     }
 
     fn parse_yield_from_expr(&mut self, mut yield_range: TextRange) -> ExprWithRange<'src> {
-        self.set_ctx(ParserCtxFlags::YIELD_FROM_EXPR);
-
-        let (expr, expr_range) = self.parse_expr();
+        // TODO: don't allow unparenthesized tuples here
+        let (expr, expr_range) = self.parse_exprs();
         yield_range = yield_range.cover(expr_range);
 
         if matches!(expr, Expression::Starred(_)) {
@@ -3396,7 +3358,6 @@ where
             );
         }
 
-        self.clear_ctx(ParserCtxFlags::YIELD_FROM_EXPR);
         (
             Expression::YieldFrom(nodes::YieldFromExpr {
                 value: Box::new(expr),
@@ -3410,7 +3371,8 @@ where
         self.set_ctx(ParserCtxFlags::IF_EXPR);
         assert!(self.eat(TokenKind::Keyword(KeywordKind::If)));
 
-        let (test, _) = self.parse_expr();
+        // TODO: check if unparenthesized tuple is allowed in `test`, not allowed
+        let (test, _) = self.parse_exprs();
 
         self.expect(TokenKind::Keyword(KeywordKind::Else));
 
@@ -3521,8 +3483,6 @@ where
     }
 
     fn parse_parameters(&mut self) -> nodes::Parameters<'src> {
-        self.set_ctx(ParserCtxFlags::PARAMETERS);
-
         let mut args = vec![];
         let mut posonlyargs = vec![];
         let mut kwonlyargs = vec![];
@@ -3606,7 +3566,6 @@ where
                 }
             }
         };
-        self.clear_ctx(ParserCtxFlags::PARAMETERS);
 
         nodes::Parameters {
             kwarg,
@@ -3618,7 +3577,6 @@ where
         }
     }
 
-    // FIXME: In `target` only identifier and tuple without parens are valid
     fn parse_named_expr(&mut self, mut target: Expression<'src>, target_range: TextRange) -> ExprWithRange<'src> {
         assert!(self.eat(TokenKind::Operator(OperatorKind::ColonEqual)));
 

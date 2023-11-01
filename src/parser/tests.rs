@@ -67,6 +67,10 @@ f(
         for d in f
     },
 )
+call(
+    a=1 if True else None,
+    x=0,
+)
 "
         ));
     }
@@ -92,6 +96,7 @@ l[0:1, 2]
 l[0:1:2, 3, i:i + 1]
 x[a := b]
 a[:, :11]
+l[1,2,3]
 "
         ));
     }
@@ -238,6 +243,11 @@ f(a, x for i, j in l)
 [
     await x for a, b in C
 ]
+[i for i in await x if entity is not None]
+[x for x in (l if True else L) if T]
+[i for i in (await x if True else X) if F]
+[i for i in await (x if True else X) if F]
+[f for f in c(x if True else [])]
 "
         ));
     }
@@ -286,6 +296,7 @@ f(a, x for i, j in l)
     'A': lambda p: None,
     'B': C,
 }
+{**a, **b}
 "
         ));
     }
@@ -471,6 +482,7 @@ break
 
 del a
 del a, b, 1, 1 + 2,
+del a, (b, c), d
 
 assert 1 < 2
 assert f()
