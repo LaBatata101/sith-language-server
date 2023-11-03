@@ -684,33 +684,33 @@ ParsedFile {
                                             range: 318..319,
                                         },
                                     ),
-                                    iter: Await(
-                                        AwaitExpr {
-                                            value: IfElse(
-                                                IfElseExpr {
-                                                    body: Id(
+                                    iter: IfElse(
+                                        IfElseExpr {
+                                            body: Await(
+                                                AwaitExpr {
+                                                    value: Id(
                                                         IdExpr {
                                                             id: "x",
                                                             ctx: Load,
                                                             range: 330..331,
                                                         },
                                                     ),
-                                                    test: Literal(
-                                                        LiteralExpr {
-                                                            value: Bool(
-                                                                True,
-                                                            ),
-                                                            range: 335..339,
-                                                        },
+                                                    range: 324..331,
+                                                },
+                                            ),
+                                            test: Literal(
+                                                LiteralExpr {
+                                                    value: Bool(
+                                                        True,
                                                     ),
-                                                    orelse: Id(
-                                                        IdExpr {
-                                                            id: "X",
-                                                            ctx: Load,
-                                                            range: 345..346,
-                                                        },
-                                                    ),
-                                                    range: 330..346,
+                                                    range: 335..339,
+                                                },
+                                            ),
+                                            orelse: Id(
+                                                IdExpr {
+                                                    id: "X",
+                                                    ctx: Load,
+                                                    range: 345..346,
                                                 },
                                             ),
                                             range: 324..346,

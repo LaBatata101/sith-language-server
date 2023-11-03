@@ -340,6 +340,7 @@ await {i: 5}
 await 7, 8
 await (9, 10)
 await 1 == 1
+await x if True else None
 "
         ));
     }
