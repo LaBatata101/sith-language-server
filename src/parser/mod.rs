@@ -375,15 +375,28 @@ where
         true
     }
 
-    fn expect(&mut self, kind: TokenKind) -> bool {
-        if self.eat(kind) {
+    fn expect(&mut self, expected: TokenKind) -> bool {
+        if self.eat(expected) {
             return true;
         }
 
         let token = self.current_token();
         let found = token.kind();
-        self.add_error(ParseErrorType::ExpectedToken { found, expected: kind }, token.range());
+        self.add_error(ParseErrorType::ExpectedToken { found, expected }, token.range());
         false
+    }
+
+    fn expect_or_skip(&mut self, expected: TokenKind) {
+        if !self.expect(expected) {
+            while !self.at(expected) && !self.at(TokenKind::NewLine) {
+                self.next_token();
+            }
+            // If we don't see the token we are expecting, it doesn't necessarily
+            // indicates that it's missing. An unexpected token may have taken its
+            // place. Therefore, after skipping the unexpected tokens, we proceed
+            // to consume the token we originally expected.
+            self.eat(expected);
+        }
     }
 
     fn add_error(&mut self, error: ParseErrorType, range: TextRange) {
@@ -394,12 +407,6 @@ where
         while self.current_token().kind() != target
             && !matches!(self.current_token().kind(), TokenKind::NewLine | TokenKind::Eof)
         {
-            self.next_token();
-        }
-    }
-
-    fn advance_until_expr_or_token(&mut self, token: TokenKind) {
-        while !self.at_expr() && !self.at(token) && !self.at(TokenKind::NewLine) {
             self.next_token();
         }
     }
@@ -547,17 +554,8 @@ where
         let mut range = self.current_range();
 
         self.eat(TokenKind::SoftKeyword(SoftKeywordKind::Match));
-        let (subject, _) = if self.at_expr() {
-            self.parse_exprs()
-        } else {
-            let range = self.current_range();
-            self.add_error(
-                ParseErrorType::Other("expecting expression after `match` keyword".to_string()),
-                range,
-            );
-            (Expression::Invalid(range), range)
-        };
-        self.expect(TokenKind::Colon);
+        let (subject, _) = self.parse_exprs_or_add_error("expecting expression after `match` keyword");
+        self.expect_or_skip(TokenKind::Colon);
 
         self.eat(TokenKind::NewLine);
         if !self.eat(TokenKind::Indent) {
@@ -597,7 +595,7 @@ where
             None
         };
 
-        self.expect(TokenKind::Colon);
+        self.expect_or_skip(TokenKind::Colon);
         let (body, body_range) = self.parse_body();
         range = range.cover(body_range);
 
@@ -781,7 +779,7 @@ where
         }
 
         range = range.cover(self.current_range());
-        self.expect(closing);
+        self.expect_or_skip(closing);
 
         self.clear_ctx(ParserCtxFlags::SEQUENCE_PATTERN);
 
@@ -1096,7 +1094,7 @@ where
                 };
                 keys.push(key);
 
-                self.expect(TokenKind::Colon);
+                self.expect_or_skip(TokenKind::Colon);
 
                 let (pattern, _) = self.parse_match_pattern();
                 patterns.push(pattern);
@@ -1157,23 +1155,14 @@ where
         let mut range = self.current_range();
         self.eat(TokenKind::Keyword(KeywordKind::While));
 
-        let (test, _) = if self.at_expr() {
-            self.parse_exprs()
-        } else {
-            let range = self.current_range();
-            self.add_error(
-                ParseErrorType::Other("expecting expression after `while` keyword".to_string()),
-                range,
-            );
-            (Expression::Invalid(range), range)
-        };
-        self.expect(TokenKind::Colon);
+        let (test, _) = self.parse_expr_or_add_error("expecting expression after `while` keyword");
+        self.expect_or_skip(TokenKind::Colon);
 
         let (body, body_range) = self.parse_body();
         range = range.cover(body_range);
 
         let orelse = if self.eat(TokenKind::Keyword(KeywordKind::Else)) {
-            self.expect(TokenKind::Colon);
+            self.expect_or_skip(TokenKind::Colon);
 
             let (else_body, else_body_range) = self.parse_body();
             range = range.cover(else_body_range);
@@ -1200,42 +1189,28 @@ where
         let mut range = self.current_range();
         self.eat(TokenKind::Keyword(KeywordKind::For));
 
-        let (target, _) = if self.at_expr() {
-            self.set_ctx(ParserCtxFlags::FOR_TARGET);
-            let target = self.parse_exprs();
-            self.clear_ctx(ParserCtxFlags::FOR_TARGET);
-            target
-        } else {
-            let range = self.current_range();
-            self.add_error(
-                ParseErrorType::Other("expecting expression after `for` keyword".to_string()),
-                range,
-            );
-            (Expression::Invalid(range), range)
-        };
+        self.set_ctx(ParserCtxFlags::FOR_TARGET);
+        let (target, _) = self.parse_exprs_or_add_error("expecting expression after `for` keyword");
+        self.clear_ctx(ParserCtxFlags::FOR_TARGET);
 
         if !self.expect(TokenKind::Keyword(KeywordKind::In)) {
-            self.advance_until_expr_or_token(TokenKind::Colon);
+            // skip leading unexpected tokens
+            while matches!(
+                self.current_token().kind(),
+                TokenKind::Keyword(KeywordKind::In) | TokenKind::Colon
+            ) {
+                self.next_token();
+            }
         }
 
-        let (iter, _) = if self.at_expr() {
-            self.parse_exprs()
-        } else {
-            let range = self.current_range();
-            self.add_error(
-                ParseErrorType::Other("expecting an expression after `in` keyword".to_string()),
-                range,
-            );
-            (Expression::Invalid(range), range)
-        };
-
-        self.expect(TokenKind::Colon);
+        let (iter, _) = self.parse_exprs_or_add_error("expecting an expression after `in` keyword");
+        self.expect_or_skip(TokenKind::Colon);
 
         let (body, body_range) = self.parse_body();
         range = range.cover(body_range);
 
         let orelse = if self.eat(TokenKind::Keyword(KeywordKind::Else)) {
-            self.expect(TokenKind::Colon);
+            self.expect_or_skip(TokenKind::Colon);
 
             let (else_body, else_body_range) = self.parse_body();
             range = range.cover(else_body_range);
@@ -1260,7 +1235,7 @@ where
     fn parse_try_stmt(&mut self) -> StmtWithRange<'src> {
         let mut range = self.current_range();
         self.eat(TokenKind::Keyword(KeywordKind::Try));
-        self.expect(TokenKind::Colon);
+        self.expect_or_skip(TokenKind::Colon);
 
         let mut is_star = false;
         let mut has_except = false;
@@ -1282,9 +1257,13 @@ where
             let ty = if self.at(TokenKind::Colon) && !is_star {
                 None
             } else {
-                // TODO: don't allow unparenthesized tuples
-                // TODO: create error message "SyntaxError: multiple exception types must be parenthesized"
-                let (expr, _) = self.parse_exprs();
+                let (expr, expr_range) = self.parse_exprs();
+                if self.last_ctx.contains(ParserCtxFlags::TUPLE_EXPR) && matches!(expr, Expression::Tuple(_)) {
+                    self.add_error(
+                        ParseErrorType::Other("multiple exception types must be parenthesized".to_string()),
+                        expr_range,
+                    );
+                }
                 Some(Box::new(expr))
             };
 
@@ -1294,7 +1273,7 @@ where
                 None
             };
 
-            self.expect(TokenKind::Colon);
+            self.expect_or_skip(TokenKind::Colon);
 
             let (except_body, except_body_range) = self.parse_body();
 
@@ -1314,7 +1293,7 @@ where
         }
 
         let orelse = if self.eat(TokenKind::Keyword(KeywordKind::Else)) {
-            self.expect(TokenKind::Colon);
+            self.expect_or_skip(TokenKind::Colon);
 
             let (else_body, else_body_range) = self.parse_body();
             range = range.cover(else_body_range);
@@ -1325,7 +1304,7 @@ where
 
         let final_body = if self.eat(TokenKind::Keyword(KeywordKind::Finally)) {
             has_finally = true;
-            self.expect(TokenKind::Colon);
+            self.expect_or_skip(TokenKind::Colon);
 
             let (finally_body, finally_body_range) = self.parse_body();
             range = range.cover(finally_body_range);
@@ -1411,17 +1390,22 @@ where
 
         self.eat(TokenKind::OpenParenthesis);
         let parameters = self.parse_parameters();
-        self.expect(TokenKind::CloseParenthesis);
+        self.expect_or_skip(TokenKind::CloseParenthesis);
 
         let returns = if self.eat(TokenKind::RightArrow) {
-            // TODO: don't allow unparenthesized tuples here
-            let (returns, _) = self.parse_exprs();
+            let (returns, range) = self.parse_exprs();
+            if self.last_ctx.contains(ParserCtxFlags::TUPLE_EXPR) && matches!(returns, Expression::Tuple(_)) {
+                self.add_error(
+                    ParseErrorType::Other("multiple return types must be parenthesized".to_string()),
+                    range,
+                );
+            }
             Some(Box::new(returns))
         } else {
             None
         };
 
-        self.expect(TokenKind::Colon);
+        self.expect_or_skip(TokenKind::Colon);
 
         let (body, body_range) = self.parse_body();
         let range = func_range.cover(body_range);
@@ -1457,7 +1441,7 @@ where
             None
         };
 
-        self.expect(TokenKind::Colon);
+        self.expect_or_skip(TokenKind::Colon);
 
         let (body, body_range) = self.parse_body();
         let range = class_range.cover(body_range);
@@ -1586,7 +1570,7 @@ where
         self.eat(TokenKind::Keyword(KeywordKind::With));
 
         let items = self.parse_with_items();
-        self.expect(TokenKind::Colon);
+        self.expect_or_skip(TokenKind::Colon);
 
         let (body, body_range) = self.parse_body();
         range = range.cover(body_range);
@@ -2046,7 +2030,7 @@ where
             self.add_error(ParseErrorType::Other("missing module name".to_string()), range);
         }
 
-        self.expect(TokenKind::Keyword(KeywordKind::Import));
+        self.expect_or_skip(TokenKind::Keyword(KeywordKind::Import));
 
         let mut names = vec![];
         let mut range = if self.at(TokenKind::OpenParenthesis) {
@@ -2089,18 +2073,8 @@ where
         let mut if_range = self.current_range();
         assert!(self.eat(TokenKind::Keyword(KeywordKind::If)));
 
-        // TODO: don't allow unparenthesized tuple in `test`
-        let (test, _) = if self.at_expr() {
-            self.parse_exprs()
-        } else {
-            let range = self.current_range();
-            self.add_error(
-                ParseErrorType::Other("expecting expression after `if` keyword".to_string()),
-                range,
-            );
-            (Expression::Invalid(range), range)
-        };
-        self.expect(TokenKind::Colon);
+        let (test, _) = self.parse_expr_or_add_error("expecting expression after `if` keyword");
+        self.expect_or_skip(TokenKind::Colon);
 
         let (body, body_range) = self.parse_body();
         if_range = if_range.cover(body_range);
@@ -2136,8 +2110,8 @@ where
             let elif_range = self.current_range();
             self.eat(TokenKind::Keyword(KeywordKind::Elif));
 
-            let (test, _) = self.parse_exprs();
-            self.expect(TokenKind::Colon);
+            let (test, _) = self.parse_expr_or_add_error("expecting expression after `elif` keyword");
+            self.expect_or_skip(TokenKind::Colon);
 
             let (body, body_range) = self.parse_body();
             range = body_range;
@@ -2151,7 +2125,7 @@ where
         if self.at(TokenKind::Keyword(KeywordKind::Else)) {
             let else_range = self.current_range();
             self.eat(TokenKind::Keyword(KeywordKind::Else));
-            self.expect(TokenKind::Colon);
+            self.expect_or_skip(TokenKind::Colon);
 
             let (body, body_range) = self.parse_body();
             range = body_range;
@@ -2192,19 +2166,21 @@ where
             self.eat(TokenKind::Dedent);
         } else {
             let ctx_str = match self.ctx {
-                ParserCtxFlags::IF_STMT => "`if` statement",
-                ParserCtxFlags::FOR_STMT => "`for` statement",
-                ParserCtxFlags::WITH_STMT => "`with` statement",
-                ParserCtxFlags::WHILE_STMT => "`while` statement",
-                ParserCtxFlags::CLASS_DEF_STMT => "`class` definition",
-                ParserCtxFlags::FUNC_DEF_STMT => "function definition",
-                _ => unreachable!(),
+                ParserCtxFlags::IF_STMT => Some("`if` statement"),
+                ParserCtxFlags::FOR_STMT => Some("`for` statement"),
+                ParserCtxFlags::WITH_STMT => Some("`with` statement"),
+                ParserCtxFlags::WHILE_STMT => Some("`while` statement"),
+                ParserCtxFlags::CLASS_DEF_STMT => Some("`class` definition"),
+                ParserCtxFlags::FUNC_DEF_STMT => Some("function definition"),
+                _ => None,
             };
-            let range = self.current_range();
-            self.add_error(
-                ParseErrorType::Other(format!("expected an indented block after {ctx_str}")),
-                range,
-            );
+            if let Some(ctx_str) = ctx_str {
+                let range = self.current_range();
+                self.add_error(
+                    ParseErrorType::Other(format!("expected an indented block after {ctx_str}")),
+                    range,
+                );
+            }
         }
 
         (stmts, last_stmt_range)
@@ -2230,6 +2206,26 @@ where
             return self.parse_tuple_expr(expr, expr_range);
         }
         (expr, expr_range)
+    }
+
+    fn parse_expr_or_add_error(&mut self, error_msg: impl Display) -> ExprWithRange<'src> {
+        if self.at_expr() {
+            self.parse_expr()
+        } else {
+            let range = self.current_range();
+            self.add_error(ParseErrorType::Other(error_msg.to_string()), range);
+            (Expression::Invalid(range), range)
+        }
+    }
+
+    fn parse_exprs_or_add_error(&mut self, error_msg: impl Display) -> ExprWithRange<'src> {
+        if self.at_expr() {
+            self.parse_exprs()
+        } else {
+            let range = self.current_range();
+            self.add_error(ParseErrorType::Other(error_msg.to_string()), range);
+            (Expression::Invalid(range), range)
+        }
     }
 
     /// Parses every Python expression except unparenthesized tuple.
@@ -2592,7 +2588,7 @@ where
         // Create an error when receiving a empty slice to parse, e.g. `l[]`
         if !is_current_token_colon && !self.at_expr() {
             let close_bracket_range = self.current_range();
-            self.expect(TokenKind::CloseBracket);
+            self.expect_or_skip(TokenKind::CloseBracket);
 
             let range = value_range.cover(close_bracket_range);
             self.add_error(ParseErrorType::EmptySubscript, range);
@@ -2620,7 +2616,7 @@ where
         }
 
         let end_range = self.current_range();
-        self.expect(TokenKind::CloseBracket);
+        self.expect_or_skip(TokenKind::CloseBracket);
 
         let range = value_range.cover(end_range);
 
@@ -2878,7 +2874,7 @@ where
         }
 
         let close_bracket_range = self.current_range();
-        self.expect(TokenKind::CloseBracket);
+        self.expect_or_skip(TokenKind::CloseBracket);
 
         let range = open_bracket_range.cover(close_bracket_range);
 
@@ -2944,7 +2940,7 @@ where
         }
 
         let close_brace_range = self.current_range();
-        self.expect(TokenKind::CloseBrace);
+        self.expect_or_skip(TokenKind::CloseBrace);
 
         let range = open_brace_range.cover(close_brace_range);
 
@@ -2999,7 +2995,7 @@ where
         }
 
         let close_paren_range = self.current_range();
-        self.expect(TokenKind::CloseParenthesis);
+        self.expect_or_skip(TokenKind::CloseParenthesis);
 
         let range = open_paren_range.cover(close_paren_range);
 
@@ -3112,7 +3108,7 @@ where
                     let (key, _) = self.parse_expr();
                     keys.push(Some(key));
 
-                    self.expect(TokenKind::Colon);
+                    self.expect_or_skip(TokenKind::Colon);
                 }
                 let (value, _) = self.parse_expr();
                 values.push(value);
@@ -3130,30 +3126,20 @@ where
         let mut range = self.current_range();
 
         let is_async = self.eat(TokenKind::Keyword(KeywordKind::Async));
-        self.expect(TokenKind::Keyword(KeywordKind::For));
+        self.expect_or_skip(TokenKind::Keyword(KeywordKind::For));
 
-        let mut ifs = vec![];
-        let (target, _) = if self.at_expr() {
-            self.set_ctx(ParserCtxFlags::COMPREHENSION_TARGET);
-            let target = self.parse_exprs();
-            self.clear_ctx(ParserCtxFlags::COMPREHENSION_TARGET);
-            target
-        } else {
-            let range = self.current_range();
-            self.add_error(
-                ParseErrorType::Other("expecting expression after `for` keyword".to_string()),
-                range,
-            );
-            (Expression::Invalid(range), range)
-        };
-        self.expect(TokenKind::Keyword(KeywordKind::In));
+        self.set_ctx(ParserCtxFlags::COMPREHENSION_TARGET);
+        let (target, _) = self.parse_exprs_or_add_error("expecting expression after `for` keyword");
+        self.clear_ctx(ParserCtxFlags::COMPREHENSION_TARGET);
 
-        // TODO: don't parse tuple in `iter`
+        self.expect_or_skip(TokenKind::Keyword(KeywordKind::In));
+
         self.set_ctx(ParserCtxFlags::COMPREHENSION_ITER);
-        let (iter, iter_expr) = self.parse_exprs();
+        let (iter, iter_expr) = self.parse_expr_or_add_error("expecting expression after `in` keyword");
         range = range.cover(iter_expr);
         self.clear_ctx(ParserCtxFlags::COMPREHENSION_ITER);
 
+        let mut ifs = vec![];
         while self.eat(TokenKind::Keyword(KeywordKind::If)) {
             let (if_expr, if_range) = self.expr_bp(1);
             ifs.push(if_expr);
@@ -3371,10 +3357,9 @@ where
         self.set_ctx(ParserCtxFlags::IF_EXPR);
         assert!(self.eat(TokenKind::Keyword(KeywordKind::If)));
 
-        // TODO: check if unparenthesized tuple is allowed in `test`, not allowed
-        let (test, _) = self.parse_exprs();
+        let (test, _) = self.parse_expr();
 
-        self.expect(TokenKind::Keyword(KeywordKind::Else));
+        self.expect_or_skip(TokenKind::Keyword(KeywordKind::Else));
 
         // clear context early so we can parse a `if` expression in `orelse`
         self.clear_ctx(ParserCtxFlags::IF_EXPR);
@@ -3404,7 +3389,7 @@ where
             Some(Box::new(self.parse_parameters()))
         };
 
-        self.expect(TokenKind::Colon);
+        self.expect_or_skip(TokenKind::Colon);
 
         // Check for forbidden tokens in the `lambda`'s body
         let token = self.current_token();
