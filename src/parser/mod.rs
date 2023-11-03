@@ -37,38 +37,36 @@ pub fn parse(src: &str) -> ParsedFile<'_> {
 bitflags! {
     #[derive(Default)]
     struct ParserCtxFlags: u32 {
-        const ID_EXPR = 1 << 0;
-        const DICT_EXPR = 1 << 1;
-        const LIST_EXPR = 1 << 2;
-        const SLICE_EXPR = 1 << 3;
-        const TUPLE_EXPR = 1 << 4;
-        const SUBSCRIPT_EXPR = 1 << 5;
-        const PARENTHESIZED_EXPR = 1 << 6;
-        const BRACESIZED_EXPR = 1 << 7;
-        const AWAIT_EXPR = 1 << 8;
-        const SET_COMP_EXPR = 1 << 9;
-        const IF_EXPR = 1 << 10;
-        const LAMBDA_EXPR = 1 << 11;
-        const LIST_COMP_EXPR = 1 << 12;
-        const GENERATOR_EXPR = 1 << 13;
-        const DICT_COMP_EXPR = 1 << 14;
+        const DICT_EXPR = 1 << 0;
+        const LIST_EXPR = 1 << 1;
+        const SLICE_EXPR = 1 << 2;
+        const TUPLE_EXPR = 1 << 3;
+        const SUBSCRIPT_EXPR = 1 << 4;
+        const PARENTHESIZED_EXPR = 1 << 5;
+        const BRACESIZED_EXPR = 1 << 6;
+        const SET_COMP_EXPR = 1 << 7;
+        const LAMBDA_EXPR = 1 << 8;
+        const LIST_COMP_EXPR = 1 << 9;
+        const GENERATOR_EXPR = 1 << 10;
+        const DICT_COMP_EXPR = 1 << 11;
 
-        const IF_STMT = 1 << 15;
-        const DEL_STMT = 1 << 16;
-        const FUNC_DEF_STMT = 1 << 17;
-        const CLASS_DEF_STMT = 1 << 18;
-        const WITH_STMT = 1 << 19;
-        const FOR_STMT = 1 << 20;
-        const WHILE_STMT  = 1 << 21;
-        const MATCH_STMT  = 1 << 22;
+        const IF_STMT = 1 << 12;
+        const DEL_STMT = 1 << 13;
+        const FUNC_DEF_STMT = 1 << 14;
+        const CLASS_DEF_STMT = 1 << 15;
+        const WITH_STMT = 1 << 16;
+        const FOR_STMT = 1 << 17;
+        const WHILE_STMT  = 1 << 18;
+        const MATCH_STMT  = 1 << 19;
 
-        const COMPREHENSION_TARGET = 1 << 23;
-        const COMPREHENSION_ITER = 1 << 24;
-        const ARGUMENTS = 1 << 25;
-        const SEQUENCE_PATTERN = 1 << 26;
-        const CLASS_PATTERN = 1 << 27;
-        const MAPPING_PATTERN = 1 << 28;
-        const FOR_TARGET = 1 << 29;
+        const COMPREHENSION_TARGET = 1 << 20;
+        const ARGUMENTS = 1 << 21;
+        const SEQUENCE_PATTERN = 1 << 22;
+        const CLASS_PATTERN = 1 << 23;
+        const MAPPING_PATTERN = 1 << 24;
+        const FOR_TARGET = 1 << 25;
+
+        const AWAIT_EXPR = 1 << 26;
     }
 }
 
@@ -2215,12 +2213,7 @@ where
     fn parse_expr(&mut self) -> ExprWithRange<'src> {
         let (expr, expr_range) = self.parse_expr_simple();
 
-        // Don't parse an `if` expression if we are currently parsing an `if` expression
-        // or the comprehension `iter`.
-        if (!self.has_in_curr_or_parent_ctx(ParserCtxFlags::IF_EXPR)
-            || self.has_in_curr_or_parent_ctx(ParserCtxFlags::PARENTHESIZED_EXPR | ParserCtxFlags::ARGUMENTS))
-            && self.at(TokenKind::Keyword(KeywordKind::If))
-        {
+        if self.at(TokenKind::Keyword(KeywordKind::If)) {
             return self.parse_if_expr(expr, expr_range);
         }
 
@@ -2304,6 +2297,9 @@ where
     }
 
     /// Parses expression with binding power of at least bp.
+    ///
+    /// Uses the Pratt parser algorithm.
+    /// See <https://matklad.github.io/2020/04/13/simple-but-powerful-pratt-parsing.html>
     fn expr_bp(&mut self, bp: u8) -> ExprWithRange<'src> {
         let (mut lhs, mut lhs_range) = self.parse_lhs();
 
@@ -3149,14 +3145,12 @@ where
 
         self.expect_or_skip(TokenKind::Keyword(KeywordKind::In));
 
-        self.set_ctx(ParserCtxFlags::COMPREHENSION_ITER);
-        let (iter, iter_expr) = self.parse_expr_or_add_error("expecting expression after `in` keyword");
+        let (iter, iter_expr) = self.parse_expr_simple_or_add_error("expecting expression after `in` keyword");
         range = range.cover(iter_expr);
-        self.clear_ctx(ParserCtxFlags::COMPREHENSION_ITER);
 
         let mut ifs = vec![];
         while self.eat(TokenKind::Keyword(KeywordKind::If)) {
-            let (if_expr, if_range) = self.expr_bp(1);
+            let (if_expr, if_range) = self.parse_expr_simple();
             ifs.push(if_expr);
             range = range.cover(if_range);
         }
@@ -3171,15 +3165,6 @@ where
     }
 
     fn parse_generators(&mut self, mut range: TextRange) -> (Vec<nodes::Comprehension<'src>>, TextRange) {
-        // Being currently at a `ARGUMENTS` context will prevent us from parsing
-        // a tuple. Therefore, we need to unset the `ARGUMENTS` flag before parsing
-        // the generator expression, so we can parse tuples in the `for` comprehension's
-        // `target`.
-        let in_arguments = self.has_ctx(ParserCtxFlags::ARGUMENTS);
-        if in_arguments {
-            self.clear_ctx(ParserCtxFlags::ARGUMENTS);
-        }
-
         let mut generators = vec![];
         while matches!(
             self.current_token().kind(),
@@ -3189,11 +3174,6 @@ where
             range = range.cover(comp.range);
 
             generators.push(comp);
-        }
-
-        // After parsing the generators, set the `ARGUMENTS` flag again.
-        if in_arguments {
-            self.set_ctx(ParserCtxFlags::ARGUMENTS);
         }
 
         (generators, range)
@@ -3369,15 +3349,12 @@ where
     }
 
     fn parse_if_expr(&mut self, body: Expression<'src>, body_range: TextRange) -> ExprWithRange<'src> {
-        self.set_ctx(ParserCtxFlags::IF_EXPR);
         assert!(self.eat(TokenKind::Keyword(KeywordKind::If)));
 
-        let (test, _) = self.parse_expr();
+        let (test, _) = self.parse_expr_simple();
 
         self.expect_or_skip(TokenKind::Keyword(KeywordKind::Else));
 
-        // clear context early so we can parse a `if` expression in `orelse`
-        self.clear_ctx(ParserCtxFlags::IF_EXPR);
         let (orelse, orelse_range) = self.parse_expr();
         let if_range = body_range.cover(orelse_range);
 
