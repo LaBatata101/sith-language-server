@@ -2208,6 +2208,40 @@ where
         (expr, expr_range)
     }
 
+    /// Parses every Python expression except unparenthesized tuple.
+    ///
+    /// If you have expressions separated by commas and want to parse then individually,
+    /// instead of a tuple, use this function!
+    fn parse_expr(&mut self) -> ExprWithRange<'src> {
+        let (expr, expr_range) = self.parse_expr_simple();
+
+        // Don't parse an `if` expression if we are currently parsing an `if` expression
+        // or the comprehension `iter`.
+        if (!self.has_in_curr_or_parent_ctx(ParserCtxFlags::IF_EXPR)
+            || self.has_in_curr_or_parent_ctx(ParserCtxFlags::PARENTHESIZED_EXPR | ParserCtxFlags::ARGUMENTS))
+            && self.at(TokenKind::Keyword(KeywordKind::If))
+        {
+            return self.parse_if_expr(expr, expr_range);
+        }
+
+        (expr, expr_range)
+    }
+
+    /// Parses every Python expression except unparenthesized tuple and `if` expression.
+    fn parse_expr_simple(&mut self) -> ExprWithRange<'src> {
+        self.expr_bp(1)
+    }
+
+    fn parse_expr_simple_or_add_error(&mut self, error_msg: impl Display) -> ExprWithRange<'src> {
+        if self.at_expr() {
+            self.parse_expr_simple()
+        } else {
+            let range = self.current_range();
+            self.add_error(ParseErrorType::Other(error_msg.to_string()), range);
+            (Expression::Invalid(range), range)
+        }
+    }
+
     fn parse_expr_or_add_error(&mut self, error_msg: impl Display) -> ExprWithRange<'src> {
         if self.at_expr() {
             self.parse_expr()
@@ -2226,25 +2260,6 @@ where
             self.add_error(ParseErrorType::Other(error_msg.to_string()), range);
             (Expression::Invalid(range), range)
         }
-    }
-
-    /// Parses every Python expression except unparenthesized tuple.
-    ///
-    /// If you have expressions separated by commas and want to parse then individually,
-    /// instead of a tuple, use this function!
-    fn parse_expr(&mut self) -> ExprWithRange<'src> {
-        let (expr, expr_range) = self.expr_bp(1);
-
-        // Don't parse an `if` expression if we are currently parsing an `if` expression
-        // or the comprehension `iter`.
-        if (!self.has_in_curr_or_parent_ctx(ParserCtxFlags::IF_EXPR | ParserCtxFlags::COMPREHENSION_ITER)
-            || self.has_in_curr_or_parent_ctx(ParserCtxFlags::PARENTHESIZED_EXPR | ParserCtxFlags::ARGUMENTS))
-            && self.at(TokenKind::Keyword(KeywordKind::If))
-        {
-            return self.parse_if_expr(expr, expr_range);
-        }
-
-        (expr, expr_range)
     }
 
     /// Binding powers of operators for a Pratt parser.
@@ -3279,7 +3294,7 @@ where
         let mut await_range = self.current_range();
         self.eat(TokenKind::Keyword(KeywordKind::Await));
 
-        let (expr, expr_range) = self.parse_expr();
+        let (expr, expr_range) = self.parse_expr_simple();
         await_range = await_range.cover(expr_range);
 
         if matches!(expr, Expression::Starred(_)) {

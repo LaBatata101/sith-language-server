@@ -1,6 +1,6 @@
 ---
 source: src/parser/tests.rs
-expression: "parse(\"\nawait x\nawait x + 1\nawait a and b\nawait f()\nawait [1, 2]\nawait {3, 4}\nawait {i: 5}\nawait 7, 8\nawait (9, 10)\nawait 1 == 1\n\")"
+expression: "parse(\"\nawait x\nawait x + 1\nawait a and b\nawait f()\nawait [1, 2]\nawait {3, 4}\nawait {i: 5}\nawait 7, 8\nawait (9, 10)\nawait 1 == 1\nawait x if True else None\n\")"
 ---
 ParsedFile {
     ast: Module {
@@ -319,8 +319,44 @@ ParsedFile {
                     range: 109..121,
                 },
             ),
+            Expression(
+                ExpressionStmt {
+                    value: IfElse(
+                        IfElseExpr {
+                            body: Await(
+                                AwaitExpr {
+                                    value: Id(
+                                        IdExpr {
+                                            id: "x",
+                                            ctx: Load,
+                                            range: 128..129,
+                                        },
+                                    ),
+                                    range: 122..129,
+                                },
+                            ),
+                            test: Literal(
+                                LiteralExpr {
+                                    value: Bool(
+                                        True,
+                                    ),
+                                    range: 133..137,
+                                },
+                            ),
+                            orelse: Literal(
+                                LiteralExpr {
+                                    value: None,
+                                    range: 143..147,
+                                },
+                            ),
+                            range: 122..147,
+                        },
+                    ),
+                    range: 122..147,
+                },
+            ),
         ],
-        range: 0..121,
+        range: 0..147,
     },
     parse_errors: [],
 }
