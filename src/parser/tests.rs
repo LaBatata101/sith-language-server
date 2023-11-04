@@ -941,4 +941,30 @@ match y:
 "
         ));
     }
+
+    #[test]
+    fn parse_type_alias_stmt() {
+        assert_debug_snapshot!(parse(
+            "
+type Point = tuple[float, float]
+type Point[T] = tuple[T, T]
+type IntFunc[**P] = Callable[P, int]  # ParamSpec
+type LabeledTuple[*Ts] = tuple[str, *Ts]  # TypeVarTuple
+type HashableSequence[T: Hashable] = Sequence[T]  # TypeVar with bound
+type IntOrStrSequence[T: (int, str)] = Sequence[T]  # TypeVar with constraints
+"
+        ));
+    }
+
+    #[test]
+    fn parse_type_params() {
+        assert_debug_snapshot!(parse(
+            "
+def max[T](args: Iterable[T]) -> T:
+    ...
+class list[T]:
+    ...
+"
+        ));
+    }
 }

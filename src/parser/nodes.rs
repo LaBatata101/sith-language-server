@@ -1,5 +1,6 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, ops::Index};
 
+use ruff_index::{newtype_index, IndexVec};
 use ruff_text_size::{Ranged, TextRange};
 
 use crate::lexer::types::{KeywordKind, OperatorKind, TokenKind};
@@ -38,6 +39,7 @@ pub enum Statement<'a> {
     Try(TryStmt<'a>),
     While(WhileStmt<'a>),
     With(WithStmt<'a>),
+    TypeAlias(TypeAlias<'a>),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -124,6 +126,7 @@ impl Ranged for LambdaExpr<'_> {
 pub struct ClassDefStmt<'a> {
     pub decorators: Vec<Decorator<'a>>,
     pub name: MaybeIdentifier<'a>,
+    pub type_params: Option<TypeParams<'a>>,
     pub arguments: Option<Box<Arguments<'a>>>,
     pub body: Vec<Statement<'a>>,
     pub range: TextRange,
@@ -225,6 +228,7 @@ pub struct Decorator<'a> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct FunctionDefStmt<'a> {
     pub name: MaybeIdentifier<'a>,
+    pub type_params: Option<TypeParams<'a>>,
     pub parameters: Box<Parameters<'a>>,
     pub body: Vec<Statement<'a>>,
     pub decorators: Vec<Decorator<'a>>,
@@ -1036,6 +1040,46 @@ impl Ranged for IdExpr<'_> {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+pub struct TypeAlias<'a> {
+    pub name: Box<Expression<'a>>,
+    pub type_params: Option<TypeParams<'a>>,
+    pub value: Box<Expression<'a>>,
+    pub range: TextRange,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct TypeParams<'a> {
+    pub type_params: Vec<TypeParam<'a>>,
+    pub range: TextRange,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum TypeParam<'a> {
+    TypeVar(TypeParamTypeVar<'a>),
+    ParamSpec(TypeParamSpec<'a>),
+    TypeVarTuple(TypeParamTypeVarTuple<'a>),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct TypeParamTypeVar<'a> {
+    pub name: MaybeIdentifier<'a>,
+    pub bound: Option<Box<Expression<'a>>>,
+    pub range: TextRange,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct TypeParamSpec<'a> {
+    pub name: MaybeIdentifier<'a>,
+    pub range: TextRange,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct TypeParamTypeVarTuple<'a> {
+    pub name: MaybeIdentifier<'a>,
+    pub range: TextRange,
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub struct FStringExpr<'a> {
     pub values: Vec<Expression<'a>>,
     pub range: TextRange,
@@ -1071,3 +1115,68 @@ pub enum ConversionFlag {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct DebugText {}
+
+#[newtype_index]
+pub struct NodeId;
+
+#[derive(Debug)]
+struct NodeWithParent<'a> {
+    node: NodeRef<'a>,
+    parent: Option<NodeId>,
+}
+
+#[derive(Debug, Default)]
+pub struct Nodes<'a>(IndexVec<NodeId, NodeWithParent<'a>>);
+
+impl<'a> Nodes<'a> {
+    pub fn insert(&mut self, node: NodeRef<'a>, parent: Option<NodeId>) -> NodeId {
+        self.0.push(NodeWithParent { node, parent })
+    }
+
+    #[inline]
+    pub fn parend_id(&self, node_id: NodeId) -> Option<NodeId> {
+        self.0[node_id].parent
+    }
+}
+
+impl<'a> Index<NodeId> for Nodes<'a> {
+    type Output = NodeRef<'a>;
+
+    fn index(&self, index: NodeId) -> &Self::Output {
+        &self.0[index].node
+    }
+}
+
+#[derive(Debug)]
+pub enum NodeRef<'a> {
+    Stmt(&'a Statement<'a>),
+    Expr(&'a Expression<'a>),
+}
+
+impl<'a> NodeRef<'a> {
+    pub fn as_stmt(&self) -> Option<&'a Statement<'a>> {
+        match self {
+            NodeRef::Stmt(stmt) => Some(stmt),
+            _ => None,
+        }
+    }
+
+    pub fn as_expr(&self) -> Option<&'a Expression<'a>> {
+        match self {
+            NodeRef::Expr(expr) => Some(expr),
+            _ => None,
+        }
+    }
+}
+
+impl<'a> From<&'a Expression<'a>> for NodeRef<'a> {
+    fn from(value: &'a Expression<'a>) -> Self {
+        NodeRef::Expr(value)
+    }
+}
+
+impl<'a> From<&'a Statement<'a>> for NodeRef<'a> {
+    fn from(value: &'a Statement<'a>) -> Self {
+        NodeRef::Stmt(value)
+    }
+}

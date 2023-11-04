@@ -13,6 +13,7 @@ ParsedFile {
                             range: 5..6,
                         },
                     ),
+                    type_params: None,
                     parameters: Parameters {
                         kwarg: None,
                         vararg: None,
@@ -46,6 +47,7 @@ ParsedFile {
                             range: 22..23,
                         },
                     ),
+                    type_params: None,
                     parameters: Parameters {
                         kwarg: None,
                         vararg: None,
@@ -114,6 +116,7 @@ ParsedFile {
                             range: 63..66,
                         },
                     ),
+                    type_params: None,
                     parameters: Parameters {
                         kwarg: None,
                         vararg: None,
@@ -200,6 +203,7 @@ ParsedFile {
                             range: 108..110,
                         },
                     ),
+                    type_params: None,
                     parameters: Parameters {
                         kwarg: Some(
                             Parameter {
@@ -244,6 +248,7 @@ ParsedFile {
                             range: 124..126,
                         },
                     ),
+                    type_params: None,
                     parameters: Parameters {
                         kwarg: Some(
                             Parameter {
@@ -326,6 +331,7 @@ ParsedFile {
                             range: 148..150,
                         },
                     ),
+                    type_params: None,
                     parameters: Parameters {
                         kwarg: None,
                         vararg: Some(
@@ -382,6 +388,7 @@ ParsedFile {
                             range: 170..172,
                         },
                     ),
+                    type_params: None,
                     parameters: Parameters {
                         kwarg: Some(
                             Parameter {
@@ -463,6 +470,7 @@ ParsedFile {
                             range: 203..205,
                         },
                     ),
+                    type_params: None,
                     parameters: Parameters {
                         kwarg: Some(
                             Parameter {
@@ -582,6 +590,7 @@ ParsedFile {
                             range: 244..246,
                         },
                     ),
+                    type_params: None,
                     parameters: Parameters {
                         kwarg: None,
                         vararg: None,
@@ -630,6 +639,7 @@ ParsedFile {
                             range: 262..264,
                         },
                     ),
+                    type_params: None,
                     parameters: Parameters {
                         kwarg: None,
                         vararg: None,
@@ -693,6 +703,7 @@ ParsedFile {
                             range: 283..285,
                         },
                     ),
+                    type_params: None,
                     parameters: Parameters {
                         kwarg: None,
                         vararg: None,
@@ -750,6 +761,7 @@ ParsedFile {
                             range: 304..306,
                         },
                     ),
+                    type_params: None,
                     parameters: Parameters {
                         kwarg: None,
                         vararg: None,
@@ -827,6 +839,7 @@ ParsedFile {
                             range: 331..334,
                         },
                     ),
+                    type_params: None,
                     parameters: Parameters {
                         kwarg: None,
                         vararg: None,
@@ -899,6 +912,7 @@ ParsedFile {
                             range: 356..359,
                         },
                     ),
+                    type_params: None,
                     parameters: Parameters {
                         kwarg: None,
                         vararg: None,
@@ -1010,6 +1024,7 @@ ParsedFile {
                             range: 398..401,
                         },
                     ),
+                    type_params: None,
                     parameters: Parameters {
                         kwarg: None,
                         vararg: None,
