@@ -14,6 +14,7 @@ ParsedFile {
                             range: 7..8,
                         },
                     ),
+                    type_params: None,
                     arguments: None,
                     body: [
                         Expression(
@@ -39,6 +40,7 @@ ParsedFile {
                             range: 24..28,
                         },
                     ),
+                    type_params: None,
                     arguments: Some(
                         Arguments {
                             args: [],
@@ -55,6 +57,7 @@ ParsedFile {
                                         range: 44..52,
                                     },
                                 ),
+                                type_params: None,
                                 parameters: Parameters {
                                     kwarg: None,
                                     vararg: None,
@@ -103,6 +106,7 @@ ParsedFile {
                             range: 83..84,
                         },
                     ),
+                    type_params: None,
                     arguments: Some(
                         Arguments {
                             args: [
@@ -179,6 +183,7 @@ ParsedFile {
                             range: 114..115,
                         },
                     ),
+                    type_params: None,
                     arguments: None,
                     body: [
                         FunctionDef(
@@ -189,6 +194,7 @@ ParsedFile {
                                         range: 125..126,
                                     },
                                 ),
+                                type_params: None,
                                 parameters: Parameters {
                                     kwarg: None,
                                     vararg: None,

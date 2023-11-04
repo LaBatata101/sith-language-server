@@ -244,7 +244,7 @@ macro_rules! parse_delimited {
         };
 
         let end_range = $parser.current_range();
-        $parser.expect(closing);
+        $parser.expect_or_skip(closing);
 
         let __range = start_range.cover(end_range);
         __range
@@ -1385,6 +1385,11 @@ where
 
         self.eat(TokenKind::Keyword(KeywordKind::Def));
         let name = self.parse_identifier();
+        let type_params = if self.at(TokenKind::OpenBracket) {
+            Some(self.parse_type_params())
+        } else {
+            None
+        };
 
         self.eat(TokenKind::OpenParenthesis);
         let parameters = self.parse_parameters();
@@ -1413,6 +1418,7 @@ where
         (
             Statement::FunctionDef(nodes::FunctionDefStmt {
                 name,
+                type_params,
                 parameters: Box::new(parameters),
                 body,
                 decorators,
@@ -1433,6 +1439,11 @@ where
         self.eat(TokenKind::Keyword(KeywordKind::Class));
 
         let name = self.parse_identifier();
+        let type_params = if self.at(TokenKind::OpenBracket) {
+            Some(self.parse_type_params())
+        } else {
+            None
+        };
         let arguments = if self.at(TokenKind::OpenParenthesis) {
             Some(Box::new(self.parse_arguments()))
         } else {
@@ -1450,6 +1461,7 @@ where
             Statement::Class(nodes::ClassDefStmt {
                 decorators,
                 name,
+                type_params,
                 arguments,
                 body,
                 range,
@@ -1743,6 +1755,7 @@ where
             TokenKind::Keyword(KeywordKind::From) => self.parse_import_from_stmt(token.range()),
             TokenKind::Keyword(KeywordKind::Continue) => self.parse_continue_stmt(token.range()),
             TokenKind::Keyword(KeywordKind::NonLocal) => self.parse_nonlocal_stmt(token.range()),
+            TokenKind::SoftKeyword(SoftKeywordKind::Type) => self.parse_type_stmt(token.range()),
             _ => {
                 let (expr, range) = self.parse_expr_stmt();
 
@@ -1934,6 +1947,74 @@ where
         }
 
         (Statement::Raise(nodes::RaiseStmt { exc, cause, range }), range)
+    }
+
+    fn parse_type_stmt(&mut self, range: TextRange) -> StmtWithRange<'src> {
+        self.eat(TokenKind::SoftKeyword(SoftKeywordKind::Type));
+
+        let (name, _) = self.parse_id_expr();
+        let type_params = if self.at(TokenKind::OpenBracket) {
+            Some(self.parse_type_params())
+        } else {
+            None
+        };
+        self.expect_or_skip(TokenKind::Operator(OperatorKind::Assign));
+
+        let (value, value_range) = self.parse_expr();
+        let range = range.cover(value_range);
+
+        (
+            Statement::TypeAlias(nodes::TypeAlias {
+                name: Box::new(name),
+                type_params,
+                value: Box::new(value),
+                range,
+            }),
+            range,
+        )
+    }
+
+    fn parse_type_params(&mut self) -> nodes::TypeParams<'src> {
+        let mut type_params = vec![];
+        let range = parse_delimited! {
+            self,
+            openning=TokenKind::OpenBracket,
+            closing=TokenKind::CloseBracket,
+            delim=TokenKind::Comma,
+            allow_trailing_delim=true,
+            parsing={
+               type_params.push(self.parse_type_param());
+            }
+        };
+
+        nodes::TypeParams { type_params, range }
+    }
+
+    fn parse_type_param(&mut self) -> nodes::TypeParam<'src> {
+        let mut range = self.current_range();
+        if self.eat(TokenKind::Operator(OperatorKind::Asterisk)) {
+            let name = self.parse_identifier();
+            nodes::TypeParam::TypeVarTuple(nodes::TypeParamTypeVarTuple {
+                range: range.cover(name.range()),
+                name,
+            })
+        } else if self.eat(TokenKind::Operator(OperatorKind::Exponent)) {
+            let name = self.parse_identifier();
+            nodes::TypeParam::ParamSpec(nodes::TypeParamSpec {
+                range: range.cover(name.range()),
+                name,
+            })
+        } else {
+            let name = self.parse_identifier();
+            let bound = if self.eat(TokenKind::Colon) {
+                let (bound, bound_range) = self.parse_expr();
+                range = range.cover(bound_range);
+                Some(Box::new(bound))
+            } else {
+                None
+            };
+            nodes::TypeParam::TypeVar(nodes::TypeParamTypeVar { range, name, bound })
+        }
     }
 
     fn parse_dotted_name(&mut self) -> nodes::Identifier<'src> {

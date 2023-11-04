@@ -38,6 +38,7 @@ pub enum Statement<'a> {
     Try(TryStmt<'a>),
     While(WhileStmt<'a>),
     With(WithStmt<'a>),
+    TypeAlias(TypeAlias<'a>),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -124,6 +125,7 @@ impl Ranged for LambdaExpr<'_> {
 pub struct ClassDefStmt<'a> {
     pub decorators: Vec<Decorator<'a>>,
     pub name: MaybeIdentifier<'a>,
+    pub type_params: Option<TypeParams<'a>>,
     pub arguments: Option<Box<Arguments<'a>>>,
     pub body: Vec<Statement<'a>>,
     pub range: TextRange,
@@ -225,6 +227,7 @@ pub struct Decorator<'a> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct FunctionDefStmt<'a> {
     pub name: MaybeIdentifier<'a>,
+    pub type_params: Option<TypeParams<'a>>,
     pub parameters: Box<Parameters<'a>>,
     pub body: Vec<Statement<'a>>,
     pub decorators: Vec<Decorator<'a>>,
@@ -1033,6 +1036,46 @@ impl Ranged for IdExpr<'_> {
     fn range(&self) -> TextRange {
         self.range
     }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct TypeAlias<'a> {
+    pub name: Box<Expression<'a>>,
+    pub type_params: Option<TypeParams<'a>>,
+    pub value: Box<Expression<'a>>,
+    pub range: TextRange,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct TypeParams<'a> {
+    pub type_params: Vec<TypeParam<'a>>,
+    pub range: TextRange,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum TypeParam<'a> {
+    TypeVar(TypeParamTypeVar<'a>),
+    ParamSpec(TypeParamSpec<'a>),
+    TypeVarTuple(TypeParamTypeVarTuple<'a>),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct TypeParamTypeVar<'a> {
+    pub name: MaybeIdentifier<'a>,
+    pub bound: Option<Box<Expression<'a>>>,
+    pub range: TextRange,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct TypeParamSpec<'a> {
+    pub name: MaybeIdentifier<'a>,
+    pub range: TextRange,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct TypeParamTypeVarTuple<'a> {
+    pub name: MaybeIdentifier<'a>,
+    pub range: TextRange,
 }
 
 #[derive(Debug, PartialEq, Eq)]

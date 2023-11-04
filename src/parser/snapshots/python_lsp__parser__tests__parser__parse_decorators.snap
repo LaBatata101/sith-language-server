@@ -13,6 +13,7 @@ ParsedFile {
                             range: 8..9,
                         },
                     ),
+                    type_params: None,
                     parameters: Parameters {
                         kwarg: None,
                         vararg: None,
@@ -57,6 +58,7 @@ ParsedFile {
                             range: 29..30,
                         },
                     ),
+                    type_params: None,
                     parameters: Parameters {
                         kwarg: None,
                         vararg: None,
@@ -125,6 +127,7 @@ ParsedFile {
                             range: 53..54,
                         },
                     ),
+                    type_params: None,
                     parameters: Parameters {
                         kwarg: None,
                         vararg: None,
@@ -274,6 +277,7 @@ ParsedFile {
                             range: 86..87,
                         },
                     ),
+                    type_params: None,
                     arguments: None,
                     body: [
                         Expression(
