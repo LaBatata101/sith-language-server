@@ -976,8 +976,6 @@ f''''''
         ));
     }
 
-    // TODO: create `UnclosedLbrace` error when there is a unclosed brace containing
-    // a `:`
     #[test]
     fn parse_fstring() {
         assert_debug_snapshot!(parse(

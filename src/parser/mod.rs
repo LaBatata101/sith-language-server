@@ -3004,7 +3004,7 @@ where
     fn parse_formatted_value_expr(&mut self) -> ExprWithRange<'src> {
         let mut range = self.current_range();
 
-        self.eat(TokenKind::OpenBrace);
+        let has_open_brace = self.eat(TokenKind::OpenBrace);
         let (value, value_range) = self.parse_expr_or_add_error("f-string: empty expression is not allowed");
         if !self.last_ctx.contains(ParserCtxFlags::PARENTHESIZED_EXPR) && matches!(value, Expression::Lambda(_)) {
             self.add_error(
@@ -3049,9 +3049,15 @@ where
             None
         };
 
-        range = range.cover(self.current_range());
-        self.eat(TokenKind::CloseBrace);
+        let close_brace_range = self.current_range();
+        if has_open_brace && !self.eat(TokenKind::CloseBrace) {
+            self.add_error(
+                ParseErrorType::Other("f-string: expecting `}`".into()),
+                close_brace_range,
+            );
+        }
 
+        range = range.cover(close_brace_range);
         (
             Expression::FormattedValue(nodes::FormattedValueExpr {
                 value: Box::new(value),
