@@ -16,7 +16,8 @@ use crate::{
 use self::{
     helpers::remove_str_quotes,
     nodes::{
-        BinaryOp, BoolOp, BoolValue, CompareOp, ContextExpr, Expression, Literal, Operator, Pattern, Statement, UnaryOp,
+        BinaryOp, BoolOp, BoolValue, CompareOp, ContextExpr, ConversionFlag, Expression, Literal, Operator, Pattern,
+        Statement, UnaryOp,
     },
 };
 
@@ -2515,6 +2516,7 @@ where
             TokenKind::Ellipsis => Expression::Ellipsis(nodes::EllipsisExpr { range: token.range() }),
             TokenKind::Id => return self.parse_id_expr(),
             TokenKind::String { kind, is_triple_quote } => return self.parse_string_expr(kind, is_triple_quote),
+            TokenKind::FStringStart => return self.parse_fstring_expr(),
             TokenKind::OpenParenthesis => return self.parse_parenthesized_expr(),
             TokenKind::OpenBracket => return self.parse_bracketsized_expr(),
             TokenKind::OpenBrace => return self.parse_bracesized_expr(),
@@ -2882,7 +2884,6 @@ where
         )
     }
 
-    // TODO: handle formatted string after implementing PEP701
     fn parse_string_expr(&mut self, kind: StringKind, is_triple_quote: bool) -> ExprWithRange<'src> {
         let str_tok = self.next_token();
         let mut str_range = str_tok.range();
@@ -2890,8 +2891,11 @@ where
         // If another `String` token is found after consuming the current `String` token,
         // then we are parsing an implicit concatenated string.
         let str = if self.current_token().kind().is_str() {
-            let mut implict_concatenated_str =
-                String::from(self.src_text(remove_str_quotes(str_range, kind.size() as u32, is_triple_quote)));
+            let mut implict_concatenated_str = String::from(self.src_text(remove_str_quotes(
+                str_range,
+                (kind.size() as u32).into(),
+                is_triple_quote,
+            )));
 
             while self.current_token().kind().is_str() {
                 let str_tok = self.next_token();
@@ -2904,14 +2908,18 @@ where
 
                 implict_concatenated_str.push_str(self.src_text(remove_str_quotes(
                     str_tok.range(),
-                    kind.size() as u32,
+                    (kind.size() as u32).into(),
                     is_triple_quote,
                 )));
             }
 
             Cow::Owned(implict_concatenated_str)
         } else {
-            Cow::Borrowed(self.src_text(remove_str_quotes(str_range, kind.size() as u32, is_triple_quote)))
+            Cow::Borrowed(self.src_text(remove_str_quotes(
+                str_range,
+                (kind.size() as u32).into(),
+                is_triple_quote,
+            )))
         };
 
         let value = if kind == StringKind::Bytes {
@@ -2926,6 +2934,113 @@ where
                 range: str_range,
             }),
             str_range,
+        )
+    }
+
+    fn parse_fstring_expr(&mut self) -> ExprWithRange<'src> {
+        let mut range = self.current_range();
+        let mut values = vec![];
+
+        self.eat(TokenKind::FStringStart);
+        while !matches!(
+            self.current_token().kind(),
+            TokenKind::FStringEnd | TokenKind::CloseBrace | TokenKind::NewLine | TokenKind::Eof
+        ) {
+            let (expr, expr_range) = if self.at(TokenKind::OpenBrace) {
+                self.parse_formatted_value_expr()
+            } else if matches!(self.current_token().kind(), TokenKind::FStringMiddle { .. }) {
+                self.parse_fstring_middle()
+            } else if self.at_expr() {
+                self.parse_expr()
+            } else {
+                let range = self.current_range();
+                self.next_token();
+                (Expression::Invalid(range), range)
+            };
+            range = range.cover(expr_range);
+            values.push(expr);
+        }
+
+        if self.at(TokenKind::FStringEnd) {
+            range = range.cover(self.current_range());
+            self.eat(TokenKind::FStringEnd);
+        }
+
+        (Expression::FString(nodes::FStringExpr { values, range }), range)
+    }
+
+    fn parse_fstring_middle(&mut self) -> ExprWithRange<'src> {
+        let range = self.next_token().range();
+
+        (
+            Expression::Literal(nodes::LiteralExpr {
+                value: Literal::String(Cow::Borrowed(self.src_text(range))),
+                range,
+            }),
+            range,
+        )
+    }
+
+    fn parse_formatted_value_expr(&mut self) -> ExprWithRange<'src> {
+        let mut range = self.current_range();
+
+        self.eat(TokenKind::OpenBrace);
+        let (value, value_range) = self.parse_expr_or_add_error("f-string: empty expression is not allowed");
+        if !self.last_ctx.contains(ParserCtxFlags::PARENTHESIZED_EXPR) && matches!(value, Expression::Lambda(_)) {
+            self.add_error(
+                ParseErrorType::Other("f-string: unparenthesized `lambda` expression is not allowed".into()),
+                value_range,
+            )
+        }
+        let debug_text = if self.eat(TokenKind::Operator(OperatorKind::Assign)) {
+            let leading_range = range.add_start(1.into()).cover_offset(value_range.start());
+            let trailing_range = TextRange::new(value_range.end(), self.current_range().start());
+            Some(nodes::DebugText {
+                leading: self.src_text(leading_range),
+                trailing: self.src_text(trailing_range),
+            })
+        } else {
+            None
+        };
+
+        let conversion = if self.eat(TokenKind::Exclamation) {
+            let token = self.next_token();
+            match self.src_text(token.range()) {
+                "s" => ConversionFlag::Str,
+                "r" => ConversionFlag::Repr,
+                "a" => ConversionFlag::Ascii,
+                c => {
+                    self.add_error(
+                        ParseErrorType::Other(format!(
+                            "f-string: invalid conversion character `{c}`: expected `s`, `r`, or `a`"
+                        )),
+                        token.range(),
+                    );
+                    ConversionFlag::None
+                }
+            }
+        } else {
+            ConversionFlag::None
+        };
+
+        let format_spec = if self.eat(TokenKind::Colon) {
+            Some(Box::new(self.parse_fstring_expr().0))
+        } else {
+            None
+        };
+
+        range = range.cover(self.current_range());
+        self.eat(TokenKind::CloseBrace);
+
+        (
+            Expression::FormattedValue(nodes::FormattedValueExpr {
+                value: Box::new(value),
+                debug_text,
+                conversion,
+                format_spec,
+                range,
+            }),
+            range,
         )
     }
 

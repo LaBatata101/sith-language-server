@@ -29,6 +29,12 @@ pub enum TokenKind {
     SoftKeyword(SoftKeywordKind),
     NonLogicalNewline,
     Comment,
+    FStringStart,
+    FStringEnd,
+    FStringMiddle {
+        is_raw: bool,
+    },
+    Exclamation,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]

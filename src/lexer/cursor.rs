@@ -41,6 +41,11 @@ impl<'a> Cursor<'a> {
         chars.next().unwrap_or(EOF_CHAR)
     }
 
+    /// Returns the remaining text to lex.
+    pub(super) fn rest(&self) -> &'a str {
+        self.chars.as_str()
+    }
+
     // SAFETY: The `source.text_len` call in `new` would panic if the string length is larger than a `u32`.
     #[allow(clippy::cast_possible_truncation)]
     pub(super) fn text_len(&self) -> TextSize {
@@ -73,6 +78,29 @@ impl<'a> Cursor<'a> {
 
     pub(super) fn eat_char(&mut self, c: char) -> bool {
         if self.first() == c {
+            self.bump();
+            true
+        } else {
+            false
+        }
+    }
+
+    pub(super) fn eat_char2(&mut self, c1: char, c2: char) -> bool {
+        let mut chars = self.chars.clone();
+        if chars.next() == Some(c1) && chars.next() == Some(c2) {
+            self.bump();
+            self.bump();
+            true
+        } else {
+            false
+        }
+    }
+
+    pub(super) fn eat_char3(&mut self, c1: char, c2: char, c3: char) -> bool {
+        let mut chars = self.chars.clone();
+        if chars.next() == Some(c1) && chars.next() == Some(c2) && chars.next() == Some(c3) {
+            self.bump();
+            self.bump();
             self.bump();
             true
         } else {
