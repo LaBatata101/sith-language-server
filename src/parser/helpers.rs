@@ -1,6 +1,6 @@
 use ruff_text_size::{TextRange, TextSize};
 
-use super::nodes::{ContextExpr, Expression};
+use super::nodes::{self, ContextExpr, Expression};
 
 /// Return the range of the string token without the quotes
 pub fn remove_str_quotes(str_range: TextRange, prefix_size: TextSize, is_triple_quote: bool) -> TextRange {
@@ -61,4 +61,22 @@ pub fn set_expr_range(expr: &mut Expression, range: TextRange) {
         Expression::YieldFrom(node) => node.range = range,
         Expression::FormattedValue(node) => node.range = range,
     }
+}
+
+pub fn is_valid_assignment_target(expr: &Expression) -> bool {
+    match expr {
+        Expression::Starred(s) => is_valid_assignment_target(&s.value),
+        Expression::List(nodes::ListExpr { elements, .. }) | Expression::Tuple(nodes::TupleExpr { elements, .. }) => {
+            elements.iter().all(|element| is_valid_assignment_target(element))
+        }
+        Expression::Id(_) | Expression::Attribute(_) | Expression::Subscript(_) => true,
+        _ => false,
+    }
+}
+
+pub fn is_valid_aug_assignment_target(expr: &Expression) -> bool {
+    matches!(
+        expr,
+        Expression::Id(_) | Expression::Attribute(_) | Expression::Subscript(_)
+    )
 }

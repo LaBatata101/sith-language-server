@@ -81,7 +81,9 @@ pub struct ParseError {
 pub enum ParseErrorType {
     Other(String),
     EmptySubscript,
+    AssignmentError,
     InvalidIdentifier,
+    AugAssignmentError,
     SimpleStmtsInSameLine,
     UnexpectedIndentation,
     StmtIsNotAsync(TokenKind),
@@ -121,6 +123,8 @@ impl Display for ParseErrorType {
             ParseErrorType::InvalidMatchPattern { pattern } => write!(f, "invalid pattern `{pattern:?}`"),
             ParseErrorType::UnexpectedIndentation => write!(f, "unexpected indentation"),
             ParseErrorType::InvalidIdentifier => write!(f, "invalid identifier"),
+            ParseErrorType::AssignmentError => write!(f, "invalid assignment target"),
+            ParseErrorType::AugAssignmentError => write!(f, "invalid augmented assignment target"),
         }
     }
 }
@@ -1599,12 +1603,20 @@ where
 
         helpers::set_expr_ctx(&mut target.value, ContextExpr::Store);
 
+        if !helpers::is_valid_assignment_target(&target.value) {
+            self.add_error(ParseErrorType::AssignmentError, target.range)
+        }
+
         let mut targets = vec![*target.value];
         let (mut value, value_range) = self.parse_exprs();
         range = range.cover(value_range);
 
         while self.eat(TokenKind::Operator(OperatorKind::Assign)) {
             let (mut expr, expr_range) = self.parse_exprs();
+
+            if !helpers::is_valid_assignment_target(&expr) {
+                self.add_error(ParseErrorType::AssignmentError, target.range)
+            }
 
             std::mem::swap(&mut value, &mut expr);
 
@@ -1627,6 +1639,10 @@ where
         let Statement::Expression(mut target) = target else {
             unreachable!()
         };
+
+        if !helpers::is_valid_assignment_target(&target.value) {
+            self.add_error(ParseErrorType::AssignmentError, target.range)
+        }
 
         if self.last_ctx.intersects(ParserCtxFlags::TUPLE_EXPR) {
             // Should we make `target` an `Expression::Invalid` here?
@@ -1675,6 +1691,10 @@ where
         let Statement::Expression(mut target) = target else {
             unreachable!()
         };
+
+        if !helpers::is_valid_aug_assignment_target(&target.value) {
+            self.add_error(ParseErrorType::AugAssignmentError, target.range)
+        }
 
         helpers::set_expr_ctx(&mut target.value, ContextExpr::Store);
 

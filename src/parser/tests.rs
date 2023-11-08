@@ -776,14 +776,9 @@ async def x():
 x = 1
 [] = *l
 () = *t
-{} = *d
 a, b = ab
-1 + 1 = a and b
 *a = 1 + 2
-a and b = None
-a < b = True
 a = b = c
-... = f() = c, = 1
 foo.bar = False
 baz[0] = 42
 "
