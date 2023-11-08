@@ -3,11 +3,9 @@ use ruff_text_size::{TextRange, TextSize};
 use super::nodes::{ContextExpr, Expression};
 
 /// Return the range of the string token without the quotes
-pub fn remove_str_quotes(str_range: TextRange, prefix_size: u32, is_triple_quote: bool) -> TextRange {
-    let quote_size = if is_triple_quote { 3 } else { 1 };
-    str_range
-        .add_start(TextSize::from(quote_size + prefix_size))
-        .sub_end(TextSize::from(quote_size))
+pub fn remove_str_quotes(str_range: TextRange, prefix_size: TextSize, is_triple_quote: bool) -> TextRange {
+    let quote_size = TextSize::from(if is_triple_quote { 3 } else { 1 });
+    str_range.add_start(quote_size + prefix_size).sub_end(quote_size)
 }
 
 /// Set the `ctx` for `Expression::Id`, `Expression::Attribute`, `Expression::Subscript`,
@@ -61,5 +59,6 @@ pub fn set_expr_range(expr: &mut Expression, range: TextRange) {
         Expression::Generator(node) => node.range = range,
         Expression::Subscript(node) => node.range = range,
         Expression::YieldFrom(node) => node.range = range,
+        Expression::FormattedValue(node) => node.range = range,
     }
 }

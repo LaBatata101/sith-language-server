@@ -54,6 +54,7 @@ pub enum Expression<'a> {
     DictComp(DictCompExpr<'a>),
     Ellipsis(EllipsisExpr),
     FString(FStringExpr<'a>),
+    FormattedValue(FormattedValueExpr<'a>),
     Generator(GeneratorExpr<'a>),
     Id(IdExpr<'a>),
     IfElse(IfElseExpr<'a>),
@@ -105,6 +106,7 @@ impl Ranged for Expression<'_> {
             Expression::Yield(node) => node.range(),
             Expression::YieldFrom(node) => node.range(),
             Expression::Named(node) => node.range(),
+            Expression::FormattedValue(node) => node.range(),
         }
     }
 }
@@ -1094,10 +1096,16 @@ impl Ranged for FStringExpr<'_> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct FormattedValueExpr<'a> {
     pub value: Box<Expression<'a>>,
-    pub debug_text: Option<DebugText>,
+    pub debug_text: Option<DebugText<'a>>,
     pub conversion: ConversionFlag,
     pub format_spec: Option<Box<Expression<'a>>>,
     pub range: TextRange,
+}
+
+impl Ranged for FormattedValueExpr<'_> {
+    fn range(&self) -> TextRange {
+        self.range
+    }
 }
 
 #[repr(i8)]
@@ -1114,7 +1122,13 @@ pub enum ConversionFlag {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct DebugText {}
+pub struct DebugText<'a> {
+    /// The text between the `{` and the expression node.
+    pub leading: &'a str,
+    /// The text between the expression and the conversion, the format_spec, or the `}`,
+    /// depending on what's present in the source.
+    pub trailing: &'a str,
+}
 
 #[newtype_index]
 pub struct NodeId;

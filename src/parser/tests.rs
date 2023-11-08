@@ -967,4 +967,38 @@ class list[T]:
 "
         ));
     }
+
+    #[test]
+    fn parse_empty_fstring() {
+        assert_debug_snapshot!(parse(
+            r#"
+f""
+F""
+f''
+f""""""
+f''''''
+"#
+        ));
+    }
+
+    // TODO: create `UnclosedLbrace` error when there is a unclosed brace containing
+    // a `:`
+    #[test]
+    fn parse_fstring() {
+        assert_debug_snapshot!(parse(
+            r#"
+f"normal {foo} {{another}} {bar} {{{three}}}"
+f"normal {foo!a} {bar!s} {baz!r} {foobar}"
+f"normal {x:y + 2}"
+f"{x:{{1}.pop()}}"
+f"{(lambda x:{x})}"
+f"{x =}"
+f"{    x = }"
+f"{x=!a}"
+f"{x:.3f!r =}"
+f"{x = !r :.3f}"
+f"{x:.3f=!r}"
+"#
+        ));
+    }
 }
