@@ -23,6 +23,9 @@ mod range;
 mod size;
 mod traits;
 
+#[cfg(feature = "serde")]
+mod serde_impls;
+
 pub use crate::{range::TextRange, size::TextSize, traits::Ranged, traits::TextLen};
 
 #[cfg(target_pointer_width = "16")]
