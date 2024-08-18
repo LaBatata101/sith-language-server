@@ -8,6 +8,10 @@ edition = "2021"
 
 [dependencies]
 ruff_macros = { path = "../ruff_macros" }
+serde = { workspace = true, optional = true }
 
 [dev-dependencies]
 static_assertions = "1.1.0"
+
+[features]
+serde = ["dep:serde"]

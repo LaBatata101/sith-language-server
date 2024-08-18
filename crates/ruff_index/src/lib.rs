@@ -4,6 +4,8 @@
 //! Inspired by [rustc_index](https://github.com/rust-lang/rust/blob/master/compiler/rustc_index/src/lib.rs).
 
 mod idx;
+#[cfg(feature = "serde")]
+mod serde_impls;
 mod slice;
 mod vec;
 
