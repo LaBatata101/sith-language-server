@@ -49,7 +49,7 @@ pub enum AnyNode {
     StmtImportFrom(ast::ImportFromStmt),
     StmtGlobal(ast::GlobalStmt),
     StmtNonlocal(ast::NonlocalStmt),
-    StmtExpr(ast::StmtExpr),
+    ExprStmt(ast::ExprStmt),
     StmtPass(ast::PassStmt),
     StmtBreak(ast::BreakStmt),
     StmtContinue(ast::ContinueStmt),
@@ -65,7 +65,7 @@ pub enum AnyNode {
     ListCompExpr(ast::ListCompExpr),
     SetCompExpr(ast::SetCompExpr),
     DictCompExpr(ast::DictCompExpr),
-    GeneratorExpExpr(ast::GeneratorExpExpr),
+    GeneratorExpExpr(ast::GeneratorExpr),
     AwaitExpr(ast::AwaitExpr),
     YieldExpr(ast::YieldExpr),
     YieldFromExpr(ast::YieldFromExpr),
@@ -86,11 +86,9 @@ pub enum AnyNode {
     TupleExpr(ast::TupleExpr),
     SliceExpr(ast::SliceExpr),
     IpyEscapeCommandExpr(ast::IpyEscapeCommandExpr),
-    InvalidExpr(ast::InvalidExpr),
     ExceptHandlerExceptHandler(ast::ExceptHandlerExceptHandler),
     FStringessionElementExpr(ast::FStringExpressionElement),
     FStringLiteralElement(ast::FStringLiteralElement),
-    FStringInvalidElement(ast::FStringInvalidElement),
     PatternMatchValue(ast::PatternMatchValue),
     PatternMatchSingleton(ast::PatternMatchSingleton),
     PatternMatchSequence(ast::PatternMatchSequence),
@@ -101,7 +99,6 @@ pub enum AnyNode {
     PatternMatchOr(ast::PatternMatchOr),
     PatternArguments(PatternArguments),
     PatternKeyword(PatternKeyword),
-    PatternMatchInvalid(ast::PatternMatchInvalid),
     Comprehension(Comprehension),
     Arguments(Arguments),
     Parameters(Parameters),
@@ -145,7 +142,7 @@ impl AnyNode {
             AnyNode::StmtImportFrom(node) => Some(Stmt::ImportFrom(node)),
             AnyNode::StmtGlobal(node) => Some(Stmt::Global(node)),
             AnyNode::StmtNonlocal(node) => Some(Stmt::Nonlocal(node)),
-            AnyNode::StmtExpr(node) => Some(Stmt::Expr(node)),
+            AnyNode::ExprStmt(node) => Some(Stmt::Expr(node)),
             AnyNode::StmtPass(node) => Some(Stmt::Pass(node)),
             AnyNode::StmtBreak(node) => Some(Stmt::Break(node)),
             AnyNode::StmtContinue(node) => Some(Stmt::Continue(node)),
@@ -172,7 +169,6 @@ impl AnyNode {
             | AnyNode::CallExpr(_)
             | AnyNode::FStringessionElementExpr(_)
             | AnyNode::FStringLiteralElement(_)
-            | AnyNode::FStringInvalidElement(_)
             | AnyNode::FStringExpr(_)
             | AnyNode::StringLiteralExpr(_)
             | AnyNode::BytesLiteralExpr(_)
@@ -188,7 +184,6 @@ impl AnyNode {
             | AnyNode::TupleExpr(_)
             | AnyNode::SliceExpr(_)
             | AnyNode::IpyEscapeCommandExpr(_)
-            | AnyNode::InvalidExpr(_)
             | AnyNode::ExceptHandlerExceptHandler(_)
             | AnyNode::PatternMatchValue(_)
             | AnyNode::PatternMatchSingleton(_)
@@ -200,7 +195,6 @@ impl AnyNode {
             | AnyNode::PatternMatchOr(_)
             | AnyNode::PatternArguments(_)
             | AnyNode::PatternKeyword(_)
-            | AnyNode::PatternMatchInvalid(_)
             | AnyNode::Comprehension(_)
             | AnyNode::Arguments(_)
             | AnyNode::Parameters(_)
@@ -225,17 +219,17 @@ impl AnyNode {
     pub fn expression(self) -> Option<Expr> {
         match self {
             AnyNode::BoolOpExpr(node) => Some(Expr::BoolOp(node)),
-            AnyNode::NamedExprExpr(node) => Some(Expr::NamedExpr(node)),
+            AnyNode::NamedExprExpr(node) => Some(Expr::Named(node)),
             AnyNode::BinOpExpr(node) => Some(Expr::BinOp(node)),
             AnyNode::UnaryOpExpr(node) => Some(Expr::UnaryOp(node)),
             AnyNode::LambdaExpr(node) => Some(Expr::Lambda(node)),
-            AnyNode::IfExpr(node) => Some(Expr::IfExp(node)),
+            AnyNode::IfExpr(node) => Some(Expr::If(node)),
             AnyNode::DictExpr(node) => Some(Expr::Dict(node)),
             AnyNode::SetExpr(node) => Some(Expr::Set(node)),
             AnyNode::ListCompExpr(node) => Some(Expr::ListComp(node)),
             AnyNode::SetCompExpr(node) => Some(Expr::SetComp(node)),
             AnyNode::DictCompExpr(node) => Some(Expr::DictComp(node)),
-            AnyNode::GeneratorExpExpr(node) => Some(Expr::GeneratorExp(node)),
+            AnyNode::GeneratorExpExpr(node) => Some(Expr::Generator(node)),
             AnyNode::AwaitExpr(node) => Some(Expr::Await(node)),
             AnyNode::YieldExpr(node) => Some(Expr::Yield(node)),
             AnyNode::YieldFromExpr(node) => Some(Expr::YieldFrom(node)),
@@ -256,7 +250,6 @@ impl AnyNode {
             AnyNode::TupleExpr(node) => Some(Expr::Tuple(node)),
             AnyNode::SliceExpr(node) => Some(Expr::Slice(node)),
             AnyNode::IpyEscapeCommandExpr(node) => Some(Expr::IpyEscapeCommand(node)),
-            AnyNode::InvalidExpr(range) => Some(Expr::Invalid(range)),
 
             AnyNode::ModModule(_)
             | AnyNode::ModessionExpr(_)
@@ -280,7 +273,7 @@ impl AnyNode {
             | AnyNode::StmtImportFrom(_)
             | AnyNode::StmtGlobal(_)
             | AnyNode::StmtNonlocal(_)
-            | AnyNode::StmtExpr(_)
+            | AnyNode::ExprStmt(_)
             | AnyNode::StmtPass(_)
             | AnyNode::StmtBreak(_)
             | AnyNode::StmtContinue(_)
@@ -288,7 +281,6 @@ impl AnyNode {
             | AnyNode::ExceptHandlerExceptHandler(_)
             | AnyNode::FStringessionElementExpr(_)
             | AnyNode::FStringLiteralElement(_)
-            | AnyNode::FStringInvalidElement(_)
             | AnyNode::PatternMatchValue(_)
             | AnyNode::PatternMatchSingleton(_)
             | AnyNode::PatternMatchSequence(_)
@@ -299,7 +291,6 @@ impl AnyNode {
             | AnyNode::PatternMatchOr(_)
             | AnyNode::PatternArguments(_)
             | AnyNode::PatternKeyword(_)
-            | AnyNode::PatternMatchInvalid(_)
             | AnyNode::Comprehension(_)
             | AnyNode::Arguments(_)
             | AnyNode::Parameters(_)
@@ -346,7 +337,7 @@ impl AnyNode {
             | AnyNode::StmtImportFrom(_)
             | AnyNode::StmtGlobal(_)
             | AnyNode::StmtNonlocal(_)
-            | AnyNode::StmtExpr(_)
+            | AnyNode::ExprStmt(_)
             | AnyNode::StmtPass(_)
             | AnyNode::StmtBreak(_)
             | AnyNode::StmtContinue(_)
@@ -370,7 +361,6 @@ impl AnyNode {
             | AnyNode::CallExpr(_)
             | AnyNode::FStringessionElementExpr(_)
             | AnyNode::FStringLiteralElement(_)
-            | AnyNode::FStringInvalidElement(_)
             | AnyNode::FStringExpr(_)
             | AnyNode::StringLiteralExpr(_)
             | AnyNode::BytesLiteralExpr(_)
@@ -386,7 +376,6 @@ impl AnyNode {
             | AnyNode::TupleExpr(_)
             | AnyNode::SliceExpr(_)
             | AnyNode::IpyEscapeCommandExpr(_)
-            | AnyNode::InvalidExpr(_)
             | AnyNode::ExceptHandlerExceptHandler(_)
             | AnyNode::PatternMatchValue(_)
             | AnyNode::PatternMatchSingleton(_)
@@ -398,7 +387,6 @@ impl AnyNode {
             | AnyNode::PatternMatchOr(_)
             | AnyNode::PatternArguments(_)
             | AnyNode::PatternKeyword(_)
-            | AnyNode::PatternMatchInvalid(_)
             | AnyNode::Comprehension(_)
             | AnyNode::Arguments(_)
             | AnyNode::Parameters(_)
@@ -430,7 +418,6 @@ impl AnyNode {
             AnyNode::PatternMatchStar(node) => Some(Pattern::MatchStar(node)),
             AnyNode::PatternMatchAs(node) => Some(Pattern::MatchAs(node)),
             AnyNode::PatternMatchOr(node) => Some(Pattern::MatchOr(node)),
-            AnyNode::PatternMatchInvalid(node) => Some(Pattern::Invalid(node)),
 
             AnyNode::ModModule(_)
             | AnyNode::ModessionExpr(_)
@@ -454,7 +441,7 @@ impl AnyNode {
             | AnyNode::StmtImportFrom(_)
             | AnyNode::StmtGlobal(_)
             | AnyNode::StmtNonlocal(_)
-            | AnyNode::StmtExpr(_)
+            | AnyNode::ExprStmt(_)
             | AnyNode::StmtPass(_)
             | AnyNode::StmtBreak(_)
             | AnyNode::StmtContinue(_)
@@ -478,7 +465,6 @@ impl AnyNode {
             | AnyNode::CallExpr(_)
             | AnyNode::FStringessionElementExpr(_)
             | AnyNode::FStringLiteralElement(_)
-            | AnyNode::FStringInvalidElement(_)
             | AnyNode::FStringExpr(_)
             | AnyNode::StringLiteralExpr(_)
             | AnyNode::BytesLiteralExpr(_)
@@ -494,7 +480,6 @@ impl AnyNode {
             | AnyNode::TupleExpr(_)
             | AnyNode::SliceExpr(_)
             | AnyNode::IpyEscapeCommandExpr(_)
-            | AnyNode::InvalidExpr(_)
             | AnyNode::ExceptHandlerExceptHandler(_)
             | AnyNode::PatternArguments(_)
             | AnyNode::PatternKeyword(_)
@@ -545,7 +530,7 @@ impl AnyNode {
             | AnyNode::StmtImportFrom(_)
             | AnyNode::StmtGlobal(_)
             | AnyNode::StmtNonlocal(_)
-            | AnyNode::StmtExpr(_)
+            | AnyNode::ExprStmt(_)
             | AnyNode::StmtPass(_)
             | AnyNode::StmtBreak(_)
             | AnyNode::StmtContinue(_)
@@ -569,7 +554,6 @@ impl AnyNode {
             | AnyNode::CallExpr(_)
             | AnyNode::FStringessionElementExpr(_)
             | AnyNode::FStringLiteralElement(_)
-            | AnyNode::FStringInvalidElement(_)
             | AnyNode::FStringExpr(_)
             | AnyNode::StringLiteralExpr(_)
             | AnyNode::BytesLiteralExpr(_)
@@ -585,7 +569,6 @@ impl AnyNode {
             | AnyNode::TupleExpr(_)
             | AnyNode::SliceExpr(_)
             | AnyNode::IpyEscapeCommandExpr(_)
-            | AnyNode::InvalidExpr(_)
             | AnyNode::PatternMatchValue(_)
             | AnyNode::PatternMatchSingleton(_)
             | AnyNode::PatternMatchSequence(_)
@@ -596,7 +579,6 @@ impl AnyNode {
             | AnyNode::PatternMatchOr(_)
             | AnyNode::PatternArguments(_)
             | AnyNode::PatternKeyword(_)
-            | AnyNode::PatternMatchInvalid(_)
             | AnyNode::Comprehension(_)
             | AnyNode::Arguments(_)
             | AnyNode::Parameters(_)
@@ -641,7 +623,7 @@ impl AnyNode {
     pub const fn as_ref(&self) -> AnyNodeRef {
         match self {
             Self::ModModule(node) => AnyNodeRef::ModModule(node),
-            Self::ModessionExpr(node) => AnyNodeRef::ModessionExpr(node),
+            Self::ModessionExpr(node) => AnyNodeRef::ModExpression(node),
             Self::StmtFunctionDef(node) => AnyNodeRef::StmtFunctionDef(node),
             Self::StmtClassDef(node) => AnyNodeRef::StmtClassDef(node),
             Self::StmtReturn(node) => AnyNodeRef::StmtReturn(node),
@@ -662,13 +644,13 @@ impl AnyNode {
             Self::StmtImportFrom(node) => AnyNodeRef::StmtImportFrom(node),
             Self::StmtGlobal(node) => AnyNodeRef::StmtGlobal(node),
             Self::StmtNonlocal(node) => AnyNodeRef::StmtNonlocal(node),
-            Self::StmtExpr(node) => AnyNodeRef::StmtExpr(node),
+            Self::ExprStmt(node) => AnyNodeRef::ExprStmt(node),
             Self::StmtPass(node) => AnyNodeRef::StmtPass(node),
             Self::StmtBreak(node) => AnyNodeRef::StmtBreak(node),
             Self::StmtContinue(node) => AnyNodeRef::StmtContinue(node),
             Self::StmtIpyEscapeCommand(node) => AnyNodeRef::StmtIpyEscapeCommand(node),
             Self::BoolOpExpr(node) => AnyNodeRef::BoolOpExpr(node),
-            Self::NamedExprExpr(node) => AnyNodeRef::NamedExprExpr(node),
+            Self::NamedExprExpr(node) => AnyNodeRef::NamedExpr(node),
             Self::BinOpExpr(node) => AnyNodeRef::BinOpExpr(node),
             Self::UnaryOpExpr(node) => AnyNodeRef::UnaryOpExpr(node),
             Self::LambdaExpr(node) => AnyNodeRef::LambdaExpr(node),
@@ -684,9 +666,8 @@ impl AnyNode {
             Self::YieldFromExpr(node) => AnyNodeRef::YieldFromExpr(node),
             Self::CompareExpr(node) => AnyNodeRef::CompareExpr(node),
             Self::CallExpr(node) => AnyNodeRef::CallExpr(node),
-            Self::FStringessionElementExpr(node) => AnyNodeRef::FStringessionElementExpr(node),
+            Self::FStringessionElementExpr(node) => AnyNodeRef::FStringExpressionElement(node),
             Self::FStringLiteralElement(node) => AnyNodeRef::FStringLiteralElement(node),
-            Self::FStringInvalidElement(node) => AnyNodeRef::FStringInvalidElement(node),
             Self::FStringExpr(node) => AnyNodeRef::FStringExpr(node),
             Self::StringLiteralExpr(node) => AnyNodeRef::StringLiteralExpr(node),
             Self::BytesLiteralExpr(node) => AnyNodeRef::BytesLiteralExpr(node),
@@ -702,7 +683,6 @@ impl AnyNode {
             Self::TupleExpr(node) => AnyNodeRef::TupleExpr(node),
             Self::SliceExpr(node) => AnyNodeRef::SliceExpr(node),
             Self::IpyEscapeCommandExpr(node) => AnyNodeRef::IpyEscapeCommandExpr(node),
-            Self::InvalidExpr(node) => AnyNodeRef::InvalidExpr(node),
             Self::ExceptHandlerExceptHandler(node) => AnyNodeRef::ExceptHandlerExceptHandler(node),
             Self::PatternMatchValue(node) => AnyNodeRef::PatternMatchValue(node),
             Self::PatternMatchSingleton(node) => AnyNodeRef::PatternMatchSingleton(node),
@@ -714,7 +694,6 @@ impl AnyNode {
             Self::PatternMatchOr(node) => AnyNodeRef::PatternMatchOr(node),
             Self::PatternArguments(node) => AnyNodeRef::PatternArguments(node),
             Self::PatternKeyword(node) => AnyNodeRef::PatternKeyword(node),
-            Self::PatternMatchInvalid(node) => AnyNodeRef::PatternMatchInvalid(node),
             Self::Comprehension(node) => AnyNodeRef::Comprehension(node),
             Self::Arguments(node) => AnyNodeRef::Arguments(node),
             Self::Parameters(node) => AnyNodeRef::Parameters(node),
@@ -792,7 +771,7 @@ impl AstNode for ast::ModExpression {
     }
 
     fn cast_ref(kind: AnyNodeRef) -> Option<&Self> {
-        if let AnyNodeRef::ModessionExpr(node) = kind {
+        if let AnyNodeRef::ModExpression(node) = kind {
             Some(node)
         } else {
             None
@@ -866,7 +845,7 @@ impl AstNode for ast::FunctionDefStmt {
 
         visitor.visit_parameters(parameters);
 
-        for expr in returns {
+        if let Some(expr) = returns {
             visitor.visit_annotation(expr);
         }
 
@@ -1745,12 +1724,12 @@ impl AstNode for ast::NonlocalStmt {
     {
     }
 }
-impl AstNode for ast::StmtExpr {
+impl AstNode for ast::ExprStmt {
     fn cast(kind: AnyNode) -> Option<Self>
     where
         Self: Sized,
     {
-        if let AnyNode::StmtExpr(node) = kind {
+        if let AnyNode::ExprStmt(node) = kind {
             Some(node)
         } else {
             None
@@ -1758,7 +1737,7 @@ impl AstNode for ast::StmtExpr {
     }
 
     fn cast_ref(kind: AnyNodeRef) -> Option<&Self> {
-        if let AnyNodeRef::StmtExpr(node) = kind {
+        if let AnyNodeRef::ExprStmt(node) = kind {
             Some(node)
         } else {
             None
@@ -1777,7 +1756,7 @@ impl AstNode for ast::StmtExpr {
     where
         V: PreorderVisitor<'a> + ?Sized,
     {
-        let ast::StmtExpr { value, range: _ } = self;
+        let ast::ExprStmt { value, range: _ } = self;
 
         visitor.visit_expr(value);
     }
@@ -1986,7 +1965,7 @@ impl AstNode for ast::NamedExpr {
     }
 
     fn cast_ref(kind: AnyNodeRef) -> Option<&Self> {
-        if let AnyNodeRef::NamedExprExpr(node) = kind {
+        if let AnyNodeRef::NamedExpr(node) = kind {
             Some(node)
         } else {
             None
@@ -2220,13 +2199,9 @@ impl AstNode for ast::DictExpr {
     where
         V: PreorderVisitor<'a> + ?Sized,
     {
-        let ast::DictExpr {
-            keys,
-            values,
-            range: _,
-        } = self;
+        let ast::DictExpr { items, range: _ } = self;
 
-        for (key, value) in keys.iter().zip(values) {
+        for ast::DictItem { key, value } in items {
             if let Some(key) = key {
                 visitor.visit_expr(key);
             }
@@ -2408,7 +2383,7 @@ impl AstNode for ast::DictCompExpr {
         }
     }
 }
-impl AstNode for ast::GeneratorExpExpr {
+impl AstNode for ast::GeneratorExpr {
     fn cast(kind: AnyNode) -> Option<Self>
     where
         Self: Sized,
@@ -2440,10 +2415,8 @@ impl AstNode for ast::GeneratorExpExpr {
     where
         V: PreorderVisitor<'a> + ?Sized,
     {
-        let ast::GeneratorExpExpr {
-            elt,
-            generators,
-            range: _,
+        let ast::GeneratorExpr {
+            elt, generators, ..
         } = self;
         visitor.visit_expr(elt);
         for comprehension in generators {
@@ -2662,7 +2635,7 @@ impl AstNode for ast::FStringExpressionElement {
     }
 
     fn cast_ref(kind: AnyNodeRef) -> Option<&Self> {
-        if let AnyNodeRef::FStringessionElementExpr(node) = kind {
+        if let AnyNodeRef::FStringExpressionElement(node) = kind {
             Some(node)
         } else {
             None
@@ -3229,11 +3202,7 @@ impl AstNode for ast::TupleExpr {
     where
         V: PreorderVisitor<'a> + ?Sized,
     {
-        let ast::TupleExpr {
-            elts,
-            ctx: _,
-            range: _,
-        } = self;
+        let ast::TupleExpr { elts, .. } = self;
 
         for expr in elts {
             visitor.visit_expr(expr);
@@ -3329,40 +3298,7 @@ impl AstNode for ast::IpyEscapeCommandExpr {
         } = self;
     }
 }
-impl AstNode for ast::InvalidExpr {
-    fn cast(kind: AnyNode) -> Option<Self>
-    where
-        Self: Sized,
-    {
-        if let AnyNode::InvalidExpr(node) = kind {
-            Some(node)
-        } else {
-            None
-        }
-    }
 
-    fn cast_ref(kind: AnyNodeRef) -> Option<&Self> {
-        if let AnyNodeRef::InvalidExpr(node) = kind {
-            Some(node)
-        } else {
-            None
-        }
-    }
-
-    fn as_any_node_ref(&self) -> AnyNodeRef {
-        AnyNodeRef::from(self)
-    }
-
-    fn into_any_node(self) -> AnyNode {
-        AnyNode::from(self)
-    }
-
-    fn visit_preorder<'a, V>(&'a self, _visitor: &mut V)
-    where
-        V: PreorderVisitor<'a> + ?Sized,
-    {
-    }
-}
 impl AstNode for ast::ExceptHandlerExceptHandler {
     fn cast(kind: AnyNode) -> Option<Self>
     where
@@ -3804,40 +3740,6 @@ impl AstNode for PatternKeyword {
         } = self;
 
         visitor.visit_pattern(pattern);
-    }
-}
-impl AstNode for ast::PatternMatchInvalid {
-    fn cast(kind: AnyNode) -> Option<Self>
-    where
-        Self: Sized,
-    {
-        if let AnyNode::PatternMatchInvalid(node) = kind {
-            Some(node)
-        } else {
-            None
-        }
-    }
-
-    fn cast_ref(kind: AnyNodeRef) -> Option<&Self> {
-        if let AnyNodeRef::PatternMatchInvalid(node) = kind {
-            Some(node)
-        } else {
-            None
-        }
-    }
-
-    fn as_any_node_ref(&self) -> AnyNodeRef {
-        AnyNodeRef::from(self)
-    }
-
-    fn into_any_node(self) -> AnyNode {
-        AnyNode::from(self)
-    }
-
-    fn visit_preorder<'a, V>(&'a self, _visitor: &mut V)
-    where
-        V: PreorderVisitor<'a> + ?Sized,
-    {
     }
 }
 
@@ -4358,11 +4260,7 @@ impl AstNode for ast::TypeParamTypeVar {
     where
         V: PreorderVisitor<'a> + ?Sized,
     {
-        let ast::TypeParamTypeVar {
-            bound,
-            name: _,
-            range: _,
-        } = self;
+        let ast::TypeParamTypeVar { bound, .. } = self;
 
         if let Some(expr) = bound {
             visitor.visit_expr(expr);
@@ -4402,7 +4300,7 @@ impl AstNode for ast::TypeParamTypeVarTuple {
     where
         V: PreorderVisitor<'a> + ?Sized,
     {
-        let ast::TypeParamTypeVarTuple { range: _, name: _ } = self;
+        let ast::TypeParamTypeVarTuple { .. } = self;
     }
 }
 impl AstNode for ast::TypeParamParamSpec {
@@ -4438,7 +4336,7 @@ impl AstNode for ast::TypeParamParamSpec {
     where
         V: PreorderVisitor<'a> + ?Sized,
     {
-        let ast::TypeParamParamSpec { range: _, name: _ } = self;
+        let ast::TypeParamParamSpec { .. } = self;
     }
 }
 impl AstNode for ast::FString {
@@ -4473,7 +4371,7 @@ impl AstNode for ast::FString {
     where
         V: PreorderVisitor<'a> + ?Sized,
     {
-        let ast::FString { elements, range: _ } = self;
+        let ast::FString { elements, .. } = self;
 
         for fstring_element in elements {
             visitor.visit_f_string_element(fstring_element);
@@ -4572,7 +4470,7 @@ impl From<Stmt> for AnyNode {
             Stmt::ImportFrom(node) => AnyNode::StmtImportFrom(node),
             Stmt::Global(node) => AnyNode::StmtGlobal(node),
             Stmt::Nonlocal(node) => AnyNode::StmtNonlocal(node),
-            Stmt::Expr(node) => AnyNode::StmtExpr(node),
+            Stmt::Expr(node) => AnyNode::ExprStmt(node),
             Stmt::Pass(node) => AnyNode::StmtPass(node),
             Stmt::Break(node) => AnyNode::StmtBreak(node),
             Stmt::Continue(node) => AnyNode::StmtContinue(node),
@@ -4585,17 +4483,17 @@ impl From<Expr> for AnyNode {
     fn from(expr: Expr) -> Self {
         match expr {
             Expr::BoolOp(node) => AnyNode::BoolOpExpr(node),
-            Expr::NamedExpr(node) => AnyNode::NamedExprExpr(node),
+            Expr::Named(node) => AnyNode::NamedExprExpr(node),
             Expr::BinOp(node) => AnyNode::BinOpExpr(node),
             Expr::UnaryOp(node) => AnyNode::UnaryOpExpr(node),
             Expr::Lambda(node) => AnyNode::LambdaExpr(node),
-            Expr::IfExp(node) => AnyNode::IfExpr(node),
+            Expr::If(node) => AnyNode::IfExpr(node),
             Expr::Dict(node) => AnyNode::DictExpr(node),
             Expr::Set(node) => AnyNode::SetExpr(node),
             Expr::ListComp(node) => AnyNode::ListCompExpr(node),
             Expr::SetComp(node) => AnyNode::SetCompExpr(node),
             Expr::DictComp(node) => AnyNode::DictCompExpr(node),
-            Expr::GeneratorExp(node) => AnyNode::GeneratorExpExpr(node),
+            Expr::Generator(node) => AnyNode::GeneratorExpExpr(node),
             Expr::Await(node) => AnyNode::AwaitExpr(node),
             Expr::Yield(node) => AnyNode::YieldExpr(node),
             Expr::YieldFrom(node) => AnyNode::YieldFromExpr(node),
@@ -4616,7 +4514,6 @@ impl From<Expr> for AnyNode {
             Expr::Tuple(node) => AnyNode::TupleExpr(node),
             Expr::Slice(node) => AnyNode::SliceExpr(node),
             Expr::IpyEscapeCommand(node) => AnyNode::IpyEscapeCommandExpr(node),
-            Expr::Invalid(range) => AnyNode::InvalidExpr(range),
         }
     }
 }
@@ -4635,7 +4532,6 @@ impl From<FStringElement> for AnyNode {
         match element {
             FStringElement::Literal(node) => AnyNode::FStringLiteralElement(node),
             FStringElement::Expression(node) => AnyNode::FStringessionElementExpr(node),
-            FStringElement::Invalid(node) => AnyNode::FStringInvalidElement(node),
         }
     }
 }
@@ -4651,7 +4547,6 @@ impl From<Pattern> for AnyNode {
             Pattern::MatchStar(node) => AnyNode::PatternMatchStar(node),
             Pattern::MatchAs(node) => AnyNode::PatternMatchAs(node),
             Pattern::MatchOr(node) => AnyNode::PatternMatchOr(node),
-            Pattern::Invalid(node) => AnyNode::PatternMatchInvalid(node),
         }
     }
 }
@@ -4802,9 +4697,9 @@ impl From<ast::NonlocalStmt> for AnyNode {
     }
 }
 
-impl From<ast::StmtExpr> for AnyNode {
-    fn from(node: ast::StmtExpr) -> Self {
-        AnyNode::StmtExpr(node)
+impl From<ast::ExprStmt> for AnyNode {
+    fn from(node: ast::ExprStmt) -> Self {
+        AnyNode::ExprStmt(node)
     }
 }
 
@@ -4898,8 +4793,8 @@ impl From<ast::DictCompExpr> for AnyNode {
     }
 }
 
-impl From<ast::GeneratorExpExpr> for AnyNode {
-    fn from(node: ast::GeneratorExpExpr) -> Self {
+impl From<ast::GeneratorExpr> for AnyNode {
+    fn from(node: ast::GeneratorExpr) -> Self {
         AnyNode::GeneratorExpExpr(node)
     }
 }
@@ -5036,12 +4931,6 @@ impl From<ast::IpyEscapeCommandExpr> for AnyNode {
     }
 }
 
-impl From<ast::InvalidExpr> for AnyNode {
-    fn from(node: ast::InvalidExpr) -> Self {
-        AnyNode::InvalidExpr(node)
-    }
-}
-
 impl From<ast::ExceptHandlerExceptHandler> for AnyNode {
     fn from(node: ast::ExceptHandlerExceptHandler) -> Self {
         AnyNode::ExceptHandlerExceptHandler(node)
@@ -5093,12 +4982,6 @@ impl From<ast::PatternMatchAs> for AnyNode {
 impl From<ast::PatternMatchOr> for AnyNode {
     fn from(node: ast::PatternMatchOr) -> Self {
         AnyNode::PatternMatchOr(node)
-    }
-}
-
-impl From<ast::PatternMatchInvalid> for AnyNode {
-    fn from(node: ast::PatternMatchInvalid) -> Self {
-        AnyNode::PatternMatchInvalid(node)
     }
 }
 
@@ -5230,7 +5113,7 @@ impl Ranged for AnyNode {
             AnyNode::StmtImportFrom(node) => node.range(),
             AnyNode::StmtGlobal(node) => node.range(),
             AnyNode::StmtNonlocal(node) => node.range(),
-            AnyNode::StmtExpr(node) => node.range(),
+            AnyNode::ExprStmt(node) => node.range(),
             AnyNode::StmtPass(node) => node.range(),
             AnyNode::StmtBreak(node) => node.range(),
             AnyNode::StmtContinue(node) => node.range(),
@@ -5254,7 +5137,6 @@ impl Ranged for AnyNode {
             AnyNode::CallExpr(node) => node.range(),
             AnyNode::FStringessionElementExpr(node) => node.range(),
             AnyNode::FStringLiteralElement(node) => node.range(),
-            AnyNode::FStringInvalidElement(node) => node.range(),
             AnyNode::FStringExpr(node) => node.range(),
             AnyNode::StringLiteralExpr(node) => node.range(),
             AnyNode::BytesLiteralExpr(node) => node.range(),
@@ -5270,7 +5152,6 @@ impl Ranged for AnyNode {
             AnyNode::TupleExpr(node) => node.range(),
             AnyNode::SliceExpr(node) => node.range(),
             AnyNode::IpyEscapeCommandExpr(node) => node.range(),
-            AnyNode::InvalidExpr(node) => node.range(),
             AnyNode::ExceptHandlerExceptHandler(node) => node.range(),
             AnyNode::PatternMatchValue(node) => node.range(),
             AnyNode::PatternMatchSingleton(node) => node.range(),
@@ -5282,7 +5163,6 @@ impl Ranged for AnyNode {
             AnyNode::PatternMatchOr(node) => node.range(),
             AnyNode::PatternArguments(node) => node.range(),
             AnyNode::PatternKeyword(node) => node.range(),
-            AnyNode::PatternMatchInvalid(node) => node.range(),
             AnyNode::Comprehension(node) => node.range(),
             AnyNode::Arguments(node) => node.range(),
             AnyNode::Parameters(node) => node.range(),
@@ -5305,10 +5185,10 @@ impl Ranged for AnyNode {
     }
 }
 
-#[derive(Copy, Clone, Debug, is_macro::Is, PartialEq)]
+#[derive(Copy, Clone, Debug, Hash, is_macro::Is, PartialEq, Eq)]
 pub enum AnyNodeRef<'a> {
     ModModule(&'a ast::ModModule),
-    ModessionExpr(&'a ast::ModExpression),
+    ModExpression(&'a ast::ModExpression),
     StmtFunctionDef(&'a ast::FunctionDefStmt),
     StmtClassDef(&'a ast::ClassDefStmt),
     StmtReturn(&'a ast::ReturnStmt),
@@ -5329,13 +5209,13 @@ pub enum AnyNodeRef<'a> {
     StmtImportFrom(&'a ast::ImportFromStmt),
     StmtGlobal(&'a ast::GlobalStmt),
     StmtNonlocal(&'a ast::NonlocalStmt),
-    StmtExpr(&'a ast::StmtExpr),
+    ExprStmt(&'a ast::ExprStmt),
     StmtPass(&'a ast::PassStmt),
     StmtBreak(&'a ast::BreakStmt),
     StmtContinue(&'a ast::ContinueStmt),
     StmtIpyEscapeCommand(&'a ast::IpyEscapeCommandStmt),
     BoolOpExpr(&'a ast::BoolOpExpr),
-    NamedExprExpr(&'a ast::NamedExpr),
+    NamedExpr(&'a ast::NamedExpr),
     BinOpExpr(&'a ast::BinOpExpr),
     UnaryOpExpr(&'a ast::UnaryOpExpr),
     LambdaExpr(&'a ast::LambdaExpr),
@@ -5345,15 +5225,14 @@ pub enum AnyNodeRef<'a> {
     ListCompExpr(&'a ast::ListCompExpr),
     SetCompExpr(&'a ast::SetCompExpr),
     DictCompExpr(&'a ast::DictCompExpr),
-    GeneratorExpExpr(&'a ast::GeneratorExpExpr),
+    GeneratorExpExpr(&'a ast::GeneratorExpr),
     AwaitExpr(&'a ast::AwaitExpr),
     YieldExpr(&'a ast::YieldExpr),
     YieldFromExpr(&'a ast::YieldFromExpr),
     CompareExpr(&'a ast::CompareExpr),
     CallExpr(&'a ast::CallExpr),
-    FStringessionElementExpr(&'a ast::FStringExpressionElement),
+    FStringExpressionElement(&'a ast::FStringExpressionElement),
     FStringLiteralElement(&'a ast::FStringLiteralElement),
-    FStringInvalidElement(&'a ast::FStringInvalidElement),
     FStringExpr(&'a ast::FStringExpr),
     StringLiteralExpr(&'a ast::StringLiteralExpr),
     BytesLiteralExpr(&'a ast::BytesLiteralExpr),
@@ -5369,7 +5248,6 @@ pub enum AnyNodeRef<'a> {
     TupleExpr(&'a ast::TupleExpr),
     SliceExpr(&'a ast::SliceExpr),
     IpyEscapeCommandExpr(&'a ast::IpyEscapeCommandExpr),
-    InvalidExpr(&'a ast::InvalidExpr),
     ExceptHandlerExceptHandler(&'a ast::ExceptHandlerExceptHandler),
     PatternMatchValue(&'a ast::PatternMatchValue),
     PatternMatchSingleton(&'a ast::PatternMatchSingleton),
@@ -5381,7 +5259,6 @@ pub enum AnyNodeRef<'a> {
     PatternMatchOr(&'a ast::PatternMatchOr),
     PatternArguments(&'a ast::PatternArguments),
     PatternKeyword(&'a ast::PatternKeyword),
-    PatternMatchInvalid(&'a ast::PatternMatchInvalid),
     Comprehension(&'a Comprehension),
     Arguments(&'a Arguments),
     Parameters(&'a Parameters),
@@ -5406,7 +5283,7 @@ impl<'a> AnyNodeRef<'a> {
     pub fn as_ptr(&self) -> NonNull<()> {
         match self {
             AnyNodeRef::ModModule(node) => NonNull::from(*node).cast(),
-            AnyNodeRef::ModessionExpr(node) => NonNull::from(*node).cast(),
+            AnyNodeRef::ModExpression(node) => NonNull::from(*node).cast(),
             AnyNodeRef::StmtFunctionDef(node) => NonNull::from(*node).cast(),
             AnyNodeRef::StmtClassDef(node) => NonNull::from(*node).cast(),
             AnyNodeRef::StmtReturn(node) => NonNull::from(*node).cast(),
@@ -5427,13 +5304,13 @@ impl<'a> AnyNodeRef<'a> {
             AnyNodeRef::StmtImportFrom(node) => NonNull::from(*node).cast(),
             AnyNodeRef::StmtGlobal(node) => NonNull::from(*node).cast(),
             AnyNodeRef::StmtNonlocal(node) => NonNull::from(*node).cast(),
-            AnyNodeRef::StmtExpr(node) => NonNull::from(*node).cast(),
+            AnyNodeRef::ExprStmt(node) => NonNull::from(*node).cast(),
             AnyNodeRef::StmtPass(node) => NonNull::from(*node).cast(),
             AnyNodeRef::StmtBreak(node) => NonNull::from(*node).cast(),
             AnyNodeRef::StmtContinue(node) => NonNull::from(*node).cast(),
             AnyNodeRef::StmtIpyEscapeCommand(node) => NonNull::from(*node).cast(),
             AnyNodeRef::BoolOpExpr(node) => NonNull::from(*node).cast(),
-            AnyNodeRef::NamedExprExpr(node) => NonNull::from(*node).cast(),
+            AnyNodeRef::NamedExpr(node) => NonNull::from(*node).cast(),
             AnyNodeRef::BinOpExpr(node) => NonNull::from(*node).cast(),
             AnyNodeRef::UnaryOpExpr(node) => NonNull::from(*node).cast(),
             AnyNodeRef::LambdaExpr(node) => NonNull::from(*node).cast(),
@@ -5449,9 +5326,8 @@ impl<'a> AnyNodeRef<'a> {
             AnyNodeRef::YieldFromExpr(node) => NonNull::from(*node).cast(),
             AnyNodeRef::CompareExpr(node) => NonNull::from(*node).cast(),
             AnyNodeRef::CallExpr(node) => NonNull::from(*node).cast(),
-            AnyNodeRef::FStringessionElementExpr(node) => NonNull::from(*node).cast(),
+            AnyNodeRef::FStringExpressionElement(node) => NonNull::from(*node).cast(),
             AnyNodeRef::FStringLiteralElement(node) => NonNull::from(*node).cast(),
-            AnyNodeRef::FStringInvalidElement(node) => NonNull::from(*node).cast(),
             AnyNodeRef::FStringExpr(node) => NonNull::from(*node).cast(),
             AnyNodeRef::StringLiteralExpr(node) => NonNull::from(*node).cast(),
             AnyNodeRef::BytesLiteralExpr(node) => NonNull::from(*node).cast(),
@@ -5467,7 +5343,6 @@ impl<'a> AnyNodeRef<'a> {
             AnyNodeRef::TupleExpr(node) => NonNull::from(*node).cast(),
             AnyNodeRef::SliceExpr(node) => NonNull::from(*node).cast(),
             AnyNodeRef::IpyEscapeCommandExpr(node) => NonNull::from(*node).cast(),
-            AnyNodeRef::InvalidExpr(node) => NonNull::from(*node).cast(),
             AnyNodeRef::ExceptHandlerExceptHandler(node) => NonNull::from(*node).cast(),
             AnyNodeRef::PatternMatchValue(node) => NonNull::from(*node).cast(),
             AnyNodeRef::PatternMatchSingleton(node) => NonNull::from(*node).cast(),
@@ -5479,7 +5354,6 @@ impl<'a> AnyNodeRef<'a> {
             AnyNodeRef::PatternMatchOr(node) => NonNull::from(*node).cast(),
             AnyNodeRef::PatternArguments(node) => NonNull::from(*node).cast(),
             AnyNodeRef::PatternKeyword(node) => NonNull::from(*node).cast(),
-            AnyNodeRef::PatternMatchInvalid(node) => NonNull::from(*node).cast(),
             AnyNodeRef::Comprehension(node) => NonNull::from(*node).cast(),
             AnyNodeRef::Arguments(node) => NonNull::from(*node).cast(),
             AnyNodeRef::Parameters(node) => NonNull::from(*node).cast(),
@@ -5510,7 +5384,7 @@ impl<'a> AnyNodeRef<'a> {
     pub const fn kind(self) -> NodeKind {
         match self {
             AnyNodeRef::ModModule(_) => NodeKind::ModModule,
-            AnyNodeRef::ModessionExpr(_) => NodeKind::ModessionExpr,
+            AnyNodeRef::ModExpression(_) => NodeKind::ModessionExpr,
             AnyNodeRef::StmtFunctionDef(_) => NodeKind::StmtFunctionDef,
             AnyNodeRef::StmtClassDef(_) => NodeKind::StmtClassDef,
             AnyNodeRef::StmtReturn(_) => NodeKind::StmtReturn,
@@ -5531,13 +5405,13 @@ impl<'a> AnyNodeRef<'a> {
             AnyNodeRef::StmtImportFrom(_) => NodeKind::StmtImportFrom,
             AnyNodeRef::StmtGlobal(_) => NodeKind::StmtGlobal,
             AnyNodeRef::StmtNonlocal(_) => NodeKind::StmtNonlocal,
-            AnyNodeRef::StmtExpr(_) => NodeKind::StmtExpr,
+            AnyNodeRef::ExprStmt(_) => NodeKind::ExprStmt,
             AnyNodeRef::StmtPass(_) => NodeKind::StmtPass,
             AnyNodeRef::StmtBreak(_) => NodeKind::StmtBreak,
             AnyNodeRef::StmtContinue(_) => NodeKind::StmtContinue,
             AnyNodeRef::StmtIpyEscapeCommand(_) => NodeKind::StmtIpyEscapeCommand,
             AnyNodeRef::BoolOpExpr(_) => NodeKind::BoolOpExpr,
-            AnyNodeRef::NamedExprExpr(_) => NodeKind::NamedExprExpr,
+            AnyNodeRef::NamedExpr(_) => NodeKind::NamedExprExpr,
             AnyNodeRef::BinOpExpr(_) => NodeKind::BinOpExpr,
             AnyNodeRef::UnaryOpExpr(_) => NodeKind::UnaryOpExpr,
             AnyNodeRef::LambdaExpr(_) => NodeKind::LambdaExpr,
@@ -5553,9 +5427,8 @@ impl<'a> AnyNodeRef<'a> {
             AnyNodeRef::YieldFromExpr(_) => NodeKind::YieldFromExpr,
             AnyNodeRef::CompareExpr(_) => NodeKind::CompareExpr,
             AnyNodeRef::CallExpr(_) => NodeKind::CallExpr,
-            AnyNodeRef::FStringessionElementExpr(_) => NodeKind::FStringessionElementExpr,
+            AnyNodeRef::FStringExpressionElement(_) => NodeKind::FStringessionElementExpr,
             AnyNodeRef::FStringLiteralElement(_) => NodeKind::FStringLiteralElement,
-            AnyNodeRef::FStringInvalidElement(_) => NodeKind::FStringInvalidElement,
             AnyNodeRef::FStringExpr(_) => NodeKind::FStringExpr,
             AnyNodeRef::StringLiteralExpr(_) => NodeKind::StringLiteralExpr,
             AnyNodeRef::BytesLiteralExpr(_) => NodeKind::BytesLiteralExpr,
@@ -5571,7 +5444,6 @@ impl<'a> AnyNodeRef<'a> {
             AnyNodeRef::TupleExpr(_) => NodeKind::TupleExpr,
             AnyNodeRef::SliceExpr(_) => NodeKind::SliceExpr,
             AnyNodeRef::IpyEscapeCommandExpr(_) => NodeKind::IpyEscapeCommandExpr,
-            AnyNodeRef::InvalidExpr(_) => NodeKind::InvalidExpr,
             AnyNodeRef::ExceptHandlerExceptHandler(_) => NodeKind::ExceptHandlerExceptHandler,
             AnyNodeRef::PatternMatchValue(_) => NodeKind::PatternMatchValue,
             AnyNodeRef::PatternMatchSingleton(_) => NodeKind::PatternMatchSingleton,
@@ -5583,7 +5455,6 @@ impl<'a> AnyNodeRef<'a> {
             AnyNodeRef::PatternMatchOr(_) => NodeKind::PatternMatchOr,
             AnyNodeRef::PatternArguments(_) => NodeKind::PatternArguments,
             AnyNodeRef::PatternKeyword(_) => NodeKind::PatternKeyword,
-            AnyNodeRef::PatternMatchInvalid(_) => NodeKind::PatternInvalid,
             AnyNodeRef::Comprehension(_) => NodeKind::Comprehension,
             AnyNodeRef::Arguments(_) => NodeKind::Arguments,
             AnyNodeRef::Parameters(_) => NodeKind::Parameters,
@@ -5627,16 +5498,16 @@ impl<'a> AnyNodeRef<'a> {
             | AnyNodeRef::StmtImportFrom(_)
             | AnyNodeRef::StmtGlobal(_)
             | AnyNodeRef::StmtNonlocal(_)
-            | AnyNodeRef::StmtExpr(_)
+            | AnyNodeRef::ExprStmt(_)
             | AnyNodeRef::StmtPass(_)
             | AnyNodeRef::StmtBreak(_)
             | AnyNodeRef::StmtContinue(_)
             | AnyNodeRef::StmtIpyEscapeCommand(_) => true,
 
             AnyNodeRef::ModModule(_)
-            | AnyNodeRef::ModessionExpr(_)
+            | AnyNodeRef::ModExpression(_)
             | AnyNodeRef::BoolOpExpr(_)
-            | AnyNodeRef::NamedExprExpr(_)
+            | AnyNodeRef::NamedExpr(_)
             | AnyNodeRef::BinOpExpr(_)
             | AnyNodeRef::UnaryOpExpr(_)
             | AnyNodeRef::LambdaExpr(_)
@@ -5652,9 +5523,8 @@ impl<'a> AnyNodeRef<'a> {
             | AnyNodeRef::YieldFromExpr(_)
             | AnyNodeRef::CompareExpr(_)
             | AnyNodeRef::CallExpr(_)
-            | AnyNodeRef::FStringessionElementExpr(_)
+            | AnyNodeRef::FStringExpressionElement(_)
             | AnyNodeRef::FStringLiteralElement(_)
-            | AnyNodeRef::FStringInvalidElement(_)
             | AnyNodeRef::FStringExpr(_)
             | AnyNodeRef::StringLiteralExpr(_)
             | AnyNodeRef::BytesLiteralExpr(_)
@@ -5670,7 +5540,6 @@ impl<'a> AnyNodeRef<'a> {
             | AnyNodeRef::TupleExpr(_)
             | AnyNodeRef::SliceExpr(_)
             | AnyNodeRef::IpyEscapeCommandExpr(_)
-            | AnyNodeRef::InvalidExpr(_)
             | AnyNodeRef::ExceptHandlerExceptHandler(_)
             | AnyNodeRef::PatternMatchValue(_)
             | AnyNodeRef::PatternMatchSingleton(_)
@@ -5682,7 +5551,6 @@ impl<'a> AnyNodeRef<'a> {
             | AnyNodeRef::PatternMatchOr(_)
             | AnyNodeRef::PatternArguments(_)
             | AnyNodeRef::PatternKeyword(_)
-            | AnyNodeRef::PatternMatchInvalid(_)
             | AnyNodeRef::Comprehension(_)
             | AnyNodeRef::Arguments(_)
             | AnyNodeRef::Parameters(_)
@@ -5707,7 +5575,7 @@ impl<'a> AnyNodeRef<'a> {
     pub const fn is_expression(self) -> bool {
         match self {
             AnyNodeRef::BoolOpExpr(_)
-            | AnyNodeRef::NamedExprExpr(_)
+            | AnyNodeRef::NamedExpr(_)
             | AnyNodeRef::BinOpExpr(_)
             | AnyNodeRef::UnaryOpExpr(_)
             | AnyNodeRef::LambdaExpr(_)
@@ -5737,11 +5605,10 @@ impl<'a> AnyNodeRef<'a> {
             | AnyNodeRef::ListExpr(_)
             | AnyNodeRef::TupleExpr(_)
             | AnyNodeRef::SliceExpr(_)
-            | AnyNodeRef::IpyEscapeCommandExpr(_)
-            | AnyNodeRef::InvalidExpr(_) => true,
+            | AnyNodeRef::IpyEscapeCommandExpr(_) => true,
 
             AnyNodeRef::ModModule(_)
-            | AnyNodeRef::ModessionExpr(_)
+            | AnyNodeRef::ModExpression(_)
             | AnyNodeRef::StmtFunctionDef(_)
             | AnyNodeRef::StmtClassDef(_)
             | AnyNodeRef::StmtReturn(_)
@@ -5762,15 +5629,14 @@ impl<'a> AnyNodeRef<'a> {
             | AnyNodeRef::StmtImportFrom(_)
             | AnyNodeRef::StmtGlobal(_)
             | AnyNodeRef::StmtNonlocal(_)
-            | AnyNodeRef::StmtExpr(_)
+            | AnyNodeRef::ExprStmt(_)
             | AnyNodeRef::StmtPass(_)
             | AnyNodeRef::StmtBreak(_)
             | AnyNodeRef::StmtContinue(_)
             | AnyNodeRef::StmtIpyEscapeCommand(_)
             | AnyNodeRef::ExceptHandlerExceptHandler(_)
-            | AnyNodeRef::FStringessionElementExpr(_)
+            | AnyNodeRef::FStringExpressionElement(_)
             | AnyNodeRef::FStringLiteralElement(_)
-            | AnyNodeRef::FStringInvalidElement(_)
             | AnyNodeRef::PatternMatchValue(_)
             | AnyNodeRef::PatternMatchSingleton(_)
             | AnyNodeRef::PatternMatchSequence(_)
@@ -5781,7 +5647,6 @@ impl<'a> AnyNodeRef<'a> {
             | AnyNodeRef::PatternMatchOr(_)
             | AnyNodeRef::PatternArguments(_)
             | AnyNodeRef::PatternKeyword(_)
-            | AnyNodeRef::PatternMatchInvalid(_)
             | AnyNodeRef::Comprehension(_)
             | AnyNodeRef::Arguments(_)
             | AnyNodeRef::Parameters(_)
@@ -5805,7 +5670,7 @@ impl<'a> AnyNodeRef<'a> {
 
     pub const fn is_module(self) -> bool {
         match self {
-            AnyNodeRef::ModModule(_) | AnyNodeRef::ModessionExpr(_) => true,
+            AnyNodeRef::ModModule(_) | AnyNodeRef::ModExpression(_) => true,
 
             AnyNodeRef::StmtFunctionDef(_)
             | AnyNodeRef::StmtClassDef(_)
@@ -5827,13 +5692,13 @@ impl<'a> AnyNodeRef<'a> {
             | AnyNodeRef::StmtImportFrom(_)
             | AnyNodeRef::StmtGlobal(_)
             | AnyNodeRef::StmtNonlocal(_)
-            | AnyNodeRef::StmtExpr(_)
+            | AnyNodeRef::ExprStmt(_)
             | AnyNodeRef::StmtPass(_)
             | AnyNodeRef::StmtBreak(_)
             | AnyNodeRef::StmtContinue(_)
             | AnyNodeRef::StmtIpyEscapeCommand(_)
             | AnyNodeRef::BoolOpExpr(_)
-            | AnyNodeRef::NamedExprExpr(_)
+            | AnyNodeRef::NamedExpr(_)
             | AnyNodeRef::BinOpExpr(_)
             | AnyNodeRef::UnaryOpExpr(_)
             | AnyNodeRef::LambdaExpr(_)
@@ -5849,9 +5714,8 @@ impl<'a> AnyNodeRef<'a> {
             | AnyNodeRef::YieldFromExpr(_)
             | AnyNodeRef::CompareExpr(_)
             | AnyNodeRef::CallExpr(_)
-            | AnyNodeRef::FStringessionElementExpr(_)
+            | AnyNodeRef::FStringExpressionElement(_)
             | AnyNodeRef::FStringLiteralElement(_)
-            | AnyNodeRef::FStringInvalidElement(_)
             | AnyNodeRef::FStringExpr(_)
             | AnyNodeRef::StringLiteralExpr(_)
             | AnyNodeRef::BytesLiteralExpr(_)
@@ -5867,7 +5731,6 @@ impl<'a> AnyNodeRef<'a> {
             | AnyNodeRef::TupleExpr(_)
             | AnyNodeRef::SliceExpr(_)
             | AnyNodeRef::IpyEscapeCommandExpr(_)
-            | AnyNodeRef::InvalidExpr(_)
             | AnyNodeRef::ExceptHandlerExceptHandler(_)
             | AnyNodeRef::PatternMatchValue(_)
             | AnyNodeRef::PatternMatchSingleton(_)
@@ -5879,7 +5742,6 @@ impl<'a> AnyNodeRef<'a> {
             | AnyNodeRef::PatternMatchOr(_)
             | AnyNodeRef::PatternArguments(_)
             | AnyNodeRef::PatternKeyword(_)
-            | AnyNodeRef::PatternMatchInvalid(_)
             | AnyNodeRef::Comprehension(_)
             | AnyNodeRef::Arguments(_)
             | AnyNodeRef::Parameters(_)
@@ -5911,10 +5773,8 @@ impl<'a> AnyNodeRef<'a> {
             | AnyNodeRef::PatternMatchStar(_)
             | AnyNodeRef::PatternMatchAs(_)
             | AnyNodeRef::PatternMatchOr(_)
-            | AnyNodeRef::PatternMatchInvalid(_) => true,
-
-            AnyNodeRef::ModModule(_)
-            | AnyNodeRef::ModessionExpr(_)
+            | AnyNodeRef::ModModule(_)
+            | AnyNodeRef::ModExpression(_)
             | AnyNodeRef::StmtFunctionDef(_)
             | AnyNodeRef::StmtClassDef(_)
             | AnyNodeRef::StmtReturn(_)
@@ -5935,13 +5795,13 @@ impl<'a> AnyNodeRef<'a> {
             | AnyNodeRef::StmtImportFrom(_)
             | AnyNodeRef::StmtGlobal(_)
             | AnyNodeRef::StmtNonlocal(_)
-            | AnyNodeRef::StmtExpr(_)
+            | AnyNodeRef::ExprStmt(_)
             | AnyNodeRef::StmtPass(_)
             | AnyNodeRef::StmtBreak(_)
             | AnyNodeRef::StmtContinue(_)
             | AnyNodeRef::StmtIpyEscapeCommand(_)
             | AnyNodeRef::BoolOpExpr(_)
-            | AnyNodeRef::NamedExprExpr(_)
+            | AnyNodeRef::NamedExpr(_)
             | AnyNodeRef::BinOpExpr(_)
             | AnyNodeRef::UnaryOpExpr(_)
             | AnyNodeRef::LambdaExpr(_)
@@ -5957,9 +5817,8 @@ impl<'a> AnyNodeRef<'a> {
             | AnyNodeRef::YieldFromExpr(_)
             | AnyNodeRef::CompareExpr(_)
             | AnyNodeRef::CallExpr(_)
-            | AnyNodeRef::FStringessionElementExpr(_)
+            | AnyNodeRef::FStringExpressionElement(_)
             | AnyNodeRef::FStringLiteralElement(_)
-            | AnyNodeRef::FStringInvalidElement(_)
             | AnyNodeRef::FStringExpr(_)
             | AnyNodeRef::StringLiteralExpr(_)
             | AnyNodeRef::BytesLiteralExpr(_)
@@ -5975,7 +5834,6 @@ impl<'a> AnyNodeRef<'a> {
             | AnyNodeRef::TupleExpr(_)
             | AnyNodeRef::SliceExpr(_)
             | AnyNodeRef::IpyEscapeCommandExpr(_)
-            | AnyNodeRef::InvalidExpr(_)
             | AnyNodeRef::PatternArguments(_)
             | AnyNodeRef::PatternKeyword(_)
             | AnyNodeRef::ExceptHandlerExceptHandler(_)
@@ -6005,7 +5863,7 @@ impl<'a> AnyNodeRef<'a> {
             AnyNodeRef::ExceptHandlerExceptHandler(_) => true,
 
             AnyNodeRef::ModModule(_)
-            | AnyNodeRef::ModessionExpr(_)
+            | AnyNodeRef::ModExpression(_)
             | AnyNodeRef::StmtFunctionDef(_)
             | AnyNodeRef::StmtClassDef(_)
             | AnyNodeRef::StmtReturn(_)
@@ -6026,13 +5884,13 @@ impl<'a> AnyNodeRef<'a> {
             | AnyNodeRef::StmtImportFrom(_)
             | AnyNodeRef::StmtGlobal(_)
             | AnyNodeRef::StmtNonlocal(_)
-            | AnyNodeRef::StmtExpr(_)
+            | AnyNodeRef::ExprStmt(_)
             | AnyNodeRef::StmtPass(_)
             | AnyNodeRef::StmtBreak(_)
             | AnyNodeRef::StmtContinue(_)
             | AnyNodeRef::StmtIpyEscapeCommand(_)
             | AnyNodeRef::BoolOpExpr(_)
-            | AnyNodeRef::NamedExprExpr(_)
+            | AnyNodeRef::NamedExpr(_)
             | AnyNodeRef::BinOpExpr(_)
             | AnyNodeRef::UnaryOpExpr(_)
             | AnyNodeRef::LambdaExpr(_)
@@ -6048,9 +5906,8 @@ impl<'a> AnyNodeRef<'a> {
             | AnyNodeRef::YieldFromExpr(_)
             | AnyNodeRef::CompareExpr(_)
             | AnyNodeRef::CallExpr(_)
-            | AnyNodeRef::FStringessionElementExpr(_)
+            | AnyNodeRef::FStringExpressionElement(_)
             | AnyNodeRef::FStringLiteralElement(_)
-            | AnyNodeRef::FStringInvalidElement(_)
             | AnyNodeRef::FStringExpr(_)
             | AnyNodeRef::StringLiteralExpr(_)
             | AnyNodeRef::BytesLiteralExpr(_)
@@ -6066,7 +5923,6 @@ impl<'a> AnyNodeRef<'a> {
             | AnyNodeRef::TupleExpr(_)
             | AnyNodeRef::SliceExpr(_)
             | AnyNodeRef::IpyEscapeCommandExpr(_)
-            | AnyNodeRef::InvalidExpr(_)
             | AnyNodeRef::PatternMatchValue(_)
             | AnyNodeRef::PatternMatchSingleton(_)
             | AnyNodeRef::PatternMatchSequence(_)
@@ -6077,7 +5933,6 @@ impl<'a> AnyNodeRef<'a> {
             | AnyNodeRef::PatternMatchOr(_)
             | AnyNodeRef::PatternArguments(_)
             | AnyNodeRef::PatternKeyword(_)
-            | AnyNodeRef::PatternMatchInvalid(_)
             | AnyNodeRef::Comprehension(_)
             | AnyNodeRef::Arguments(_)
             | AnyNodeRef::Parameters(_)
@@ -6131,7 +5986,7 @@ impl<'a> AnyNodeRef<'a> {
     {
         match self {
             AnyNodeRef::ModModule(node) => node.visit_preorder(visitor),
-            AnyNodeRef::ModessionExpr(node) => node.visit_preorder(visitor),
+            AnyNodeRef::ModExpression(node) => node.visit_preorder(visitor),
             AnyNodeRef::StmtFunctionDef(node) => node.visit_preorder(visitor),
             AnyNodeRef::StmtClassDef(node) => node.visit_preorder(visitor),
             AnyNodeRef::StmtReturn(node) => node.visit_preorder(visitor),
@@ -6152,13 +6007,13 @@ impl<'a> AnyNodeRef<'a> {
             AnyNodeRef::StmtImportFrom(node) => node.visit_preorder(visitor),
             AnyNodeRef::StmtGlobal(node) => node.visit_preorder(visitor),
             AnyNodeRef::StmtNonlocal(node) => node.visit_preorder(visitor),
-            AnyNodeRef::StmtExpr(node) => node.visit_preorder(visitor),
+            AnyNodeRef::ExprStmt(node) => node.visit_preorder(visitor),
             AnyNodeRef::StmtPass(node) => node.visit_preorder(visitor),
             AnyNodeRef::StmtBreak(node) => node.visit_preorder(visitor),
             AnyNodeRef::StmtContinue(node) => node.visit_preorder(visitor),
             AnyNodeRef::StmtIpyEscapeCommand(node) => node.visit_preorder(visitor),
             AnyNodeRef::BoolOpExpr(node) => node.visit_preorder(visitor),
-            AnyNodeRef::NamedExprExpr(node) => node.visit_preorder(visitor),
+            AnyNodeRef::NamedExpr(node) => node.visit_preorder(visitor),
             AnyNodeRef::BinOpExpr(node) => node.visit_preorder(visitor),
             AnyNodeRef::UnaryOpExpr(node) => node.visit_preorder(visitor),
             AnyNodeRef::LambdaExpr(node) => node.visit_preorder(visitor),
@@ -6174,7 +6029,7 @@ impl<'a> AnyNodeRef<'a> {
             AnyNodeRef::YieldFromExpr(node) => node.visit_preorder(visitor),
             AnyNodeRef::CompareExpr(node) => node.visit_preorder(visitor),
             AnyNodeRef::CallExpr(node) => node.visit_preorder(visitor),
-            AnyNodeRef::FStringessionElementExpr(node) => node.visit_preorder(visitor),
+            AnyNodeRef::FStringExpressionElement(node) => node.visit_preorder(visitor),
             AnyNodeRef::FStringLiteralElement(node) => node.visit_preorder(visitor),
             AnyNodeRef::FStringExpr(node) => node.visit_preorder(visitor),
             AnyNodeRef::StringLiteralExpr(node) => node.visit_preorder(visitor),
@@ -6202,7 +6057,6 @@ impl<'a> AnyNodeRef<'a> {
             AnyNodeRef::PatternMatchOr(node) => node.visit_preorder(visitor),
             AnyNodeRef::PatternArguments(node) => node.visit_preorder(visitor),
             AnyNodeRef::PatternKeyword(node) => node.visit_preorder(visitor),
-            AnyNodeRef::PatternMatchInvalid(_) => {}
             AnyNodeRef::Comprehension(node) => node.visit_preorder(visitor),
             AnyNodeRef::Arguments(node) => node.visit_preorder(visitor),
             AnyNodeRef::Parameters(node) => node.visit_preorder(visitor),
@@ -6221,7 +6075,6 @@ impl<'a> AnyNodeRef<'a> {
             AnyNodeRef::StringLiteral(node) => node.visit_preorder(visitor),
             AnyNodeRef::BytesLiteral(node) => node.visit_preorder(visitor),
             AnyNodeRef::ElifElseClause(node) => node.visit_preorder(visitor),
-            AnyNodeRef::InvalidExpr(_) | AnyNodeRef::FStringInvalidElement(_) => {}
         }
     }
 
@@ -6294,7 +6147,7 @@ impl<'a> From<&'a ast::ModModule> for AnyNodeRef<'a> {
 
 impl<'a> From<&'a ast::ModExpression> for AnyNodeRef<'a> {
     fn from(node: &'a ast::ModExpression) -> Self {
-        AnyNodeRef::ModessionExpr(node)
+        AnyNodeRef::ModExpression(node)
     }
 }
 
@@ -6424,9 +6277,9 @@ impl<'a> From<&'a ast::NonlocalStmt> for AnyNodeRef<'a> {
     }
 }
 
-impl<'a> From<&'a ast::StmtExpr> for AnyNodeRef<'a> {
-    fn from(node: &'a ast::StmtExpr) -> Self {
-        AnyNodeRef::StmtExpr(node)
+impl<'a> From<&'a ast::ExprStmt> for AnyNodeRef<'a> {
+    fn from(node: &'a ast::ExprStmt) -> Self {
+        AnyNodeRef::ExprStmt(node)
     }
 }
 
@@ -6462,7 +6315,7 @@ impl<'a> From<&'a ast::BoolOpExpr> for AnyNodeRef<'a> {
 
 impl<'a> From<&'a ast::NamedExpr> for AnyNodeRef<'a> {
     fn from(node: &'a ast::NamedExpr) -> Self {
-        AnyNodeRef::NamedExprExpr(node)
+        AnyNodeRef::NamedExpr(node)
     }
 }
 
@@ -6520,8 +6373,8 @@ impl<'a> From<&'a ast::DictCompExpr> for AnyNodeRef<'a> {
     }
 }
 
-impl<'a> From<&'a ast::GeneratorExpExpr> for AnyNodeRef<'a> {
-    fn from(node: &'a ast::GeneratorExpExpr) -> Self {
+impl<'a> From<&'a ast::GeneratorExpr> for AnyNodeRef<'a> {
+    fn from(node: &'a ast::GeneratorExpr) -> Self {
         AnyNodeRef::GeneratorExpExpr(node)
     }
 }
@@ -6558,7 +6411,7 @@ impl<'a> From<&'a ast::CallExpr> for AnyNodeRef<'a> {
 
 impl<'a> From<&'a ast::FStringExpressionElement> for AnyNodeRef<'a> {
     fn from(node: &'a ast::FStringExpressionElement) -> Self {
-        AnyNodeRef::FStringessionElementExpr(node)
+        AnyNodeRef::FStringExpressionElement(node)
     }
 }
 
@@ -6658,12 +6511,6 @@ impl<'a> From<&'a ast::IpyEscapeCommandExpr> for AnyNodeRef<'a> {
     }
 }
 
-impl<'a> From<&'a ast::InvalidExpr> for AnyNodeRef<'a> {
-    fn from(node: &'a ast::InvalidExpr) -> Self {
-        AnyNodeRef::InvalidExpr(node)
-    }
-}
-
 impl<'a> From<&'a ast::ExceptHandlerExceptHandler> for AnyNodeRef<'a> {
     fn from(node: &'a ast::ExceptHandlerExceptHandler) -> Self {
         AnyNodeRef::ExceptHandlerExceptHandler(node)
@@ -6715,12 +6562,6 @@ impl<'a> From<&'a ast::PatternMatchAs> for AnyNodeRef<'a> {
 impl<'a> From<&'a ast::PatternMatchOr> for AnyNodeRef<'a> {
     fn from(node: &'a ast::PatternMatchOr) -> Self {
         AnyNodeRef::PatternMatchOr(node)
-    }
-}
-
-impl<'a> From<&'a ast::PatternMatchInvalid> for AnyNodeRef<'a> {
-    fn from(node: &'a ast::PatternMatchInvalid) -> Self {
-        AnyNodeRef::PatternMatchInvalid(node)
     }
 }
 
@@ -6806,7 +6647,7 @@ impl<'a> From<&'a Stmt> for AnyNodeRef<'a> {
             Stmt::ImportFrom(node) => AnyNodeRef::StmtImportFrom(node),
             Stmt::Global(node) => AnyNodeRef::StmtGlobal(node),
             Stmt::Nonlocal(node) => AnyNodeRef::StmtNonlocal(node),
-            Stmt::Expr(node) => AnyNodeRef::StmtExpr(node),
+            Stmt::Expr(node) => AnyNodeRef::ExprStmt(node),
             Stmt::Pass(node) => AnyNodeRef::StmtPass(node),
             Stmt::Break(node) => AnyNodeRef::StmtBreak(node),
             Stmt::Continue(node) => AnyNodeRef::StmtContinue(node),
@@ -6819,17 +6660,17 @@ impl<'a> From<&'a Expr> for AnyNodeRef<'a> {
     fn from(expr: &'a Expr) -> Self {
         match expr {
             Expr::BoolOp(node) => AnyNodeRef::BoolOpExpr(node),
-            Expr::NamedExpr(node) => AnyNodeRef::NamedExprExpr(node),
+            Expr::Named(node) => AnyNodeRef::NamedExpr(node),
             Expr::BinOp(node) => AnyNodeRef::BinOpExpr(node),
             Expr::UnaryOp(node) => AnyNodeRef::UnaryOpExpr(node),
             Expr::Lambda(node) => AnyNodeRef::LambdaExpr(node),
-            Expr::IfExp(node) => AnyNodeRef::IfExpr(node),
+            Expr::If(node) => AnyNodeRef::IfExpr(node),
             Expr::Dict(node) => AnyNodeRef::DictExpr(node),
             Expr::Set(node) => AnyNodeRef::SetExpr(node),
             Expr::ListComp(node) => AnyNodeRef::ListCompExpr(node),
             Expr::SetComp(node) => AnyNodeRef::SetCompExpr(node),
             Expr::DictComp(node) => AnyNodeRef::DictCompExpr(node),
-            Expr::GeneratorExp(node) => AnyNodeRef::GeneratorExpExpr(node),
+            Expr::Generator(node) => AnyNodeRef::GeneratorExpExpr(node),
             Expr::Await(node) => AnyNodeRef::AwaitExpr(node),
             Expr::Yield(node) => AnyNodeRef::YieldExpr(node),
             Expr::YieldFrom(node) => AnyNodeRef::YieldFromExpr(node),
@@ -6850,7 +6691,6 @@ impl<'a> From<&'a Expr> for AnyNodeRef<'a> {
             Expr::Tuple(node) => AnyNodeRef::TupleExpr(node),
             Expr::Slice(node) => AnyNodeRef::SliceExpr(node),
             Expr::IpyEscapeCommand(node) => AnyNodeRef::IpyEscapeCommandExpr(node),
-            Expr::Invalid(node) => AnyNodeRef::InvalidExpr(node),
         }
     }
 }
@@ -6859,7 +6699,7 @@ impl<'a> From<&'a Mod> for AnyNodeRef<'a> {
     fn from(module: &'a Mod) -> Self {
         match module {
             Mod::Module(node) => AnyNodeRef::ModModule(node),
-            Mod::Expression(node) => AnyNodeRef::ModessionExpr(node),
+            Mod::Expression(node) => AnyNodeRef::ModExpression(node),
         }
     }
 }
@@ -6867,9 +6707,8 @@ impl<'a> From<&'a Mod> for AnyNodeRef<'a> {
 impl<'a> From<&'a FStringElement> for AnyNodeRef<'a> {
     fn from(element: &'a FStringElement) -> Self {
         match element {
-            FStringElement::Expression(node) => AnyNodeRef::FStringessionElementExpr(node),
+            FStringElement::Expression(node) => AnyNodeRef::FStringExpressionElement(node),
             FStringElement::Literal(node) => AnyNodeRef::FStringLiteralElement(node),
-            FStringElement::Invalid(node) => AnyNodeRef::FStringInvalidElement(node),
         }
     }
 }
@@ -6885,7 +6724,6 @@ impl<'a> From<&'a Pattern> for AnyNodeRef<'a> {
             Pattern::MatchStar(node) => AnyNodeRef::PatternMatchStar(node),
             Pattern::MatchAs(node) => AnyNodeRef::PatternMatchAs(node),
             Pattern::MatchOr(node) => AnyNodeRef::PatternMatchOr(node),
-            Pattern::Invalid(node) => AnyNodeRef::PatternMatchInvalid(node),
         }
     }
 }
@@ -6960,7 +6798,7 @@ impl Ranged for AnyNodeRef<'_> {
     fn range(&self) -> TextRange {
         match self {
             AnyNodeRef::ModModule(node) => node.range(),
-            AnyNodeRef::ModessionExpr(node) => node.range(),
+            AnyNodeRef::ModExpression(node) => node.range(),
             AnyNodeRef::StmtFunctionDef(node) => node.range(),
             AnyNodeRef::StmtClassDef(node) => node.range(),
             AnyNodeRef::StmtReturn(node) => node.range(),
@@ -6981,13 +6819,13 @@ impl Ranged for AnyNodeRef<'_> {
             AnyNodeRef::StmtImportFrom(node) => node.range(),
             AnyNodeRef::StmtGlobal(node) => node.range(),
             AnyNodeRef::StmtNonlocal(node) => node.range(),
-            AnyNodeRef::StmtExpr(node) => node.range(),
+            AnyNodeRef::ExprStmt(node) => node.range(),
             AnyNodeRef::StmtPass(node) => node.range(),
             AnyNodeRef::StmtBreak(node) => node.range(),
             AnyNodeRef::StmtContinue(node) => node.range(),
             AnyNodeRef::StmtIpyEscapeCommand(node) => node.range(),
             AnyNodeRef::BoolOpExpr(node) => node.range(),
-            AnyNodeRef::NamedExprExpr(node) => node.range(),
+            AnyNodeRef::NamedExpr(node) => node.range(),
             AnyNodeRef::BinOpExpr(node) => node.range(),
             AnyNodeRef::UnaryOpExpr(node) => node.range(),
             AnyNodeRef::LambdaExpr(node) => node.range(),
@@ -7003,9 +6841,8 @@ impl Ranged for AnyNodeRef<'_> {
             AnyNodeRef::YieldFromExpr(node) => node.range(),
             AnyNodeRef::CompareExpr(node) => node.range(),
             AnyNodeRef::CallExpr(node) => node.range(),
-            AnyNodeRef::FStringessionElementExpr(node) => node.range(),
+            AnyNodeRef::FStringExpressionElement(node) => node.range(),
             AnyNodeRef::FStringLiteralElement(node) => node.range(),
-            AnyNodeRef::FStringInvalidElement(node) => node.range(),
             AnyNodeRef::FStringExpr(node) => node.range(),
             AnyNodeRef::StringLiteralExpr(node) => node.range(),
             AnyNodeRef::BytesLiteralExpr(node) => node.range(),
@@ -7021,7 +6858,6 @@ impl Ranged for AnyNodeRef<'_> {
             AnyNodeRef::TupleExpr(node) => node.range(),
             AnyNodeRef::SliceExpr(node) => node.range(),
             AnyNodeRef::IpyEscapeCommandExpr(node) => node.range(),
-            AnyNodeRef::InvalidExpr(node) => node.range(),
             AnyNodeRef::ExceptHandlerExceptHandler(node) => node.range(),
             AnyNodeRef::PatternMatchValue(node) => node.range(),
             AnyNodeRef::PatternMatchSingleton(node) => node.range(),
@@ -7033,7 +6869,6 @@ impl Ranged for AnyNodeRef<'_> {
             AnyNodeRef::PatternMatchOr(node) => node.range(),
             AnyNodeRef::PatternArguments(node) => node.range(),
             AnyNodeRef::PatternKeyword(node) => node.range(),
-            AnyNodeRef::PatternMatchInvalid(node) => node.range(),
             AnyNodeRef::Comprehension(node) => node.range(),
             AnyNodeRef::Arguments(node) => node.range(),
             AnyNodeRef::Parameters(node) => node.range(),
@@ -7083,7 +6918,7 @@ pub enum NodeKind {
     StmtGlobal,
     StmtNonlocal,
     StmtIpyEscapeCommand,
-    StmtExpr,
+    ExprStmt,
     StmtPass,
     StmtBreak,
     StmtContinue,
@@ -7106,7 +6941,6 @@ pub enum NodeKind {
     CallExpr,
     FStringessionElementExpr,
     FStringLiteralElement,
-    FStringInvalidElement,
     FStringExpr,
     StringLiteralExpr,
     BytesLiteralExpr,
@@ -7122,7 +6956,6 @@ pub enum NodeKind {
     TupleExpr,
     SliceExpr,
     IpyEscapeCommandExpr,
-    InvalidExpr,
     ExceptHandlerExceptHandler,
     PatternMatchValue,
     PatternMatchSingleton,
@@ -7134,7 +6967,6 @@ pub enum NodeKind {
     PatternMatchOr,
     PatternArguments,
     PatternKeyword,
-    PatternInvalid,
     TypeIgnoreTypeIgnore,
     Comprehension,
     Arguments,

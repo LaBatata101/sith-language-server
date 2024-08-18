@@ -129,7 +129,7 @@ pub fn walk_stmt<V: Transformer + ?Sized>(visitor: &V, stmt: &mut Stmt) {
                 visitor.visit_type_params(type_params);
             }
             visitor.visit_parameters(parameters);
-            for expr in returns {
+            if let Some(expr) = returns {
                 visitor.visit_annotation(expr);
             }
             visitor.visit_body(body);
@@ -304,7 +304,7 @@ pub fn walk_stmt<V: Transformer + ?Sized>(visitor: &V, stmt: &mut Stmt) {
         }
         Stmt::Global(_) => {}
         Stmt::Nonlocal(_) => {}
-        Stmt::Expr(ast::StmtExpr { value, range: _ }) => visitor.visit_expr(value),
+        Stmt::Expr(ast::ExprStmt { value, range: _ }) => visitor.visit_expr(value),
         Stmt::Pass(_) | Stmt::Break(_) | Stmt::Continue(_) | Stmt::IpyEscapeCommand(_) => {}
     }
 }
@@ -329,7 +329,7 @@ pub fn walk_expr<V: Transformer + ?Sized>(visitor: &V, expr: &mut Expr) {
                 visitor.visit_expr(expr);
             }
         }
-        Expr::NamedExpr(ast::NamedExpr {
+        Expr::Named(ast::NamedExpr {
             target,
             value,
             range: _,
@@ -365,7 +365,7 @@ pub fn walk_expr<V: Transformer + ?Sized>(visitor: &V, expr: &mut Expr) {
             }
             visitor.visit_expr(body);
         }
-        Expr::IfExp(ast::IfExpr {
+        Expr::If(ast::IfExpr {
             test,
             body,
             orelse,
@@ -375,16 +375,12 @@ pub fn walk_expr<V: Transformer + ?Sized>(visitor: &V, expr: &mut Expr) {
             visitor.visit_expr(body);
             visitor.visit_expr(orelse);
         }
-        Expr::Dict(ast::DictExpr {
-            keys,
-            values,
-            range: _,
-        }) => {
-            for expr in keys.iter_mut().flatten() {
-                visitor.visit_expr(expr);
-            }
-            for expr in values {
-                visitor.visit_expr(expr);
+        Expr::Dict(ast::DictExpr { items, range: _ }) => {
+            for ast::DictItem { key, value } in items {
+                if let Some(key) = key {
+                    visitor.visit_expr(key);
+                }
+                visitor.visit_expr(value);
             }
         }
         Expr::Set(ast::SetExpr { elts, range: _ }) => {
@@ -424,10 +420,8 @@ pub fn walk_expr<V: Transformer + ?Sized>(visitor: &V, expr: &mut Expr) {
             visitor.visit_expr(key);
             visitor.visit_expr(value);
         }
-        Expr::GeneratorExp(ast::GeneratorExpExpr {
-            elt,
-            generators,
-            range: _,
+        Expr::Generator(ast::GeneratorExpr {
+            elt, generators, ..
         }) => {
             for comprehension in generators {
                 visitor.visit_comprehension(comprehension);
@@ -524,11 +518,7 @@ pub fn walk_expr<V: Transformer + ?Sized>(visitor: &V, expr: &mut Expr) {
             }
             visitor.visit_expr_context(ctx);
         }
-        Expr::Tuple(ast::TupleExpr {
-            elts,
-            ctx,
-            range: _,
-        }) => {
+        Expr::Tuple(ast::TupleExpr { elts, ctx, .. }) => {
             for expr in elts {
                 visitor.visit_expr(expr);
             }
@@ -550,7 +540,7 @@ pub fn walk_expr<V: Transformer + ?Sized>(visitor: &V, expr: &mut Expr) {
                 visitor.visit_expr(expr);
             }
         }
-        Expr::IpyEscapeCommand(_) | Expr::Invalid(_) => {}
+        Expr::IpyEscapeCommand(_) => {}
     }
 }
 
@@ -648,11 +638,7 @@ pub fn walk_type_params<V: Transformer + ?Sized>(visitor: &V, type_params: &mut 
 
 pub fn walk_type_param<V: Transformer + ?Sized>(visitor: &V, type_param: &mut TypeParam) {
     match type_param {
-        TypeParam::TypeVar(TypeParamTypeVar {
-            bound,
-            name: _,
-            range: _,
-        }) => {
+        TypeParam::TypeVar(TypeParamTypeVar { bound, .. }) => {
             if let Some(expr) = bound {
                 visitor.visit_expr(expr);
             }
@@ -703,7 +689,6 @@ pub fn walk_pattern<V: Transformer + ?Sized>(visitor: &V, pattern: &mut Pattern)
                 visitor.visit_pattern(pattern);
             }
         }
-        Pattern::Invalid(_) => {}
     }
 }
 

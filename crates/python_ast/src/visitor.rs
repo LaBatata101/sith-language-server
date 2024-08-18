@@ -7,7 +7,8 @@ use crate::{
     self as ast, Alias, Arguments, BoolOp, BytesLiteral, CmpOp, Comprehension, ContextExpr,
     Decorator, ElifElseClause, ExceptHandler, Expr, FString, FStringElement, FStringPart, Keyword,
     MatchCase, Operator, Parameter, Parameters, Pattern, PatternArguments, PatternKeyword, Stmt,
-    StringLiteral, TypeParam, TypeParamTypeVar, TypeParams, UnaryOp, WithItem,
+    StringLiteral, TypeParam, TypeParamParamSpec, TypeParamTypeVar, TypeParamTypeVarTuple,
+    TypeParams, UnaryOp, WithItem,
 };
 
 /// A trait for AST visitors. Visits all nodes in the AST recursively in evaluation-order.
@@ -142,7 +143,7 @@ pub fn walk_stmt<'a, V: Visitor<'a> + ?Sized>(visitor: &mut V, stmt: &'a Stmt) {
                 visitor.visit_type_params(type_params);
             }
             visitor.visit_parameters(parameters);
-            for expr in returns {
+            if let Some(expr) = returns {
                 visitor.visit_annotation(expr);
             }
             visitor.visit_body(body);
@@ -317,7 +318,7 @@ pub fn walk_stmt<'a, V: Visitor<'a> + ?Sized>(visitor: &mut V, stmt: &'a Stmt) {
         }
         Stmt::Global(_) => {}
         Stmt::Nonlocal(_) => {}
-        Stmt::Expr(ast::StmtExpr { value, range: _ }) => visitor.visit_expr(value),
+        Stmt::Expr(ast::ExprStmt { value, range: _ }) => visitor.visit_expr(value),
         Stmt::Pass(_) | Stmt::Break(_) | Stmt::Continue(_) | Stmt::IpyEscapeCommand(_) => {}
     }
 }
@@ -342,7 +343,7 @@ pub fn walk_expr<'a, V: Visitor<'a> + ?Sized>(visitor: &mut V, expr: &'a Expr) {
                 visitor.visit_expr(expr);
             }
         }
-        Expr::NamedExpr(ast::NamedExpr {
+        Expr::Named(ast::NamedExpr {
             target,
             value,
             range: _,
@@ -378,7 +379,7 @@ pub fn walk_expr<'a, V: Visitor<'a> + ?Sized>(visitor: &mut V, expr: &'a Expr) {
             }
             visitor.visit_expr(body);
         }
-        Expr::IfExp(ast::IfExpr {
+        Expr::If(ast::IfExpr {
             test,
             body,
             orelse,
@@ -388,16 +389,12 @@ pub fn walk_expr<'a, V: Visitor<'a> + ?Sized>(visitor: &mut V, expr: &'a Expr) {
             visitor.visit_expr(body);
             visitor.visit_expr(orelse);
         }
-        Expr::Dict(ast::DictExpr {
-            keys,
-            values,
-            range: _,
-        }) => {
-            for expr in keys.iter().flatten() {
-                visitor.visit_expr(expr);
-            }
-            for expr in values {
-                visitor.visit_expr(expr);
+        Expr::Dict(ast::DictExpr { items, range: _ }) => {
+            for ast::DictItem { key, value } in items {
+                if let Some(key) = key {
+                    visitor.visit_expr(key);
+                }
+                visitor.visit_expr(value);
             }
         }
         Expr::Set(ast::SetExpr { elts, range: _ }) => {
@@ -437,10 +434,8 @@ pub fn walk_expr<'a, V: Visitor<'a> + ?Sized>(visitor: &mut V, expr: &'a Expr) {
             visitor.visit_expr(key);
             visitor.visit_expr(value);
         }
-        Expr::GeneratorExp(ast::GeneratorExpExpr {
-            elt,
-            generators,
-            range: _,
+        Expr::Generator(ast::GeneratorExpr {
+            elt, generators, ..
         }) => {
             for comprehension in generators {
                 visitor.visit_comprehension(comprehension);
@@ -535,11 +530,7 @@ pub fn walk_expr<'a, V: Visitor<'a> + ?Sized>(visitor: &mut V, expr: &'a Expr) {
             }
             visitor.visit_expr_context(ctx);
         }
-        Expr::Tuple(ast::TupleExpr {
-            elts,
-            ctx,
-            range: _,
-        }) => {
+        Expr::Tuple(ast::TupleExpr { elts, ctx, .. }) => {
             for expr in elts {
                 visitor.visit_expr(expr);
             }
@@ -562,7 +553,6 @@ pub fn walk_expr<'a, V: Visitor<'a> + ?Sized>(visitor: &mut V, expr: &'a Expr) {
             }
         }
         Expr::IpyEscapeCommand(_) => {}
-        Expr::Invalid(_) => {}
     }
 }
 
@@ -663,16 +653,24 @@ pub fn walk_type_params<'a, V: Visitor<'a> + ?Sized>(visitor: &mut V, type_param
 
 pub fn walk_type_param<'a, V: Visitor<'a> + ?Sized>(visitor: &mut V, type_param: &'a TypeParam) {
     match type_param {
-        TypeParam::TypeVar(TypeParamTypeVar {
-            bound,
-            name: _,
-            range: _,
-        }) => {
+        TypeParam::TypeVar(TypeParamTypeVar { bound, default, .. }) => {
             if let Some(expr) = bound {
                 visitor.visit_expr(expr);
             }
+            if let Some(expr) = default {
+                visitor.visit_expr(expr);
+            }
         }
-        TypeParam::TypeVarTuple(_) | TypeParam::ParamSpec(_) => {}
+        TypeParam::TypeVarTuple(TypeParamTypeVarTuple { default, .. }) => {
+            if let Some(expr) = default {
+                visitor.visit_expr(expr);
+            }
+        }
+        TypeParam::ParamSpec(TypeParamParamSpec { default, .. }) => {
+            if let Some(expr) = default {
+                visitor.visit_expr(expr);
+            }
+        }
     }
 }
 
@@ -718,7 +716,6 @@ pub fn walk_pattern<'a, V: Visitor<'a> + ?Sized>(visitor: &mut V, pattern: &'a P
                 visitor.visit_pattern(pattern);
             }
         }
-        Pattern::Invalid(_) => {}
     }
 }
 

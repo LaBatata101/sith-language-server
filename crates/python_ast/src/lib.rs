@@ -7,8 +7,10 @@ pub use nodes::*;
 pub mod call_path;
 pub mod helpers;
 mod int;
+pub mod name;
 mod node;
 mod nodes;
+pub mod str_prefix;
 pub mod visitor;
 
 /// The type of a source file.

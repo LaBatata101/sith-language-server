@@ -273,17 +273,17 @@ where
     if visitor.enter_node(node).is_traverse() {
         match expr {
             Expr::BoolOp(expr) => expr.visit_preorder(visitor),
-            Expr::NamedExpr(expr) => expr.visit_preorder(visitor),
+            Expr::Named(expr) => expr.visit_preorder(visitor),
             Expr::BinOp(expr) => expr.visit_preorder(visitor),
             Expr::UnaryOp(expr) => expr.visit_preorder(visitor),
             Expr::Lambda(expr) => expr.visit_preorder(visitor),
-            Expr::IfExp(expr) => expr.visit_preorder(visitor),
+            Expr::If(expr) => expr.visit_preorder(visitor),
             Expr::Dict(expr) => expr.visit_preorder(visitor),
             Expr::Set(expr) => expr.visit_preorder(visitor),
             Expr::ListComp(expr) => expr.visit_preorder(visitor),
             Expr::SetComp(expr) => expr.visit_preorder(visitor),
             Expr::DictComp(expr) => expr.visit_preorder(visitor),
-            Expr::GeneratorExp(expr) => expr.visit_preorder(visitor),
+            Expr::Generator(expr) => expr.visit_preorder(visitor),
             Expr::Await(expr) => expr.visit_preorder(visitor),
             Expr::Yield(expr) => expr.visit_preorder(visitor),
             Expr::YieldFrom(expr) => expr.visit_preorder(visitor),
@@ -304,7 +304,6 @@ where
             Expr::Tuple(expr) => expr.visit_preorder(visitor),
             Expr::Slice(expr) => expr.visit_preorder(visitor),
             Expr::IpyEscapeCommand(expr) => expr.visit_preorder(visitor),
-            Expr::Invalid(_) => {}
         }
     }
 
@@ -486,7 +485,6 @@ where
             Pattern::MatchStar(pattern) => pattern.visit_preorder(visitor),
             Pattern::MatchAs(pattern) => pattern.visit_preorder(visitor),
             Pattern::MatchOr(pattern) => pattern.visit_preorder(visitor),
-            Pattern::Invalid(_) => {}
         }
     }
     visitor.leave_node(node);
@@ -528,7 +526,6 @@ pub fn walk_f_string_element<'a, V: PreorderVisitor<'a> + ?Sized>(
         match f_string_element {
             FStringElement::Expression(element) => element.visit_preorder(visitor),
             FStringElement::Literal(element) => element.visit_preorder(visitor),
-            FStringElement::Invalid(_) => {}
         }
     }
     visitor.leave_node(node);
