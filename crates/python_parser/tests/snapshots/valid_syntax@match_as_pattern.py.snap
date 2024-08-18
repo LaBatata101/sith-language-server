@@ -1,0 +1,80 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/ok/match_as_pattern.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..49,
+        body: [
+            Match(
+                MatchStmt {
+                    range: 0..48,
+                    subject: Name(
+                        NameExpr {
+                            range: 6..9,
+                            id: Name("foo"),
+                            ctx: Load,
+                        },
+                    ),
+                    cases: [
+                        MatchCase {
+                            range: 15..32,
+                            pattern: MatchAs(
+                                PatternMatchAs {
+                                    range: 20..27,
+                                    pattern: None,
+                                    name: Some(
+                                        Identifier {
+                                            id: Name("foo_bar"),
+                                            range: 20..27,
+                                        },
+                                    ),
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Expr(
+                                    ExprStmt {
+                                        range: 29..32,
+                                        value: EllipsisLiteral(
+                                            EllipsisLiteralExpr {
+                                                range: 29..32,
+                                            },
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                        MatchCase {
+                            range: 37..48,
+                            pattern: MatchAs(
+                                PatternMatchAs {
+                                    range: 42..43,
+                                    pattern: None,
+                                    name: None,
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Expr(
+                                    ExprStmt {
+                                        range: 45..48,
+                                        value: EllipsisLiteral(
+                                            EllipsisLiteralExpr {
+                                                range: 45..48,
+                                            },
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ],
+                },
+            ),
+        ],
+    },
+)
+```

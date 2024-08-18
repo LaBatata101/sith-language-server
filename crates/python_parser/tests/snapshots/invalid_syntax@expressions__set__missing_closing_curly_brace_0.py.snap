@@ -1,0 +1,42 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/invalid/expressions/set/missing_closing_curly_brace_0.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..47,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 46..47,
+                    value: Set(
+                        SetExpr {
+                            range: 46..47,
+                            elts: [
+                                Name(
+                                    NameExpr {
+                                        range: 47..47,
+                                        id: Name(""),
+                                        ctx: Invalid,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | # Missing closing curly brace 0: No elements
+2 | 
+3 | {
+  |   Syntax Error: unexpected EOF while parsing
+  |

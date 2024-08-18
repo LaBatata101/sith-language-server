@@ -1,0 +1,146 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/err/simple_stmts_on_same_line.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..53,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 0..1,
+                    value: Name(
+                        NameExpr {
+                            range: 0..1,
+                            id: Name("a"),
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 2..3,
+                    value: Name(
+                        NameExpr {
+                            range: 2..3,
+                            id: Name("b"),
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 4..9,
+                    value: BinOp(
+                        BinOpExpr {
+                            range: 4..9,
+                            left: Name(
+                                NameExpr {
+                                    range: 4..5,
+                                    id: Name("a"),
+                                    ctx: Load,
+                                },
+                            ),
+                            op: Add,
+                            right: Name(
+                                NameExpr {
+                                    range: 8..9,
+                                    id: Name("b"),
+                                    ctx: Load,
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 10..15,
+                    value: BinOp(
+                        BinOpExpr {
+                            range: 10..15,
+                            left: Name(
+                                NameExpr {
+                                    range: 10..11,
+                                    id: Name("c"),
+                                    ctx: Load,
+                                },
+                            ),
+                            op: Add,
+                            right: Name(
+                                NameExpr {
+                                    range: 14..15,
+                                    id: Name("d"),
+                                    ctx: Load,
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+            Break(
+                BreakStmt {
+                    range: 16..21,
+                },
+            ),
+            Continue(
+                ContinueStmt {
+                    range: 23..31,
+                },
+            ),
+            Pass(
+                PassStmt {
+                    range: 32..36,
+                },
+            ),
+            Continue(
+                ContinueStmt {
+                    range: 38..46,
+                },
+            ),
+            Break(
+                BreakStmt {
+                    range: 47..52,
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | a b
+  |   ^ Syntax Error: Simple statements must be separated by newlines or semicolons
+2 | a + b c + d
+3 | break; continue pass; continue break
+  |
+
+
+  |
+1 | a b
+2 | a + b c + d
+  |       ^ Syntax Error: Simple statements must be separated by newlines or semicolons
+3 | break; continue pass; continue break
+  |
+
+
+  |
+1 | a b
+2 | a + b c + d
+3 | break; continue pass; continue break
+  |                 ^^^^ Syntax Error: Simple statements must be separated by newlines or semicolons
+  |
+
+
+  |
+1 | a b
+2 | a + b c + d
+3 | break; continue pass; continue break
+  |                                ^^^^^ Syntax Error: Simple statements must be separated by newlines or semicolons
+  |

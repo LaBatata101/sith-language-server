@@ -1,0 +1,258 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/err/type_param_invalid_bound_expr.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..103,
+        body: [
+            TypeAlias(
+                TypeAliasStmt {
+                    range: 0..21,
+                    name: Name(
+                        NameExpr {
+                            range: 5..6,
+                            id: Name("X"),
+                            ctx: Store,
+                        },
+                    ),
+                    type_params: Some(
+                        TypeParams {
+                            range: 6..15,
+                            type_params: [
+                                TypeVar(
+                                    TypeParamTypeVar {
+                                        range: 7..14,
+                                        name: Identifier {
+                                            id: Name("T"),
+                                            range: 7..8,
+                                        },
+                                        bound: Some(
+                                            Starred(
+                                                StarredExpr {
+                                                    range: 10..14,
+                                                    value: Name(
+                                                        NameExpr {
+                                                            range: 11..14,
+                                                            id: Name("int"),
+                                                            ctx: Load,
+                                                        },
+                                                    ),
+                                                    ctx: Load,
+                                                },
+                                            ),
+                                        ),
+                                        default: None,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                    value: Name(
+                        NameExpr {
+                            range: 18..21,
+                            id: Name("int"),
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            TypeAlias(
+                TypeAliasStmt {
+                    range: 22..46,
+                    name: Name(
+                        NameExpr {
+                            range: 27..28,
+                            id: Name("X"),
+                            ctx: Store,
+                        },
+                    ),
+                    type_params: Some(
+                        TypeParams {
+                            range: 28..40,
+                            type_params: [
+                                TypeVar(
+                                    TypeParamTypeVar {
+                                        range: 29..39,
+                                        name: Identifier {
+                                            id: Name("T"),
+                                            range: 29..30,
+                                        },
+                                        bound: Some(
+                                            Yield(
+                                                YieldExpr {
+                                                    range: 32..39,
+                                                    value: Some(
+                                                        Name(
+                                                            NameExpr {
+                                                                range: 38..39,
+                                                                id: Name("x"),
+                                                                ctx: Load,
+                                                            },
+                                                        ),
+                                                    ),
+                                                },
+                                            ),
+                                        ),
+                                        default: None,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                    value: Name(
+                        NameExpr {
+                            range: 43..46,
+                            id: Name("int"),
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            TypeAlias(
+                TypeAliasStmt {
+                    range: 47..76,
+                    name: Name(
+                        NameExpr {
+                            range: 52..53,
+                            id: Name("X"),
+                            ctx: Store,
+                        },
+                    ),
+                    type_params: Some(
+                        TypeParams {
+                            range: 53..70,
+                            type_params: [
+                                TypeVar(
+                                    TypeParamTypeVar {
+                                        range: 54..69,
+                                        name: Identifier {
+                                            id: Name("T"),
+                                            range: 54..55,
+                                        },
+                                        bound: Some(
+                                            YieldFrom(
+                                                YieldFromExpr {
+                                                    range: 57..69,
+                                                    value: Name(
+                                                        NameExpr {
+                                                            range: 68..69,
+                                                            id: Name("x"),
+                                                            ctx: Load,
+                                                        },
+                                                    ),
+                                                },
+                                            ),
+                                        ),
+                                        default: None,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                    value: Name(
+                        NameExpr {
+                            range: 73..76,
+                            id: Name("int"),
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            TypeAlias(
+                TypeAliasStmt {
+                    range: 77..102,
+                    name: Name(
+                        NameExpr {
+                            range: 82..83,
+                            id: Name("X"),
+                            ctx: Store,
+                        },
+                    ),
+                    type_params: Some(
+                        TypeParams {
+                            range: 83..96,
+                            type_params: [
+                                TypeVar(
+                                    TypeParamTypeVar {
+                                        range: 84..88,
+                                        name: Identifier {
+                                            id: Name("T"),
+                                            range: 84..85,
+                                        },
+                                        bound: Some(
+                                            Name(
+                                                NameExpr {
+                                                    range: 87..88,
+                                                    id: Name("x"),
+                                                    ctx: Load,
+                                                },
+                                            ),
+                                        ),
+                                        default: None,
+                                    },
+                                ),
+                                TypeVar(
+                                    TypeParamTypeVar {
+                                        range: 92..95,
+                                        name: Identifier {
+                                            id: Name("int"),
+                                            range: 92..95,
+                                        },
+                                        bound: None,
+                                        default: None,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                    value: Name(
+                        NameExpr {
+                            range: 99..102,
+                            id: Name("int"),
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | type X[T: *int] = int
+  |           ^^^^ Syntax Error: Starred expression cannot be used here
+2 | type X[T: yield x] = int
+3 | type X[T: yield from x] = int
+  |
+
+
+  |
+1 | type X[T: *int] = int
+2 | type X[T: yield x] = int
+  |           ^^^^^^^ Syntax Error: Yield expression cannot be used here
+3 | type X[T: yield from x] = int
+4 | type X[T: x := int] = int
+  |
+
+
+  |
+1 | type X[T: *int] = int
+2 | type X[T: yield x] = int
+3 | type X[T: yield from x] = int
+  |           ^^^^^^^^^^^^ Syntax Error: Yield expression cannot be used here
+4 | type X[T: x := int] = int
+  |
+
+
+  |
+2 | type X[T: yield x] = int
+3 | type X[T: yield from x] = int
+4 | type X[T: x := int] = int
+  |             ^^ Syntax Error: Expected ',', found ':='
+  |

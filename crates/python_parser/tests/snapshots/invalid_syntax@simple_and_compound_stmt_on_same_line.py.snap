@@ -1,0 +1,65 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/err/simple_and_compound_stmt_on_same_line.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..17,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 0..1,
+                    value: Name(
+                        NameExpr {
+                            range: 0..1,
+                            id: Name("a"),
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            If(
+                IfStmt {
+                    range: 3..16,
+                    test: Name(
+                        NameExpr {
+                            range: 6..7,
+                            id: Name("b"),
+                            ctx: Load,
+                        },
+                    ),
+                    body: [
+                        Pass(
+                            PassStmt {
+                                range: 9..13,
+                            },
+                        ),
+                        Expr(
+                            ExprStmt {
+                                range: 15..16,
+                                value: Name(
+                                    NameExpr {
+                                        range: 15..16,
+                                        id: Name("b"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            },
+                        ),
+                    ],
+                    elif_else_clauses: [],
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | a; if b: pass; b
+  |    ^^ Syntax Error: Compound statements are not allowed on the same line as simple statements
+  |

@@ -1,0 +1,107 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/err/invalid_byte_literal.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..44,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 0..12,
+                    value: BytesLiteral(
+                        BytesLiteralExpr {
+                            range: 0..12,
+                            value: BytesLiteralValue {
+                                inner: Single(
+                                    BytesLiteral {
+                                        range: 0..12,
+                                        value: [],
+                                        flags: BytesLiteralFlags {
+                                            prefix: Regular,
+                                            triple_quoted: false,
+                                        },
+                                    },
+                                ),
+                            },
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 13..26,
+                    value: BytesLiteral(
+                        BytesLiteralExpr {
+                            range: 13..26,
+                            value: BytesLiteralValue {
+                                inner: Single(
+                                    BytesLiteral {
+                                        range: 13..26,
+                                        value: [],
+                                        flags: BytesLiteralFlags {
+                                            prefix: Raw {
+                                                uppercase_r: false,
+                                            },
+                                            triple_quoted: false,
+                                        },
+                                    },
+                                ),
+                            },
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 27..43,
+                    value: BytesLiteral(
+                        BytesLiteralExpr {
+                            range: 27..43,
+                            value: BytesLiteralValue {
+                                inner: Single(
+                                    BytesLiteral {
+                                        range: 27..43,
+                                        value: [],
+                                        flags: BytesLiteralFlags {
+                                            prefix: Regular,
+                                            triple_quoted: true,
+                                        },
+                                    },
+                                ),
+                            },
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | b'123a𝐁c'
+  |       ^ Syntax Error: bytes can only contain ASCII literal characters
+2 | rb"a𝐁c123"
+3 | b"""123a𝐁c"""
+  |
+
+
+  |
+1 | b'123a𝐁c'
+2 | rb"a𝐁c123"
+  |     ^ Syntax Error: bytes can only contain ASCII literal characters
+3 | b"""123a𝐁c"""
+  |
+
+
+  |
+1 | b'123a𝐁c'
+2 | rb"a𝐁c123"
+3 | b"""123a𝐁c"""
+  |         ^ Syntax Error: bytes can only contain ASCII literal characters
+  |

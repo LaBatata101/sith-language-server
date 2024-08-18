@@ -1,0 +1,333 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/valid/statement/assert.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..186,
+        body: [
+            Assert(
+                AssertStmt {
+                    range: 0..12,
+                    test: Compare(
+                        CompareExpr {
+                            range: 7..12,
+                            left: NumberLiteral(
+                                NumberLiteralExpr {
+                                    range: 7..8,
+                                    value: Int(
+                                        1,
+                                    ),
+                                },
+                            ),
+                            ops: [
+                                Lt,
+                            ],
+                            comparators: [
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 11..12,
+                                        value: Int(
+                                            2,
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                    msg: None,
+                },
+            ),
+            Assert(
+                AssertStmt {
+                    range: 13..26,
+                    test: Call(
+                        CallExpr {
+                            range: 20..26,
+                            func: Name(
+                                NameExpr {
+                                    range: 20..24,
+                                    id: Name("call"),
+                                    ctx: Load,
+                                },
+                            ),
+                            arguments: Arguments {
+                                range: 24..26,
+                                args: [],
+                                keywords: [],
+                            },
+                        },
+                    ),
+                    msg: None,
+                },
+            ),
+            Assert(
+                AssertStmt {
+                    range: 27..41,
+                    test: BoolOp(
+                        BoolOpExpr {
+                            range: 34..41,
+                            op: And,
+                            values: [
+                                Name(
+                                    NameExpr {
+                                        range: 34..35,
+                                        id: Name("a"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                Name(
+                                    NameExpr {
+                                        range: 40..41,
+                                        id: Name("b"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                    msg: None,
+                },
+            ),
+            Assert(
+                AssertStmt {
+                    range: 42..60,
+                    test: Lambda(
+                        LambdaExpr {
+                            range: 49..60,
+                            parameters: Some(
+                                Parameters {
+                                    range: 56..57,
+                                    posonlyargs: [],
+                                    args: [
+                                        ParameterWithDefault {
+                                            range: 56..57,
+                                            parameter: Parameter {
+                                                range: 56..57,
+                                                name: Identifier {
+                                                    id: Name("x"),
+                                                    range: 56..57,
+                                                },
+                                                annotation: None,
+                                            },
+                                            default: None,
+                                        },
+                                    ],
+                                    vararg: None,
+                                    kwonlyargs: [],
+                                    kwarg: None,
+                                },
+                            ),
+                            body: Name(
+                                NameExpr {
+                                    range: 59..60,
+                                    id: Name("y"),
+                                    ctx: Load,
+                                },
+                            ),
+                        },
+                    ),
+                    msg: None,
+                },
+            ),
+            Assert(
+                AssertStmt {
+                    range: 61..75,
+                    test: Await(
+                        AwaitExpr {
+                            range: 68..75,
+                            value: Name(
+                                NameExpr {
+                                    range: 74..75,
+                                    id: Name("x"),
+                                    ctx: Load,
+                                },
+                            ),
+                        },
+                    ),
+                    msg: None,
+                },
+            ),
+            Assert(
+                AssertStmt {
+                    range: 76..99,
+                    test: If(
+                        IfExpr {
+                            range: 83..99,
+                            test: BooleanLiteral(
+                                BooleanLiteralExpr {
+                                    range: 88..92,
+                                    value: true,
+                                },
+                            ),
+                            body: Name(
+                                NameExpr {
+                                    range: 83..84,
+                                    id: Name("x"),
+                                    ctx: Load,
+                                },
+                            ),
+                            orelse: Name(
+                                NameExpr {
+                                    range: 98..99,
+                                    id: Name("y"),
+                                    ctx: Load,
+                                },
+                            ),
+                        },
+                    ),
+                    msg: None,
+                },
+            ),
+            Assert(
+                AssertStmt {
+                    range: 101..118,
+                    test: Name(
+                        NameExpr {
+                            range: 108..109,
+                            id: Name("x"),
+                            ctx: Load,
+                        },
+                    ),
+                    msg: Some(
+                        StringLiteral(
+                            StringLiteralExpr {
+                                range: 111..118,
+                                value: StringLiteralValue {
+                                    inner: Single(
+                                        StringLiteral {
+                                            range: 111..118,
+                                            value: "error",
+                                            flags: StringLiteralFlags {
+                                                prefix: Empty,
+                                                triple_quoted: false,
+                                            },
+                                        },
+                                    ),
+                                },
+                            },
+                        ),
+                    ),
+                },
+            ),
+            Assert(
+                AssertStmt {
+                    range: 119..140,
+                    test: Name(
+                        NameExpr {
+                            range: 126..127,
+                            id: Name("x"),
+                            ctx: Load,
+                        },
+                    ),
+                    msg: Some(
+                        Lambda(
+                            LambdaExpr {
+                                range: 129..140,
+                                parameters: Some(
+                                    Parameters {
+                                        range: 136..137,
+                                        posonlyargs: [],
+                                        args: [
+                                            ParameterWithDefault {
+                                                range: 136..137,
+                                                parameter: Parameter {
+                                                    range: 136..137,
+                                                    name: Identifier {
+                                                        id: Name("x"),
+                                                        range: 136..137,
+                                                    },
+                                                    annotation: None,
+                                                },
+                                                default: None,
+                                            },
+                                        ],
+                                        vararg: None,
+                                        kwonlyargs: [],
+                                        kwarg: None,
+                                    },
+                                ),
+                                body: Name(
+                                    NameExpr {
+                                        range: 139..140,
+                                        id: Name("y"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            },
+                        ),
+                    ),
+                },
+            ),
+            Assert(
+                AssertStmt {
+                    range: 141..158,
+                    test: Name(
+                        NameExpr {
+                            range: 148..149,
+                            id: Name("x"),
+                            ctx: Load,
+                        },
+                    ),
+                    msg: Some(
+                        Await(
+                            AwaitExpr {
+                                range: 151..158,
+                                value: Name(
+                                    NameExpr {
+                                        range: 157..158,
+                                        id: Name("x"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            },
+                        ),
+                    ),
+                },
+            ),
+            Assert(
+                AssertStmt {
+                    range: 159..185,
+                    test: Name(
+                        NameExpr {
+                            range: 166..167,
+                            id: Name("x"),
+                            ctx: Load,
+                        },
+                    ),
+                    msg: Some(
+                        If(
+                            IfExpr {
+                                range: 169..185,
+                                test: BooleanLiteral(
+                                    BooleanLiteralExpr {
+                                        range: 174..178,
+                                        value: true,
+                                    },
+                                ),
+                                body: Name(
+                                    NameExpr {
+                                        range: 169..170,
+                                        id: Name("x"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                orelse: Name(
+                                    NameExpr {
+                                        range: 184..185,
+                                        id: Name("y"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            },
+                        ),
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```

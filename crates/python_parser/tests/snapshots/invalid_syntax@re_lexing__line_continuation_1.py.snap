@@ -1,0 +1,105 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/invalid/re_lexing/line_continuation_1.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..36,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 0..13,
+                    value: Call(
+                        CallExpr {
+                            range: 0..13,
+                            func: Name(
+                                NameExpr {
+                                    range: 0..4,
+                                    id: Name("call"),
+                                    ctx: Load,
+                                },
+                            ),
+                            arguments: Arguments {
+                                range: 4..13,
+                                args: [
+                                    Name(
+                                        NameExpr {
+                                            range: 5..6,
+                                            id: Name("a"),
+                                            ctx: Load,
+                                        },
+                                    ),
+                                    Name(
+                                        NameExpr {
+                                            range: 8..9,
+                                            id: Name("b"),
+                                            ctx: Load,
+                                        },
+                                    ),
+                                ],
+                                keywords: [],
+                            },
+                        },
+                    ),
+                },
+            ),
+            FunctionDef(
+                FunctionDefStmt {
+                    range: 16..35,
+                    is_async: false,
+                    decorator_list: [],
+                    name: Identifier {
+                        id: Name("bar"),
+                        range: 20..23,
+                    },
+                    type_params: None,
+                    parameters: Parameters {
+                        range: 23..25,
+                        posonlyargs: [],
+                        args: [],
+                        vararg: None,
+                        kwonlyargs: [],
+                        kwarg: None,
+                    },
+                    returns: None,
+                    body: [
+                        Pass(
+                            PassStmt {
+                                range: 31..35,
+                            },
+                        ),
+                    ],
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | call(a, b, \\\
+  |            ^ Syntax Error: Expected a newline after line continuation character
+2 | 
+3 | def bar():
+  |
+
+
+  |
+1 | call(a, b, \\\
+  |             ^ Syntax Error: Expected a newline after line continuation character
+2 | 
+3 | def bar():
+  |
+
+
+  |
+1 | call(a, b, \\\
+2 | 
+  | ^ Syntax Error: Expected ')', found newline
+3 | def bar():
+4 |     pass
+  |

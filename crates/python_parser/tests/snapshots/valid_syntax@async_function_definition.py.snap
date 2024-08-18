@@ -1,0 +1,48 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/ok/async_function_definition.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..21,
+        body: [
+            FunctionDef(
+                FunctionDefStmt {
+                    range: 0..20,
+                    is_async: true,
+                    decorator_list: [],
+                    name: Identifier {
+                        id: Name("foo"),
+                        range: 10..13,
+                    },
+                    type_params: None,
+                    parameters: Parameters {
+                        range: 13..15,
+                        posonlyargs: [],
+                        args: [],
+                        vararg: None,
+                        kwonlyargs: [],
+                        kwarg: None,
+                    },
+                    returns: None,
+                    body: [
+                        Expr(
+                            ExprStmt {
+                                range: 17..20,
+                                value: EllipsisLiteral(
+                                    EllipsisLiteralExpr {
+                                        range: 17..20,
+                                    },
+                                ),
+                            },
+                        ),
+                    ],
+                },
+            ),
+        ],
+    },
+)
+```

@@ -1,0 +1,10 @@
+---
+source: crates/python_parser/src/string.rs
+expression: error
+---
+ParseError {
+    error: Lexical(
+        MissingUnicodeRbrace,
+    ),
+    location: 9..9,
+}

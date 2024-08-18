@@ -1,4416 +1,1420 @@
-use std::fmt::Display;
+use std::cmp::Ordering;
 
-use crate::{
-    error::FStringErrorType,
-    helpers::{self, token_kind_to_cmp_op},
-    lexer::{LexResult, Spanned},
-    string::{
-        concatenated_strings, parse_fstring_literal_element, parse_string_literal, StringType,
-    },
-    token_set::TokenSet,
-    Mode, ParseError, ParseErrorType, Tok, TokenKind,
-};
-use ast::{
-    BoolOp, CmpOp, ContextExpr, ConversionFlag, ExceptHandler, FStringElement, IpyEscapeKind,
-    Number, Operator, Pattern, Singleton, UnaryOp,
-};
 use bitflags::bitflags;
-use itertools::PeekNth;
-use python_ast::{self as ast, Expr, Stmt};
-use ruff_text_size::{Ranged, TextLen, TextRange, TextSize};
 
+use python_ast::{Mod, ModExpression, ModModule};
+use ruff_text_size::{Ranged, TextRange, TextSize};
+
+use crate::parser::expression::ExpressionContext;
+use crate::parser::progress::{ParserProgress, TokenId};
+use crate::token::TokenValue;
+use crate::token_set::TokenSet;
+use crate::token_source::{TokenSource, TokenSourceCheckpoint};
+use crate::Parsed;
+use crate::{Mode, ParseError, ParseErrorType, TokenKind};
+
+mod expression;
+mod helpers;
+mod pattern;
+mod progress;
+mod recovery;
+mod statement;
+#[cfg(test)]
 mod tests;
 
 #[derive(Debug)]
-pub struct ParsedFile {
-    pub ast: ast::Mod,
-    pub parse_errors: Vec<ParseError>,
-}
-
-bitflags! {
-    #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
-    struct ParserCtxFlags: u8 {
-        const PARENTHESIZED_EXPR = 1 << 0;
-
-        // NOTE: `ARGUMENTS` can be removed once the heuristic in `parse_with_items`
-        // is improved.
-        const ARGUMENTS = 1 << 1;
-        const FOR_TARGET = 1 << 2;
-    }
-}
-
-type WithRangeExpr = (Expr, TextRange);
-type StmtWithRange = (Stmt, TextRange);
-
-/// Binding power associativity
-enum Associativity {
-    Left,
-    Right,
-}
-
-#[derive(Copy, Clone)]
-enum Clause {
-    If,
-    Else,
-    ElIf,
-    For,
-    With,
-    Class,
-    While,
-    FunctionDef,
-    Match,
-    Try,
-    Except,
-    Finally,
-}
-
-impl Display for Clause {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Clause::If => write!(f, "`if` statement"),
-            Clause::Else => write!(f, "`else` clause"),
-            Clause::ElIf => write!(f, "`elif` clause"),
-            Clause::For => write!(f, "`for` statement"),
-            Clause::With => write!(f, "`with` statement"),
-            Clause::Class => write!(f, "`class` definition"),
-            Clause::While => write!(f, "`while` statement"),
-            Clause::FunctionDef => write!(f, "function definition"),
-            Clause::Match => write!(f, "`match` statement"),
-            Clause::Try => write!(f, "`try` statement"),
-            Clause::Except => write!(f, "`except` clause"),
-            Clause::Finally => write!(f, "`finally` clause"),
-        }
-    }
-}
-
-#[derive(PartialEq, Copy, Clone)]
-enum FunctionKind {
-    Lambda,
-    FunctionDef,
-}
-
-pub(crate) struct Parser<'src, I>
-where
-    I: Iterator<Item = LexResult>,
-{
+pub(crate) struct Parser<'src> {
     source: &'src str,
-    lexer: PeekNth<I>,
+
+    /// Token source for the parser that skips over any non-trivia token.
+    tokens: TokenSource<'src>,
+
     /// Stores all the syntax errors found during the parsing.
     errors: Vec<ParseError>,
-    /// This tracks the current expression or statement being parsed. For example,
-    /// if we're parsing a tuple expression, e.g. `(1, 2)`, `ctx` has the value
-    /// `ParserCtxFlags::TUPLE_EXPR`.
-    ///
-    /// The `ctx` is also used to create custom error messages and forbid certain
-    /// expressions or statements of being parsed. The `ctx` should be empty after
-    /// an expression or statement is done parsing.
-    ctx: ParserCtxFlags,
-    /// During the parsing of expression or statement, multiple `ctx`s can be created.
-    /// `ctx_stack` stores the previous `ctx`s that were created during the parsing. For example,
-    /// when parsing a tuple expression, e.g. `(1, 2, 3)`, two [`ParserCtxFlags`] will be
-    /// created `ParserCtxFlags::PARENTHESIZED_EXPR` and `ParserCtxFlags::TUPLE_EXPR`.
-    ///
-    /// When parsing a tuple the first context created is `ParserCtxFlags::PARENTHESIZED_EXPR`.
-    /// Afterwards, the `ParserCtxFlags::TUPLE_EXPR` is created and `ParserCtxFlags::PARENTHESIZED_EXPR`
-    /// is pushed onto the `ctx_stack`.
-    /// `ParserCtxFlags::PARENTHESIZED_EXPR` is removed from the stack and set to be the current `ctx`,
-    /// after we parsed all elements in the tuple.
-    ///
-    /// The end of the vector is the top of the stack.
-    ctx_stack: Vec<ParserCtxFlags>,
-    /// Stores the last `ctx` of an expression or statement that was parsed.
-    last_ctx: ParserCtxFlags,
+
     /// Specify the mode in which the code will be parsed.
     mode: Mode,
-    /// Defer the creation of the invalid node for the skipped unexpected tokens.
-    /// Holds the range of the skipped tokens.
-    defer_invalid_node_creation: Option<TextRange>,
+
+    /// The ID of the current token. This is used to track the progress of the parser
+    /// to avoid infinite loops when the parser is stuck.
+    current_token_id: TokenId,
+
+    /// The end of the previous token processed. This is used to determine a node's end.
+    prev_token_end: TextSize,
+
+    /// The recovery context in which the parser is currently in.
+    recovery_context: RecoveryContext,
+
+    /// The start offset in the source code from which to start parsing at.
+    start_offset: TextSize,
 }
 
-const NEWLINE_EOF_SET: TokenSet = TokenSet::new(&[TokenKind::Newline, TokenKind::EndOfFile]);
-const LITERAL_SET: TokenSet = TokenSet::new(&[
-    TokenKind::Name,
-    TokenKind::Int,
-    TokenKind::Float,
-    TokenKind::Complex,
-    TokenKind::Plus,
-    TokenKind::String,
-    TokenKind::Ellipsis,
-    TokenKind::True,
-    TokenKind::False,
-    TokenKind::None,
-]);
-/// Tokens that are usually an expression or the start of one.
-const EXPR_SET: TokenSet = TokenSet::new(&[
-    TokenKind::Minus,
-    TokenKind::Tilde,
-    TokenKind::Star,
-    TokenKind::DoubleStar,
-    TokenKind::Vbar,
-    TokenKind::Lpar,
-    TokenKind::Lbrace,
-    TokenKind::Lsqb,
-    TokenKind::Lambda,
-    TokenKind::Await,
-    TokenKind::Not,
-    TokenKind::Yield,
-    TokenKind::FStringStart,
-])
-.union(LITERAL_SET);
-/// Tokens that can appear after an expression.
-const END_EXPR_SET: TokenSet = TokenSet::new(&[
-    TokenKind::Newline,
-    TokenKind::Semi,
-    TokenKind::Colon,
-    TokenKind::EndOfFile,
-    TokenKind::Rbrace,
-    TokenKind::Rsqb,
-    TokenKind::Rpar,
-    TokenKind::Comma,
-    TokenKind::Dedent,
-    TokenKind::Else,
-    TokenKind::As,
-    TokenKind::From,
-    TokenKind::For,
-    TokenKind::Async,
-    TokenKind::In,
-]);
-/// Tokens that represent compound statements.
-const COMPOUND_STMT_SET: TokenSet = TokenSet::new(&[
-    TokenKind::Match,
-    TokenKind::If,
-    TokenKind::Else,
-    TokenKind::Elif,
-    TokenKind::With,
-    TokenKind::While,
-    TokenKind::For,
-    TokenKind::Try,
-    TokenKind::Def,
-    TokenKind::Class,
-    TokenKind::Async,
-]);
-/// Tokens that represent simple statements, but doesn't include expressions.
-const SIMPLE_STMT_SET: TokenSet = TokenSet::new(&[
-    TokenKind::Pass,
-    TokenKind::Return,
-    TokenKind::Break,
-    TokenKind::Continue,
-    TokenKind::Global,
-    TokenKind::Nonlocal,
-    TokenKind::Assert,
-    TokenKind::Yield,
-    TokenKind::Del,
-    TokenKind::Raise,
-    TokenKind::Import,
-    TokenKind::From,
-    TokenKind::Type,
-]);
-/// Tokens that represent simple statements, including expressions.
-const SIMPLE_STMT_SET2: TokenSet = SIMPLE_STMT_SET.union(EXPR_SET);
+impl<'src> Parser<'src> {
+    /// Create a new parser for the given source code.
+    pub(crate) fn new(source: &'src str, mode: Mode) -> Self {
+        Parser::new_starts_at(source, mode, TextSize::new(0))
+    }
 
-impl<'src, I> Parser<'src, I>
-where
-    I: Iterator<Item = LexResult>,
-{
-    pub(crate) fn new(
-        source: &'src str,
-        mode: Mode,
-        lexer: I,
-    ) -> Parser<'src, impl Iterator<Item = LexResult>> {
+    /// Create a new parser for the given source code which starts parsing at the given offset.
+    pub(crate) fn new_starts_at(source: &'src str, mode: Mode, start_offset: TextSize) -> Self {
+        let tokens = TokenSource::from_source(source, mode, start_offset);
+
         Parser {
             mode,
             source,
             errors: Vec::new(),
-            ctx_stack: Vec::new(),
-            ctx: ParserCtxFlags::empty(),
-            last_ctx: ParserCtxFlags::empty(),
-            lexer: itertools::peek_nth(lexer),
-            defer_invalid_node_creation: None,
+            tokens,
+            recovery_context: RecoveryContext::empty(),
+            prev_token_end: TextSize::new(0),
+            start_offset,
+            current_token_id: TokenId::default(),
         }
     }
 
-    pub(crate) fn parse(mut self) -> ParsedFile {
-        let mut body = vec![];
-
-        let ast = if self.mode == Mode::Expression {
-            let (expr, range) = self.parse_exprs();
-            loop {
-                if !self.eat(TokenKind::Newline) {
-                    break;
-                }
-            }
-            self.expect(TokenKind::EndOfFile);
-
-            ast::Mod::Expression(ast::ModExpression {
-                body: Box::new(expr),
-                range,
-            })
-        } else {
-            let is_src_empty = self.at(TokenKind::EndOfFile);
-            while !self.at(TokenKind::EndOfFile) {
-                if self.at(TokenKind::Indent) {
-                    self.handle_unexpected_indentation(&mut body, "unexpected indentation");
-                    continue;
-                }
-                let (stmt, _) = self.parse_statement();
-                body.push(stmt);
-
-                if let Some(range) = self.defer_invalid_node_creation {
-                    self.defer_invalid_node_creation = None;
-                    body.push(Stmt::Expr(ast::StmtExpr {
-                        value: Box::new(Expr::Invalid(ast::InvalidExpr {
-                            value: self.src_text(range).into(),
-                            range,
-                        })),
-                        range,
-                    }));
-                }
-            }
-            ast::Mod::Module(ast::ModModule {
-                body,
-                // If the `source` only contains comments or empty spaces, return
-                // an empty range.
-                range: if is_src_empty {
-                    TextRange::default()
-                } else {
-                    TextRange::new(
-                        0.into(),
-                        self.source
-                            .len()
-                            .try_into()
-                            .expect("source length is  bigger than u32 max"),
-                    )
-                },
-            })
+    /// Consumes the [`Parser`] and returns the parsed [`Parsed`].
+    pub(crate) fn parse(mut self) -> Parsed<Mod> {
+        let syntax = match self.mode {
+            Mode::Expression => Mod::Expression(self.parse_single_expression()),
+            Mode::Module | Mode::Ipython => Mod::Module(self.parse_module()),
         };
 
-        // After parsing, the `ctx` and `ctx_stack` should be empty.
-        // If it's not, you probably forgot to call `clear_ctx` somewhere.
-        assert!(self.ctx.is_empty());
-        assert_eq!(&self.ctx_stack, &[]);
-
-        ParsedFile {
-            ast,
-            parse_errors: self.errors,
-        }
+        self.finish(syntax)
     }
 
-    #[inline]
-    fn set_ctx(&mut self, ctx: ParserCtxFlags) {
-        self.ctx_stack.push(self.ctx);
-        self.ctx = ctx;
-    }
+    /// Parses a single expression.
+    ///
+    /// This is to be used for [`Mode::Expression`].
+    ///
+    /// ## Recovery
+    ///
+    /// After parsing a single expression, an error is reported and all remaining tokens are
+    /// dropped by the parser.
+    fn parse_single_expression(&mut self) -> ModExpression {
+        let start = self.node_start();
+        let parsed_expr = self.parse_expression_list(ExpressionContext::default());
 
-    #[inline]
-    fn clear_ctx(&mut self, ctx: ParserCtxFlags) {
-        assert_eq!(self.ctx, ctx);
-        self.last_ctx = ctx;
-        if let Some(top) = self.ctx_stack.pop() {
-            self.ctx = top;
-        }
-    }
+        // All remaining newlines are actually going to be non-logical newlines.
+        self.eat(TokenKind::Newline);
 
-    #[inline]
-    fn has_ctx(&self, ctx: ParserCtxFlags) -> bool {
-        self.ctx.intersects(ctx)
-    }
+        if !self.at(TokenKind::EndOfFile) {
+            self.add_error(
+                ParseErrorType::UnexpectedExpressionToken,
+                self.current_token_range(),
+            );
 
-    fn next_token(&mut self) -> Spanned {
-        self.lexer
-            .next()
-            .map(|result| match result {
-                Ok(token) => token,
-                Err(lex_error) => {
-                    self.add_error(ParseErrorType::Lexical(lex_error.error), lex_error.location);
-
-                    // Return a `Invalid` token when encountering an error
-                    (Tok::Invalid, lex_error.location)
+            // TODO(dhruvmanila): How should error recovery work here? Just truncate after the expression?
+            let mut progress = ParserProgress::default();
+            loop {
+                progress.assert_progressing(self);
+                if self.at(TokenKind::EndOfFile) {
+                    break;
                 }
-            })
-            .unwrap_or((Tok::EndOfFile, TextRange::empty(self.source.text_len())))
-    }
-
-    fn lookahead(&mut self, offset: usize) -> (TokenKind, TextRange) {
-        self.lexer.peek_nth(offset).map_or(
-            (
-                TokenKind::EndOfFile,
-                TextRange::empty(self.source.text_len()),
-            ),
-            |result| match result {
-                Ok((tok, range)) => (tok.into(), *range),
-                // Return a `Invalid` token when encountering an error
-                Err(err) => (TokenKind::Invalid, err.location),
-            },
-        )
-    }
-
-    #[inline]
-    fn current_token(&mut self) -> (TokenKind, TextRange) {
-        self.lookahead(0)
-    }
-
-    #[inline]
-    fn current_kind(&mut self) -> TokenKind {
-        self.lookahead(0).0
-    }
-
-    fn eat(&mut self, kind: TokenKind) -> bool {
-        if !self.at(kind) {
-            return false;
+                self.bump_any();
+            }
         }
 
-        self.next_token();
-        true
+        self.bump(TokenKind::EndOfFile);
+
+        ModExpression {
+            body: Box::new(parsed_expr.expr),
+            range: self.node_range(start),
+        }
     }
 
+    /// Parses a Python module.
+    ///
+    /// This is to be used for [`Mode::Module`] and [`Mode::Ipython`].
+    fn parse_module(&mut self) -> ModModule {
+        let body = self.parse_list_into_vec(
+            RecoveryContextKind::ModuleStatements,
+            Parser::parse_statement,
+        );
+
+        self.bump(TokenKind::EndOfFile);
+
+        ModModule {
+            body,
+            range: TextRange::new(self.start_offset, self.current_token_range().end()),
+        }
+    }
+
+    fn finish(self, syntax: Mod) -> Parsed<Mod> {
+        assert_eq!(
+            self.current_token_kind(),
+            TokenKind::EndOfFile,
+            "Parser should be at the end of the file."
+        );
+
+        // TODO consider re-integrating lexical error handling into the parser?
+        let parse_errors = self.errors;
+        let (_, lex_errors) = self.tokens.finish();
+
+        // Fast path for when there are no lex errors.
+        // There's no fast path for when there are no parse errors because a lex error
+        // always results in a parse error.
+        if lex_errors.is_empty() {
+            return Parsed {
+                syntax,
+                errors: parse_errors,
+            };
+        }
+
+        let mut merged = Vec::with_capacity(parse_errors.len().saturating_add(lex_errors.len()));
+
+        let mut parse_errors = parse_errors.into_iter().peekable();
+        let mut lex_errors = lex_errors.into_iter().peekable();
+
+        while let (Some(parse_error), Some(lex_error)) = (parse_errors.peek(), lex_errors.peek()) {
+            match parse_error
+                .location
+                .start()
+                .cmp(&lex_error.location().start())
+            {
+                Ordering::Less => merged.push(parse_errors.next().unwrap()),
+                Ordering::Equal => {
+                    // Skip the parse error if we already have a lex error at the same location..
+                    parse_errors.next().unwrap();
+                    merged.push(lex_errors.next().unwrap().into());
+                }
+                Ordering::Greater => merged.push(lex_errors.next().unwrap().into()),
+            }
+        }
+
+        merged.extend(parse_errors);
+        merged.extend(lex_errors.map(ParseError::from));
+
+        Parsed {
+            syntax,
+            errors: merged,
+        }
+    }
+
+    /// Returns the start position for a node that starts at the current token.
+    fn node_start(&self) -> TextSize {
+        self.current_token_range().start()
+    }
+
+    fn node_range(&self, start: TextSize) -> TextRange {
+        // It's possible during error recovery that the parsing didn't consume any tokens. In that
+        // case, `last_token_end` still points to the end of the previous token but `start` is the
+        // start of the current token. Calling `TextRange::new(start, self.last_token_end)` would
+        // panic in that case because `start > end`. This path "detects" this case and creates an
+        // empty range instead.
+        //
+        // The reason it's `<=` instead of just `==` is because there could be whitespaces between
+        // the two tokens. For example:
+        //
+        // ```python
+        // #     last token end
+        // #     | current token (newline) start
+        // #     v v
+        // def foo \n
+        // #      ^
+        // #      assume there's trailing whitespace here
+        // ```
+        //
+        // Or, there could tokens that are considered "trivia" and thus aren't emitted by the token
+        // source. These are comments and non-logical newlines. For example:
+        //
+        // ```python
+        // #     last token end
+        // #     v
+        // def foo # comment\n
+        // #                ^ current token (newline) start
+        // ```
+        //
+        // In either of the above cases, there's a "gap" between the end of the last token and start
+        // of the current token.
+        if self.prev_token_end <= start {
+            // We need to create an empty range at the last token end instead of the start because
+            // otherwise this node range will fall outside the range of it's parent node. Taking
+            // the above example:
+            //
+            // ```python
+            // if True:
+            // #   function start
+            // #   |     function end
+            // #   v     v
+            //     def foo # comment
+            // #                    ^ current token start
+            // ```
+            //
+            // Here, the current token start is the start of parameter range but the function ends
+            // at `foo`. Even if there's a function body, the range of parameters would still be
+            // before the comment.
+
+            // test_err node_range_with_gaps
+            // def foo # comment
+            // def bar(): ...
+            // def baz
+            TextRange::empty(self.prev_token_end)
+        } else {
+            TextRange::new(start, self.prev_token_end)
+        }
+    }
+
+    fn missing_node_range(&self) -> TextRange {
+        // TODO(dhruvmanila): This range depends on whether the missing node is
+        // on the leftmost or the rightmost of the expression. It's incorrect for
+        // the leftmost missing node because the range is outside the expression
+        // range. For example,
+        //
+        // ```python
+        // value = ** y
+        // #       ^^^^ expression range
+        // #      ^ last token end
+        // ```
+        TextRange::empty(self.prev_token_end)
+    }
+
+    /// Moves the parser to the next token.
+    fn do_bump(&mut self, kind: TokenKind) {
+        if !matches!(
+            self.current_token_kind(),
+            // TODO explore including everything up to the dedent as part of the body.
+            TokenKind::Dedent
+            // Don't include newlines in the body
+            | TokenKind::Newline
+            // TODO(micha): Including the semi feels more correct but it isn't compatible with lalrpop and breaks the
+            // formatters semicolon detection. Exclude it for now
+            | TokenKind::Semi
+        ) {
+            self.prev_token_end = self.current_token_range().end();
+        }
+
+        self.tokens.bump(kind);
+        self.current_token_id.increment();
+    }
+
+    /// Returns the next token kind without consuming it.
+    fn peek(&mut self) -> TokenKind {
+        self.tokens.peek()
+    }
+
+    /// Returns the next two token kinds without consuming it.
+    fn peek2(&mut self) -> (TokenKind, TokenKind) {
+        self.tokens.peek2()
+    }
+
+    /// Returns the current token kind.
+    #[inline]
+    fn current_token_kind(&self) -> TokenKind {
+        self.tokens.current_kind()
+    }
+
+    /// Returns the range of the current token.
+    #[inline]
+    fn current_token_range(&self) -> TextRange {
+        self.tokens.current_range()
+    }
+
+    /// Returns the current token ID.
+    #[inline]
+    fn current_token_id(&self) -> TokenId {
+        self.current_token_id
+    }
+
+    /// Bumps the current token assuming it is of the given kind.
+    ///
+    /// # Panics
+    ///
+    /// If the current token is not of the given kind.
+    fn bump(&mut self, kind: TokenKind) {
+        assert_eq!(self.current_token_kind(), kind);
+
+        self.do_bump(kind);
+    }
+
+    /// Take the token value from the underlying token source and bump the current token.
+    ///
+    /// # Panics
+    ///
+    /// If the current token is not of the given kind.
+    fn bump_value(&mut self, kind: TokenKind) -> TokenValue {
+        let value = self.tokens.take_value();
+        self.bump(kind);
+        value
+    }
+
+    /// Bumps the current token assuming it is found in the given token set.
+    ///
+    /// # Panics
+    ///
+    /// If the current token is not found in the given token set.
+    fn bump_ts(&mut self, ts: TokenSet) {
+        let kind = self.current_token_kind();
+        assert!(ts.contains(kind));
+
+        self.do_bump(kind);
+    }
+
+    /// Bumps the current token regardless of its kind and advances to the next token.
+    ///
+    /// # Panics
+    ///
+    /// If the parser is at end of file.
+    fn bump_any(&mut self) {
+        let kind = self.current_token_kind();
+        assert_ne!(kind, TokenKind::EndOfFile);
+
+        self.do_bump(kind);
+    }
+
+    /// Bumps the soft keyword token as a `Name` token.
+    ///
+    /// # Panics
+    ///
+    /// If the current token is not a soft keyword.
+    pub(crate) fn bump_soft_keyword_as_name(&mut self) {
+        assert!(self.at_soft_keyword());
+
+        self.do_bump(TokenKind::Name);
+    }
+
+    /// Consume the current token if it is of the given kind. Returns `true` if it matches, `false`
+    /// otherwise.
+    fn eat(&mut self, kind: TokenKind) -> bool {
+        if self.at(kind) {
+            self.do_bump(kind);
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Eat the current token if its of the expected kind, otherwise adds an appropriate error.
     fn expect(&mut self, expected: TokenKind) -> bool {
         if self.eat(expected) {
             return true;
         }
 
-        let (found, range) = self.current_token();
-        self.add_error(ParseErrorType::ExpectedToken { found, expected }, range);
+        self.add_error(
+            ParseErrorType::ExpectedToken {
+                found: self.current_token_kind(),
+                expected,
+            },
+            self.current_token_range(),
+        );
+
         false
     }
 
-    /// Expects a specific token kind, skipping leading unexpected tokens if needed.
-    fn expect_and_recover(&mut self, expected: TokenKind, recover_set: TokenSet) {
-        if !self.expect(expected) {
-            let expected_set = NEWLINE_EOF_SET
-                .union(recover_set)
-                .union([expected].as_slice().into());
-            // Skip leading unexpected tokens
-            let range = self.skip_until(expected_set);
-            self.defer_invalid_node_creation = Some(range);
+    fn add_error<T>(&mut self, error: ParseErrorType, ranged: T)
+    where
+        T: Ranged,
+    {
+        fn inner(errors: &mut Vec<ParseError>, error: ParseErrorType, range: TextRange) {
+            // Avoid flagging multiple errors at the same location
+            let is_same_location = errors
+                .last()
+                .is_some_and(|last| last.location.start() == range.start());
 
-            self.add_error(
-                ParseErrorType::OtherError("unexpected tokens".into()),
-                range,
-            );
-
-            self.eat(expected);
-        }
-    }
-
-    fn add_error(&mut self, error: ParseErrorType, range: TextRange) {
-        self.errors.push(ParseError {
-            error,
-            location: range,
-        });
-    }
-
-    /// Skip tokens until [`TokenSet`]. Returns the range of the skipped tokens.
-    fn skip_until(&mut self, token_set: TokenSet) -> TextRange {
-        let mut final_range = self.current_range();
-        while !self.at_ts(token_set) {
-            let (_, range) = self.next_token();
-            final_range = final_range.cover(range);
-        }
-
-        final_range
-    }
-
-    fn at(&mut self, kind: TokenKind) -> bool {
-        self.current_kind() == kind
-    }
-
-    fn at_ts(&mut self, ts: TokenSet) -> bool {
-        ts.contains(self.current_kind())
-    }
-
-    fn at_expr(&mut self) -> bool {
-        self.at_ts(EXPR_SET)
-    }
-
-    fn at_simple_stmt(&mut self) -> bool {
-        self.at_ts(SIMPLE_STMT_SET2)
-    }
-
-    fn at_compound_stmt(&mut self) -> bool {
-        self.at_ts(COMPOUND_STMT_SET)
-    }
-
-    fn src_text(&self, mut range: TextRange) -> &'src str {
-        // This check is to prevent the parser from panicking when using the
-        // `parse_expression_starts_at` function with an offset bigger than zero.
-        //
-        // The parser assumes that the token's range values are smaller than
-        // the source length. But, with an offset bigger than zero, it can
-        // happen that the token's range values are bigger than the source
-        // length, causing the parser to panic when calling this function
-        // with such ranges.
-        //
-        // Therefore, we fix this by creating a new range starting at 0 up to
-        // the source length - 1.
-        //
-        // TODO: Create the proper range here.
-        let src_len = self.source.len();
-        if range.start().to_usize() > src_len || range.end().to_usize() > src_len {
-            range = TextRange::new(0.into(), self.source.text_len() - TextSize::from(1));
-        }
-        &self.source[range]
-    }
-
-    fn current_range(&mut self) -> TextRange {
-        self.lookahead(0).1
-    }
-
-    /// Parses elements enclosed within a delimiter pair, such as parentheses, brackets,
-    /// or braces.
-    ///
-    /// Returns the [`TextRange`] of the parsed enclosed elements.
-    fn parse_delimited(
-        &mut self,
-        allow_trailing_delim: bool,
-        opening: TokenKind,
-        delim: TokenKind,
-        closing: TokenKind,
-        mut func: impl FnMut(&mut Parser<'src, I>),
-    ) -> TextRange {
-        let start_range = self.current_range();
-        assert!(self.eat(opening));
-
-        self.parse_separated(
-            allow_trailing_delim,
-            delim,
-            [closing].as_slice(),
-            |parser| {
-                func(parser);
-                // Doesn't matter what range we return here
-                TextRange::default()
-            },
-        );
-
-        let end_range = self.current_range();
-        self.expect_and_recover(closing, TokenSet::EMPTY);
-
-        start_range.cover(end_range)
-    }
-
-    /// Parses a sequence of elements separated by a delimiter. This function stops
-    /// parsing upon encountering any of the tokens in `ending_set`, if it doesn't
-    /// encounter the tokens in `ending_set` it stops parsing when seeing the `EOF`
-    /// or `Newline` token.
-    ///
-    /// Returns the last [`TextRange`] of the parsed elements. If none elements are
-    /// parsed it returns `None`.
-    fn parse_separated(
-        &mut self,
-        allow_trailing_delim: bool,
-        delim: TokenKind,
-        ending_set: impl Into<TokenSet>,
-        mut func: impl FnMut(&mut Parser<'src, I>) -> TextRange,
-    ) -> Option<TextRange> {
-        let ending_set = NEWLINE_EOF_SET.union(ending_set.into());
-        let mut final_range = None;
-
-        while !self.at_ts(ending_set) {
-            final_range = Some(func(self));
-
-            // exit the loop if a trailing `delim` is not allowed
-            if !allow_trailing_delim && ending_set.contains(self.lookahead(1).0) {
-                break;
-            }
-
-            if self.at(delim) {
-                final_range = Some(self.current_range());
-                self.eat(delim);
-            } else {
-                if self.at_expr() {
-                    self.expect(delim);
-                } else {
-                    break;
-                }
-            }
-        }
-
-        final_range
-    }
-
-    fn is_current_token_postfix(&mut self) -> bool {
-        matches!(
-            self.current_kind(),
-            TokenKind::Lpar | TokenKind::Lsqb | TokenKind::Dot | TokenKind::Async | TokenKind::For
-        )
-    }
-
-    fn handle_unexpected_indentation(
-        &mut self,
-        stmts: &mut Vec<Stmt>,
-        error_msg: &str,
-    ) -> TextRange {
-        self.eat(TokenKind::Indent);
-
-        let mut range = self.current_range();
-        self.add_error(ParseErrorType::OtherError(error_msg.to_string()), range);
-
-        while !self.at(TokenKind::Dedent) && !self.at(TokenKind::EndOfFile) {
-            let (stmt, stmt_range) = self.parse_statement();
-            stmts.push(stmt);
-            range = stmt_range;
-        }
-        assert!(self.eat(TokenKind::Dedent));
-
-        range
-    }
-
-    fn parse_statement(&mut self) -> StmtWithRange {
-        let (kind, range) = self.current_token();
-        match kind {
-            TokenKind::If => self.parse_if_stmt(),
-            TokenKind::Try => self.parse_try_stmt(),
-            TokenKind::For => self.parse_for_stmt(),
-            TokenKind::With => self.parse_with_stmt(),
-            TokenKind::At => self.parse_decorators(),
-            TokenKind::Async => self.parse_async_stmt(),
-            TokenKind::While => self.parse_while_stmt(),
-            TokenKind::Def => self.parse_func_def_stmt(vec![], range),
-            TokenKind::Class => self.parse_class_def_stmt(vec![], range),
-            TokenKind::Match => self.parse_match_stmt(),
-            _ => self.parse_simple_stmt_newline(),
-        }
-    }
-
-    fn parse_match_stmt(&mut self) -> StmtWithRange {
-        let mut range = self.current_range();
-
-        self.eat(TokenKind::Match);
-        let (subject, _) = self.parse_expr_with_recovery(
-            |parser| {
-                let (expr, expr_range) = parser.parse_expr2();
-                if parser.at(TokenKind::Comma) {
-                    return parser.parse_tuple_expr(expr, expr_range, Parser::parse_expr2);
-                }
-                (expr, expr_range)
-            },
-            [TokenKind::Colon].as_slice(),
-            "expecting expression after `match` keyword",
-        );
-        self.expect_and_recover(TokenKind::Colon, TokenSet::EMPTY);
-
-        self.eat(TokenKind::Newline);
-        if !self.eat(TokenKind::Indent) {
-            let range = self.current_range();
-            self.add_error(
-                ParseErrorType::OtherError(
-                    "expected an indented block after `match` statement".to_string(),
-                ),
-                range,
-            );
-        }
-
-        let (cases, cases_range) = self.parse_match_cases();
-        range = range.cover(cases_range);
-
-        self.eat(TokenKind::Dedent);
-
-        (
-            Stmt::Match(ast::MatchStmt {
-                subject: Box::new(subject),
-                cases,
-                range,
-            }),
-            range,
-        )
-    }
-
-    fn parse_match_case(&mut self) -> ast::MatchCase {
-        let mut range = self.current_range();
-
-        self.eat(TokenKind::Case);
-        let (pattern, _) = self.parse_match_patterns();
-
-        let guard = if self.eat(TokenKind::If) {
-            let (expr, _) = self.parse_expr2();
-            Some(Box::new(expr))
-        } else {
-            None
-        };
-
-        self.expect_and_recover(TokenKind::Colon, TokenSet::EMPTY);
-        let (body, body_range) = self.parse_body(Clause::Match);
-        range = range.cover(body_range);
-
-        ast::MatchCase {
-            pattern,
-            guard,
-            body,
-            range: range.cover(range),
-        }
-    }
-
-    fn parse_match_cases(&mut self) -> (Vec<ast::MatchCase>, TextRange) {
-        let mut range = self.current_range();
-
-        if !self.at(TokenKind::Case) {
-            self.add_error(
-                ParseErrorType::OtherError("expecting `case` block after `match`".to_string()),
-                range,
-            );
-        }
-
-        let mut cases = vec![];
-        while self.at(TokenKind::Case) {
-            let case = self.parse_match_case();
-            range = range.cover(case.range);
-
-            cases.push(case);
-        }
-
-        (cases, range)
-    }
-
-    fn parse_attr_expr_for_match_pattern(
-        &mut self,
-        mut lhs: Expr,
-        mut lhs_range: TextRange,
-    ) -> WithRangeExpr {
-        loop {
-            (lhs, lhs_range) = match self.current_kind() {
-                TokenKind::Dot => self.parse_attribute_expr(lhs, lhs_range),
-                _ => break,
-            }
-        }
-
-        (lhs, lhs_range)
-    }
-
-    fn parse_match_pattern_literal(&mut self) -> (Pattern, TextRange) {
-        let (tok, range) = self.next_token();
-        match tok {
-            Tok::None => (
-                Pattern::MatchSingleton(ast::PatternMatchSingleton {
-                    value: Singleton::None,
-                    range,
-                }),
-                range,
-            ),
-            Tok::True => (
-                Pattern::MatchSingleton(ast::PatternMatchSingleton {
-                    value: Singleton::True,
-                    range,
-                }),
-                range,
-            ),
-            Tok::False => (
-                Pattern::MatchSingleton(ast::PatternMatchSingleton {
-                    value: Singleton::False,
-                    range,
-                }),
-                range,
-            ),
-            tok @ Tok::String { .. } => {
-                let (str, str_range) = self.parse_string_expr(tok, range);
-                (
-                    Pattern::MatchValue(ast::PatternMatchValue {
-                        value: Box::new(str),
-                        range: str_range,
-                    }),
-                    str_range,
-                )
-            }
-            Tok::Complex { real, imag } => (
-                Pattern::MatchValue(ast::PatternMatchValue {
-                    value: Box::new(Expr::NumberLiteral(ast::NumberLiteralExpr {
-                        value: Number::Complex { real, imag },
-                        range,
-                    })),
-                    range,
-                }),
-                range,
-            ),
-            Tok::Int { value } => (
-                Pattern::MatchValue(ast::PatternMatchValue {
-                    value: Box::new(Expr::NumberLiteral(ast::NumberLiteralExpr {
-                        value: Number::Int(value),
-                        range,
-                    })),
-                    range,
-                }),
-                range,
-            ),
-            Tok::Float { value } => (
-                Pattern::MatchValue(ast::PatternMatchValue {
-                    value: Box::new(Expr::NumberLiteral(ast::NumberLiteralExpr {
-                        value: Number::Float(value),
-                        range,
-                    })),
-                    range,
-                }),
-                range,
-            ),
-            Tok::Name { name } if self.at(TokenKind::Dot) => {
-                let id = Expr::Name(ast::NameExpr {
-                    id: name,
-                    ctx: ContextExpr::Load,
-                    range,
+            if !is_same_location {
+                errors.push(ParseError {
+                    error,
+                    location: range,
                 });
-                let (expr, range) = self.parse_attr_expr_for_match_pattern(id, range);
-                (
-                    Pattern::MatchValue(ast::PatternMatchValue {
-                        value: Box::new(expr),
-                        range,
-                    }),
-                    range,
-                )
-            }
-            Tok::Name { name } => (
-                Pattern::MatchAs(ast::PatternMatchAs {
-                    range,
-                    pattern: None,
-                    name: if name == "_" {
-                        None
-                    } else {
-                        Some(ast::Identifier { id: name, range })
-                    },
-                }),
-                range,
-            ),
-            Tok::Minus
-                if matches!(
-                    self.current_kind(),
-                    TokenKind::Int | TokenKind::Float | TokenKind::Complex
-                ) =>
-            {
-                // Since the `Minus` token was consumed `parse_lhs` will not
-                // be able to parse an `UnaryOp`, therefore we create the node
-                // manually.
-                let (expr, expr_range) = self.parse_lhs();
-                let range = range.cover(expr_range);
-                (
-                    Pattern::MatchValue(ast::PatternMatchValue {
-                        value: Box::new(Expr::UnaryOp(ast::UnaryOpExpr {
-                            range,
-                            op: UnaryOp::USub,
-                            operand: Box::new(expr),
-                        })),
-                        range,
-                    }),
-                    range,
-                )
-            }
-            kind => {
-                const RECOVERY_SET: TokenSet =
-                    TokenSet::new(&[TokenKind::Colon]).union(NEWLINE_EOF_SET);
-                self.add_error(
-                    ParseErrorType::InvalidMatchPatternLiteral {
-                        pattern: kind.into(),
-                    },
-                    range,
-                );
-                self.skip_until(RECOVERY_SET);
-                (
-                    Pattern::Invalid(ast::PatternMatchInvalid {
-                        value: self.src_text(range).into(),
-                        range,
-                    }),
-                    range.cover_offset(self.current_range().start()),
-                )
             }
         }
+
+        inner(&mut self.errors, error, ranged.range());
     }
 
-    fn parse_delimited_match_pattern(&mut self) -> (Pattern, TextRange) {
-        let mut range = self.current_range();
-
-        let is_paren = self.at(TokenKind::Lpar);
-        let is_bracket = self.at(TokenKind::Lsqb);
-
-        let closing = if is_paren {
-            self.eat(TokenKind::Lpar);
-            TokenKind::Rpar
-        } else {
-            self.eat(TokenKind::Lsqb);
-            TokenKind::Rsqb
-        };
-
-        if matches!(self.current_kind(), TokenKind::Newline | TokenKind::Colon) {
-            let range = self.current_range();
-            self.add_error(
-                ParseErrorType::OtherError(format!(
-                    "missing `{}`",
-                    if is_paren { ')' } else { ']' }
-                )),
-                range,
-            );
-        }
-
-        if self.at(closing) {
-            range = range.cover(self.current_range());
-            self.eat(closing);
-
-            return (
-                Pattern::MatchSequence(ast::PatternMatchSequence {
-                    patterns: vec![],
-                    range,
-                }),
-                range,
-            );
-        }
-
-        let (mut pattern, pattern_range) = self.parse_match_pattern();
-
-        if is_bracket || self.at(TokenKind::Comma) {
-            (pattern, _) = self.parse_sequence_match_pattern(pattern, pattern_range, closing);
-        }
-
-        range = range.cover(self.current_range());
-        self.expect_and_recover(closing, TokenSet::EMPTY);
-
-        if let Pattern::MatchSequence(mut sequence) = pattern {
-            // Update the range to include the parenthesis or brackets
-            sequence.range = range;
-            (Pattern::MatchSequence(sequence), range)
-        } else {
-            (pattern, range)
-        }
+    /// Returns `true` if the current token is of the given kind.
+    fn at(&self, kind: TokenKind) -> bool {
+        self.current_token_kind() == kind
     }
 
-    fn parse_sequence_match_pattern(
+    /// Returns `true` if the current token is found in the given token set.
+    fn at_ts(&self, ts: TokenSet) -> bool {
+        ts.contains(self.current_token_kind())
+    }
+
+    fn src_text<T>(&self, ranged: T) -> &'src str
+    where
+        T: Ranged,
+    {
+        &self.source[ranged.range()]
+    }
+
+    /// Parses a list of elements into a vector where each element is parsed using
+    /// the given `parse_element` function.
+    fn parse_list_into_vec<T>(
         &mut self,
-        first_elt: Pattern,
-        elt_range: TextRange,
-        ending: TokenKind,
-    ) -> (Pattern, TextRange) {
-        // In case of the match sequence only having one element, we need to cover
-        // the range of the comma.
-        let mut final_range = elt_range.cover(self.current_range());
-        self.eat(TokenKind::Comma);
-        let mut patterns = vec![first_elt];
-
-        let range = self.parse_separated(true, TokenKind::Comma, [ending].as_slice(), |parser| {
-            let (pattern, pattern_range) = parser.parse_match_pattern();
-            patterns.push(pattern);
-            pattern_range
-        });
-        final_range = final_range.cover(range.unwrap_or(final_range));
-
-        (
-            Pattern::MatchSequence(ast::PatternMatchSequence {
-                patterns,
-                range: final_range,
-            }),
-            final_range,
-        )
+        recovery_context_kind: RecoveryContextKind,
+        parse_element: impl Fn(&mut Parser<'src>) -> T,
+    ) -> Vec<T> {
+        let mut elements = Vec::new();
+        self.parse_list(recovery_context_kind, |p| elements.push(parse_element(p)));
+        elements
     }
 
-    fn parse_match_pattern_lhs(&mut self) -> (Pattern, TextRange) {
-        let (mut lhs, mut range) = match self.current_kind() {
-            TokenKind::Lbrace => self.parse_match_pattern_mapping(),
-            TokenKind::Star => self.parse_match_pattern_star(),
-            TokenKind::Lpar | TokenKind::Lsqb => self.parse_delimited_match_pattern(),
-            _ => self.parse_match_pattern_literal(),
-        };
-
-        if self.at(TokenKind::Lpar) {
-            (lhs, range) = self.parse_match_pattern_class(lhs, range);
-        }
-
-        if self.at(TokenKind::Plus) || self.at(TokenKind::Minus) {
-            let (op_kind, _) = self.next_token();
-
-            let (lhs_value, lhs_range) = if let Pattern::MatchValue(lhs) = lhs {
-                if !lhs.value.is_literal_expr() && !matches!(lhs.value.as_ref(), Expr::UnaryOp(_)) {
-                    self.add_error(
-                        ParseErrorType::OtherError(format!(
-                            "invalid `{}` expression for match pattern",
-                            self.src_text(lhs.range)
-                        )),
-                        lhs.range,
-                    );
-                }
-                (lhs.value, lhs.range)
-            } else {
-                self.add_error(
-                    ParseErrorType::OtherError("invalid lhs pattern".to_string()),
-                    range,
-                );
-                (
-                    Box::new(Expr::Invalid(ast::InvalidExpr {
-                        value: self.src_text(range).into(),
-                        range,
-                    })),
-                    range,
-                )
-            };
-
-            let (rhs_pattern, rhs_range) = self.parse_match_pattern_lhs();
-            let (rhs_value, rhs_range) = if let Pattern::MatchValue(rhs) = rhs_pattern {
-                if !rhs.value.is_literal_expr() {
-                    self.add_error(
-                        ParseErrorType::OtherError(format!(
-                            "invalid `{}` expression for match pattern",
-                            self.src_text(rhs_range)
-                        )),
-                        rhs_range,
-                    );
-                }
-                (rhs.value, rhs.range)
-            } else {
-                self.add_error(
-                    ParseErrorType::OtherError("invalid rhs pattern".to_string()),
-                    rhs_range,
-                );
-                (
-                    Box::new(Expr::Invalid(ast::InvalidExpr {
-                        value: self.src_text(rhs_range).into(),
-                        range: rhs_range,
-                    })),
-                    rhs_range,
-                )
-            };
-
-            if matches!(
-                rhs_value.as_ref(),
-                Expr::UnaryOp(ast::UnaryOpExpr {
-                    op: UnaryOp::USub,
-                    ..
-                })
-            ) {
-                self.add_error(
-                    ParseErrorType::OtherError(
-                        "`-` not allowed in rhs of match pattern".to_string(),
-                    ),
-                    rhs_range,
-                );
-            }
-
-            let op = if matches!(op_kind, Tok::Plus) {
-                Operator::Add
-            } else {
-                Operator::Sub
-            };
-            let range = lhs_range.cover(rhs_range);
-            return (
-                Pattern::MatchValue(ast::PatternMatchValue {
-                    value: Box::new(Expr::BinOp(ast::BinOpExpr {
-                        left: lhs_value,
-                        op,
-                        right: rhs_value,
-                        range,
-                    })),
-                    range,
-                }),
-                range,
-            );
-        }
-
-        (lhs, range)
-    }
-
-    fn parse_match_pattern(&mut self) -> (Pattern, TextRange) {
-        let (mut lhs, mut range) = self.parse_match_pattern_lhs();
-
-        if self.at(TokenKind::Vbar) {
-            let mut patterns = vec![lhs];
-
-            while self.eat(TokenKind::Vbar) {
-                let (pattern, pattern_range) = self.parse_match_pattern_lhs();
-                range = range.cover(pattern_range);
-                patterns.push(pattern);
-            }
-
-            lhs = Pattern::MatchOr(ast::PatternMatchOr { range, patterns });
-        }
-
-        if self.eat(TokenKind::As) {
-            let ident = self.parse_identifier();
-            range = range.cover(ident.range);
-            lhs = Pattern::MatchAs(ast::PatternMatchAs {
-                range,
-                name: Some(ident),
-                pattern: Some(Box::new(lhs)),
-            });
-        }
-
-        (lhs, range)
-    }
-
-    fn parse_match_patterns(&mut self) -> (Pattern, TextRange) {
-        let (pattern, range) = self.parse_match_pattern();
-
-        if self.at(TokenKind::Comma) {
-            return self.parse_sequence_match_pattern(pattern, range, TokenKind::Colon);
-        }
-
-        (pattern, range)
-    }
-
-    fn parse_match_pattern_star(&mut self) -> (Pattern, TextRange) {
-        let mut range = self.current_range();
-        self.eat(TokenKind::Star);
-
-        let ident = self.parse_identifier();
-
-        range = range.cover(ident.range);
-        (
-            Pattern::MatchStar(ast::PatternMatchStar {
-                range,
-                name: if ident.is_valid() && ident.id == "_" {
-                    None
-                } else {
-                    Some(ident)
-                },
-            }),
-            range,
-        )
-    }
-
-    fn parse_match_pattern_class(
+    /// Parses a list of elements where each element is parsed using the given
+    /// `parse_element` function.
+    ///
+    /// The difference between this function and `parse_list_into_vec` is that
+    /// this function does not return the parsed elements. Instead, it is the
+    /// caller's responsibility to handle the parsed elements. This is the reason
+    /// that the `parse_element` parameter is bound to [`FnMut`] instead of [`Fn`].
+    fn parse_list(
         &mut self,
-        cls: Pattern,
-        mut cls_range: TextRange,
-    ) -> (Pattern, TextRange) {
-        let mut patterns = vec![];
-        let mut keywords = vec![];
-        let mut has_seen_pattern = false;
-        let mut has_seen_keyword_pattern = false;
-
-        let args_range = self.parse_delimited(
-            true,
-            TokenKind::Lpar,
-            TokenKind::Comma,
-            TokenKind::Rpar,
-            |parser| {
-                let (pattern, pattern_range) = parser.parse_match_pattern();
-
-                if parser.eat(TokenKind::Equal) {
-                    has_seen_pattern = false;
-                    has_seen_keyword_pattern = true;
-
-                    if let Pattern::MatchAs(ast::PatternMatchAs {
-                        name: Some(attr),
-                        range,
-                        ..
-                    }) = pattern
-                    {
-                        let (pattern, _) = parser.parse_match_pattern();
-
-                        keywords.push(ast::PatternKeyword {
-                            attr,
-                            pattern,
-                            range: range.cover_offset(parser.current_range().start()),
-                        });
-                    } else {
-                        parser.skip_until(END_EXPR_SET);
-                        parser.add_error(
-                            ParseErrorType::OtherError(format!(
-                                "`{}` not valid keyword pattern",
-                                parser.src_text(pattern_range)
-                            )),
-                            pattern_range,
-                        );
-                    }
-                } else {
-                    has_seen_pattern = true;
-                    patterns.push(pattern);
-                }
-
-                if has_seen_keyword_pattern && has_seen_pattern {
-                    parser.add_error(
-                        ParseErrorType::OtherError(
-                            "pattern not allowed after keyword pattern".to_string(),
-                        ),
-                        pattern_range,
-                    );
-                }
-            },
-        );
-
-        let cls = match cls {
-            Pattern::MatchAs(ast::PatternMatchAs {
-                name: Some(ident), ..
-            }) => {
-                cls_range = ident.range;
-                if ident.is_valid() {
-                    Box::new(Expr::Name(ast::NameExpr {
-                        id: ident.id,
-                        ctx: ContextExpr::Load,
-                        range: cls_range,
-                    }))
-                } else {
-                    Box::new(Expr::Invalid(ast::InvalidExpr {
-                        value: self.src_text(cls_range).into(),
-                        range: cls_range,
-                    }))
-                }
-            }
-            Pattern::MatchValue(ast::PatternMatchValue {
-                value,
-                range: value_range,
-            }) if matches!(value.as_ref(), Expr::Attribute(_)) => {
-                cls_range = value_range;
-                value
-            }
-            _ => {
-                self.add_error(
-                    ParseErrorType::OtherError(format!(
-                        "`{}` invalid pattern match class",
-                        self.src_text(cls_range)
-                    )),
-                    cls_range,
-                );
-                Box::new(Expr::Invalid(ast::InvalidExpr {
-                    value: self.src_text(cls_range).into(),
-                    range: cls_range,
-                }))
-            }
-        };
-
-        let range = cls_range.cover(args_range);
-        (
-            Pattern::MatchClass(ast::PatternMatchClass {
-                cls,
-                arguments: ast::PatternArguments {
-                    patterns,
-                    keywords,
-                    range: args_range,
-                },
-                range,
-            }),
-            range,
-        )
-    }
-
-    fn parse_match_pattern_mapping(&mut self) -> (Pattern, TextRange) {
-        let mut keys = vec![];
-        let mut patterns = vec![];
-        let mut rest = None;
-
-        let range = self.parse_delimited(
-            true,
-            TokenKind::Lbrace,
-            TokenKind::Comma,
-            TokenKind::Rbrace,
-            |parser| {
-                if parser.eat(TokenKind::DoubleStar) {
-                    rest = Some(parser.parse_identifier());
-                } else {
-                    let (pattern, pattern_range) = parser.parse_match_pattern_lhs();
-                    let key = match pattern {
-                        Pattern::MatchValue(ast::PatternMatchValue { value, .. }) => *value,
-                        Pattern::MatchSingleton(ast::PatternMatchSingleton { value, range }) => {
-                            match value {
-                                Singleton::None => {
-                                    Expr::NoneLiteral(ast::NoneLiteralExpr { range })
-                                }
-                                Singleton::True => Expr::BooleanLiteral(ast::BooleanLiteralExpr {
-                                    value: true,
-                                    range,
-                                }),
-                                Singleton::False => Expr::BooleanLiteral(ast::BooleanLiteralExpr {
-                                    value: false,
-                                    range,
-                                }),
-                            }
-                        }
-                        _ => {
-                            parser.add_error(
-                                ParseErrorType::OtherError(format!(
-                                    "invalid mapping pattern key `{}`",
-                                    parser.src_text(pattern_range)
-                                )),
-                                pattern_range,
-                            );
-                            Expr::Invalid(ast::InvalidExpr {
-                                value: parser.src_text(pattern_range).into(),
-                                range: pattern_range,
-                            })
-                        }
-                    };
-                    keys.push(key);
-
-                    parser.expect_and_recover(TokenKind::Colon, TokenSet::EMPTY);
-
-                    let (pattern, _) = parser.parse_match_pattern();
-                    patterns.push(pattern);
-                }
-            },
-        );
-
-        (
-            Pattern::MatchMapping(ast::PatternMatchMapping {
-                range,
-                keys,
-                patterns,
-                rest,
-            }),
-            range,
-        )
-    }
-
-    fn parse_async_stmt(&mut self) -> StmtWithRange {
-        let mut range = self.current_range();
-        self.eat(TokenKind::Async);
-
-        let (kind, kind_range) = self.current_token();
-        let (mut stmt, stmt_range) = match kind {
-            TokenKind::Def => self.parse_func_def_stmt(vec![], kind_range),
-            TokenKind::With => self.parse_with_stmt(),
-            TokenKind::For => self.parse_for_stmt(),
-            kind => {
-                // Although this statement is not a valid `async` statement,
-                // we still parse it.
-                self.add_error(ParseErrorType::StmtIsNotAsync(kind), kind_range);
-                self.parse_statement()
-            }
-        };
-        range = range.cover(stmt_range);
-
-        match stmt {
-            Stmt::FunctionDef(ref mut func) => {
-                func.range = range;
-                func.is_async = true;
-            }
-            Stmt::For(ref mut for_stmt) => {
-                for_stmt.range = range;
-                for_stmt.is_async = true;
-            }
-            Stmt::With(ref mut with_stmt) => {
-                with_stmt.range = range;
-                with_stmt.is_async = true;
-            }
-            _ => {}
-        };
-
-        (stmt, range)
-    }
-
-    fn parse_while_stmt(&mut self) -> StmtWithRange {
-        let mut range = self.current_range();
-        self.eat(TokenKind::While);
-
-        let (test, _) = self.parse_expr_with_recovery(
-            Parser::parse_expr2,
-            [TokenKind::Colon].as_slice(),
-            "expecting expression after `while` keyword",
-        );
-        self.expect_and_recover(TokenKind::Colon, TokenSet::EMPTY);
-
-        let (body, body_range) = self.parse_body(Clause::While);
-        range = range.cover(body_range);
-
-        let orelse = if self.eat(TokenKind::Else) {
-            self.expect_and_recover(TokenKind::Colon, TokenSet::EMPTY);
-
-            let (else_body, else_body_range) = self.parse_body(Clause::Else);
-            range = range.cover(else_body_range);
-            else_body
-        } else {
-            vec![]
-        };
-
-        (
-            Stmt::While(ast::WhileStmt {
-                test: Box::new(test),
-                body,
-                orelse,
-                range,
-            }),
-            range,
-        )
-    }
-
-    fn parse_for_stmt(&mut self) -> StmtWithRange {
-        let mut range = self.current_range();
-        self.eat(TokenKind::For);
-
-        self.set_ctx(ParserCtxFlags::FOR_TARGET);
-        let (mut target, _) = self.parse_expr_with_recovery(
-            Parser::parse_exprs,
-            [TokenKind::In, TokenKind::Colon].as_slice(),
-            "expecting expression after `for` keyword",
-        );
-        self.clear_ctx(ParserCtxFlags::FOR_TARGET);
-
-        helpers::set_expr_ctx(&mut target, ContextExpr::Store);
-
-        self.expect_and_recover(TokenKind::In, TokenSet::new(&[TokenKind::Colon]));
-
-        let (iter, _) = self.parse_expr_with_recovery(
-            Parser::parse_exprs,
-            EXPR_SET.union([TokenKind::Colon, TokenKind::Indent].as_slice().into()),
-            "expecting an expression after `in` keyword",
-        );
-        self.expect_and_recover(TokenKind::Colon, TokenSet::EMPTY);
-
-        let (body, body_range) = self.parse_body(Clause::For);
-        range = range.cover(body_range);
-
-        let orelse = if self.eat(TokenKind::Else) {
-            self.expect_and_recover(TokenKind::Colon, TokenSet::EMPTY);
-
-            let (else_body, else_body_range) = self.parse_body(Clause::Else);
-            range = range.cover(else_body_range);
-            else_body
-        } else {
-            vec![]
-        };
-
-        (
-            Stmt::For(ast::ForStmt {
-                target: Box::new(target),
-                iter: Box::new(iter),
-                is_async: false,
-                body,
-                orelse,
-                range,
-            }),
-            range,
-        )
-    }
-
-    fn parse_try_stmt(&mut self) -> StmtWithRange {
-        let mut range = self.current_range();
-        self.eat(TokenKind::Try);
-        self.expect_and_recover(TokenKind::Colon, TokenSet::EMPTY);
-
-        let mut is_star = false;
-        let mut has_except = false;
-        let mut has_finally = false;
-
-        let (try_body, _) = self.parse_body(Clause::Try);
-
-        let mut handlers = vec![];
-        loop {
-            let mut except_range = self.current_range();
-            if self.eat(TokenKind::Except) {
-                has_except = true;
-            } else {
-                break;
-            }
-
-            is_star = self.eat(TokenKind::Star);
-
-            let type_ = if self.at(TokenKind::Colon) && !is_star {
-                None
-            } else {
-                let (expr, expr_range) = self.parse_exprs();
-                if !self.last_ctx.contains(ParserCtxFlags::PARENTHESIZED_EXPR)
-                    && matches!(expr, Expr::Tuple(_))
-                {
-                    self.add_error(
-                        ParseErrorType::OtherError(
-                            "multiple exception types must be parenthesized".to_string(),
-                        ),
-                        expr_range,
-                    );
-                }
-                Some(Box::new(expr))
-            };
-
-            let name = if self.eat(TokenKind::As) {
-                Some(self.parse_identifier())
-            } else {
-                None
-            };
-
-            self.expect_and_recover(TokenKind::Colon, TokenSet::EMPTY);
-
-            let (except_body, except_body_range) = self.parse_body(Clause::Except);
-
-            except_range = except_range.cover(except_body_range);
-            range = range.cover(except_range);
-
-            handlers.push(ExceptHandler::ExceptHandler(
-                ast::ExceptHandlerExceptHandler {
-                    type_,
-                    name,
-                    body: except_body,
-                    range: except_range,
-                },
-            ));
-
-            if !self.at(TokenKind::Except) {
-                break;
-            }
-        }
-
-        let orelse = if self.eat(TokenKind::Else) {
-            self.expect_and_recover(TokenKind::Colon, TokenSet::EMPTY);
-
-            let (else_body, else_body_range) = self.parse_body(Clause::Else);
-            range = range.cover(else_body_range);
-            else_body
-        } else {
-            vec![]
-        };
-
-        let finalbody = if self.eat(TokenKind::Finally) {
-            has_finally = true;
-            self.expect_and_recover(TokenKind::Colon, TokenSet::EMPTY);
-
-            let (finally_body, finally_body_range) = self.parse_body(Clause::Finally);
-            range = range.cover(finally_body_range);
-            finally_body
-        } else {
-            vec![]
-        };
-
-        if !has_except && !has_finally {
-            let range = self.current_range();
-            self.add_error(
-                ParseErrorType::OtherError(
-                    "expecting `except` or `finally` after `try` block".to_string(),
-                ),
-                range,
-            );
-        }
-
-        (
-            Stmt::Try(ast::TryStmt {
-                body: try_body,
-                handlers,
-                orelse,
-                finalbody,
-                is_star,
-                range,
-            }),
-            range,
-        )
-    }
-
-    fn parse_decorators(&mut self) -> StmtWithRange {
-        let range = self.current_range();
-        let mut decorators = vec![];
-
-        while self.at(TokenKind::At) {
-            let range = self.current_range();
-            self.eat(TokenKind::At);
-
-            let (expression, expr_range) = self.parse_expr2();
-            decorators.push(ast::Decorator {
-                expression,
-                range: range.cover(expr_range),
-            });
-            self.eat(TokenKind::Newline);
-        }
-
-        let (kind, kind_range) = self.current_token();
-        match kind {
-            TokenKind::Def => self.parse_func_def_stmt(decorators, range),
-            TokenKind::Class => self.parse_class_def_stmt(decorators, range),
-            TokenKind::Async if self.lookahead(1).0 == TokenKind::Def => {
-                let mut async_range = self.current_range();
-                self.eat(TokenKind::Async);
-
-                let (Stmt::FunctionDef(mut func), stmt_range) =
-                    self.parse_func_def_stmt(decorators, range)
-                else {
-                    unreachable!()
-                };
-
-                async_range = async_range.cover(stmt_range);
-                func.range = async_range;
-                func.is_async = true;
-
-                (Stmt::FunctionDef(func), async_range)
-            }
-            _ => {
-                self.add_error(
-                    ParseErrorType::OtherError(
-                        "expected class, function definition or async function definition after decorator".to_string(),
-                    ),
-                    kind_range,
-                );
-                self.parse_statement()
-            }
-        }
-    }
-
-    fn parse_func_def_stmt(
-        &mut self,
-        decorator_list: Vec<ast::Decorator>,
-        func_range: TextRange,
-    ) -> StmtWithRange {
-        self.eat(TokenKind::Def);
-        let name = self.parse_identifier();
-        let type_params = if self.at(TokenKind::Lsqb) {
-            Some(self.parse_type_params())
-        } else {
-            None
-        };
-
-        let lpar_range = self.current_range();
-        self.expect_and_recover(
-            TokenKind::Lpar,
-            EXPR_SET.union(
-                [TokenKind::Colon, TokenKind::Rarrow, TokenKind::Comma]
-                    .as_slice()
-                    .into(),
-            ),
-        );
-
-        let mut parameters = self.parse_parameters(FunctionKind::FunctionDef);
-
-        let rpar_range = self.current_range();
-
-        self.expect_and_recover(
-            TokenKind::Rpar,
-            SIMPLE_STMT_SET
-                .union(COMPOUND_STMT_SET)
-                .union([TokenKind::Colon, TokenKind::Rarrow].as_slice().into()),
-        );
-
-        parameters.range = lpar_range.cover(rpar_range);
-
-        let returns = if self.eat(TokenKind::Rarrow) {
-            let (returns, range) = self.parse_exprs();
-            if !self.last_ctx.contains(ParserCtxFlags::PARENTHESIZED_EXPR)
-                && matches!(returns, Expr::Tuple(_))
-            {
-                self.add_error(
-                    ParseErrorType::OtherError(
-                        "multiple return types must be parenthesized".to_string(),
-                    ),
-                    range,
-                );
-            }
-            Some(Box::new(returns))
-        } else {
-            None
-        };
-
-        self.expect_and_recover(
-            TokenKind::Colon,
-            SIMPLE_STMT_SET
-                .union(COMPOUND_STMT_SET)
-                .union([TokenKind::Rarrow].as_slice().into()),
-        );
-
-        let (body, body_range) = self.parse_body(Clause::FunctionDef);
-        let range = func_range.cover(body_range);
-
-        (
-            Stmt::FunctionDef(ast::FunctionDefStmt {
-                name,
-                type_params,
-                parameters: Box::new(parameters),
-                body,
-                decorator_list,
-                is_async: false,
-                returns,
-                range,
-            }),
-            range,
-        )
-    }
-
-    fn parse_class_def_stmt(
-        &mut self,
-        decorator_list: Vec<ast::Decorator>,
-        class_range: TextRange,
-    ) -> StmtWithRange {
-        self.eat(TokenKind::Class);
-
-        let name = self.parse_identifier();
-        let type_params = if self.at(TokenKind::Lsqb) {
-            Some(Box::new(self.parse_type_params()))
-        } else {
-            None
-        };
-        let arguments = if self.at(TokenKind::Lpar) {
-            Some(Box::new(self.parse_arguments()))
-        } else {
-            None
-        };
-
-        self.expect_and_recover(TokenKind::Colon, TokenSet::EMPTY);
-
-        let (body, body_range) = self.parse_body(Clause::Class);
-        let range = class_range.cover(body_range);
-
-        (
-            Stmt::ClassDef(ast::ClassDefStmt {
-                range,
-                decorator_list,
-                name,
-                type_params,
-                arguments,
-                body,
-            }),
-            range,
-        )
-    }
-
-    fn parse_with_item(&mut self) -> ast::WithItem {
-        let (context_expr, mut range) = self.parse_expr();
-        match context_expr {
-            Expr::Starred(_) => {
-                self.add_error(
-                    ParseErrorType::OtherError("starred expression not allowed".into()),
-                    range,
-                );
-            }
-            Expr::NamedExpr(_) if !self.last_ctx.contains(ParserCtxFlags::PARENTHESIZED_EXPR) => {
-                self.add_error(
-                    ParseErrorType::OtherError(
-                        "unparenthesized named expression not allowed".into(),
-                    ),
-                    range,
-                );
-            }
-            _ => {}
-        }
-
-        let optional_vars = if self.eat(TokenKind::As) {
-            let (mut target, target_range) = self.parse_expr();
-            range = range.cover(target_range);
-
-            if matches!(target, Expr::BoolOp(_) | Expr::Compare(_)) {
-                // Should we make `target` an `Expr::Invalid` here?
-                self.add_error(
-                    ParseErrorType::OtherError(format!(
-                        "expression `{target:?}` not allowed in `with` statement"
-                    )),
-                    target_range,
-                );
-            }
-
-            helpers::set_expr_ctx(&mut target, ContextExpr::Store);
-
-            Some(Box::new(target))
-        } else {
-            None
-        };
-
-        ast::WithItem {
-            range,
-            context_expr,
-            optional_vars,
-        }
-    }
-
-    fn parse_with_items(&mut self) -> Vec<ast::WithItem> {
-        let mut items = vec![];
-
-        if !self.at_expr() {
-            let range = self.current_range();
-            self.add_error(
-                ParseErrorType::OtherError("expecting expression after `with` keyword".to_string()),
-                range,
-            );
-            return items;
-        }
-
-        let has_seen_lpar = self.at(TokenKind::Lpar);
-
-        // Consider the two `WithItem` examples below:
-        //      1) `(a) as A`
-        //      2) `(a)`
-        //
-        // In the first example, the `item` contains a parenthesized expression,
-        // while the second example is a parenthesized `WithItem`. This situation
-        // introduces ambiguity during parsing. When encountering an opening parenthesis
-        // `(,` the parser may initially assume it's parsing a parenthesized `WithItem`.
-        // However, this assumption doesn't hold for the first case, `(a) as A`, where
-        // `(a)` represents a parenthesized expression.
-        //
-        // To disambiguate, the following heuristic was created. First, assume we're
-        // parsing an expression, then we look for the following tokens:
-        //      i) `as` keyword outside parenthesis
-        //      ii) `,` outside or inside parenthesis
-        //      iii) `:=` inside an 1-level nested parenthesis
-        //      iv) `*` inside an 1-level nested parenthesis, representing a starred
-        //         expression
-        //
-        // If we find case i we treat it as in case 1. For case ii, we only treat it as in
-        // case 1 if the comma is outside of parenthesis and we've seen an `Rpar` or `Lpar`
-        // before the comma.
-        // Cases iii and iv are special cases, when we find them, we treat it as in case 2.
-        // The reason for this is that the resulting AST node needs to be a tuple for cases
-        // iii and iv instead of multiple `WithItem`s. For example, `with (a, b := 0, c): ...`
-        // will be parsed as one `WithItem` containing a tuple, instead of three different `WithItem`s.
-        let mut treat_it_as_expr = true;
-        if has_seen_lpar {
-            let mut index = 1;
-            let mut paren_nesting = 1;
-            let mut ignore_comma_check = false;
-            let mut has_seen_rpar = false;
-            let mut has_seen_colon_equal = false;
-            let mut has_seen_star = false;
-            let mut prev_token = self.current_kind();
-            loop {
-                let (kind, _) = self.lookahead(index);
-                match kind {
-                    TokenKind::Lpar => {
-                        paren_nesting += 1;
-                    }
-                    TokenKind::Rpar => {
-                        paren_nesting -= 1;
-                        has_seen_rpar = true;
-                    }
-                    // Check for `:=` inside an 1-level nested parens, e.g. `with (a, b := c): ...`
-                    TokenKind::ColonEqual if paren_nesting == 1 => {
-                        treat_it_as_expr = true;
-                        ignore_comma_check = true;
-                        has_seen_colon_equal = true;
-                    }
-                    // Check for starred expressions inside an 1-level nested parens,
-                    // e.g. `with (a, *b): ...`
-                    TokenKind::Star if paren_nesting == 1 && !LITERAL_SET.contains(prev_token) => {
-                        treat_it_as_expr = true;
-                        ignore_comma_check = true;
-                        has_seen_star = true;
-                    }
-                    // Check for `as` keyword outside parens
-                    TokenKind::As => {
-                        treat_it_as_expr = paren_nesting == 0;
-                        ignore_comma_check = true;
-                    }
-                    TokenKind::Comma if !ignore_comma_check => {
-                        // If the comma is outside of parens, treat it as an expression
-                        // if we've seen `(` and `)`.
-                        if paren_nesting == 0 {
-                            treat_it_as_expr = has_seen_lpar && has_seen_rpar;
-                        } else if !has_seen_star && !has_seen_colon_equal {
-                            treat_it_as_expr = false;
-                        }
-                    }
-                    TokenKind::Colon | TokenKind::Newline => break,
-                    _ => {}
-                }
-
-                index += 1;
-                prev_token = kind;
-            }
-        }
-
-        if !treat_it_as_expr && has_seen_lpar {
-            self.eat(TokenKind::Lpar);
-        }
-
-        let ending = if has_seen_lpar && treat_it_as_expr {
-            [TokenKind::Colon]
-        } else {
-            [TokenKind::Rpar]
-        };
-        self.parse_separated(
-            // Only allow a trailing delimiter if we've seen a `(`.
-            has_seen_lpar,
-            TokenKind::Comma,
-            ending.as_slice(),
-            |parser| {
-                let item = parser.parse_with_item();
-                let range = item.range;
-                items.push(item);
-                range
-            },
-        );
-        // Special-case: if we have a parenthesized `WithItem` that was parsed as
-        // an expression, then the item should _exclude_ the outer parentheses in
-        // its range. For example:
-        // ```python
-        // with (a := 0): pass
-        // with (*a): pass
-        // with (a): pass
-        // with (1 + 2): pass
-        // ```
-        // In this case, the `(` and `)` are part of the `with` statement.
-        // The exception is when `WithItem` is an `()` (empty tuple).
-        if items.len() == 1 {
-            let with_item = items.last_mut().unwrap();
-            if treat_it_as_expr
-                && with_item.optional_vars.is_none()
-                && self.last_ctx.contains(ParserCtxFlags::PARENTHESIZED_EXPR)
-                && !matches!(with_item.context_expr, Expr::Tuple(_))
-            {
-                with_item.range = with_item.range.add_start(1.into()).sub_end(1.into());
-            }
-        }
-
-        if !treat_it_as_expr && has_seen_lpar {
-            self.expect_and_recover(TokenKind::Rpar, TokenSet::new(&[TokenKind::Colon]));
-        }
-
-        items
-    }
-
-    fn parse_with_stmt(&mut self) -> StmtWithRange {
-        let mut range = self.current_range();
-
-        self.eat(TokenKind::With);
-
-        let items = self.parse_with_items();
-        self.expect_and_recover(TokenKind::Colon, TokenSet::EMPTY);
-
-        let (body, body_range) = self.parse_body(Clause::With);
-        range = range.cover(body_range);
-
-        (
-            Stmt::With(ast::WithStmt {
-                items,
-                body,
-                is_async: false,
-                range,
-            }),
-            range,
-        )
-    }
-
-    fn parse_assign_stmt(&mut self, target_stmt: Stmt, mut range: TextRange) -> StmtWithRange {
-        let Stmt::Expr(target) = target_stmt else {
-            unreachable!()
-        };
-
-        let mut targets = vec![*target.value];
-        let (mut value, value_range) = self.parse_exprs();
-        range = range.cover(value_range);
-
-        while self.eat(TokenKind::Equal) {
-            let (mut expr, expr_range) = self.parse_exprs();
-
-            std::mem::swap(&mut value, &mut expr);
-
-            range = range.cover(expr_range);
-            targets.push(expr);
-        }
-
-        targets
-            .iter_mut()
-            .for_each(|target| helpers::set_expr_ctx(target, ContextExpr::Store));
-
-        if !targets.iter().all(helpers::is_valid_assignment_target) {
-            targets
-                .iter()
-                .filter(|target| !helpers::is_valid_assignment_target(target))
-                .for_each(|target| self.add_error(ParseErrorType::AssignmentError, target.range()));
-        }
-
-        (
-            Stmt::Assign(ast::AssignStmt {
-                targets,
-                value: Box::new(value),
-                range,
-            }),
-            range,
-        )
-    }
-
-    fn parse_ann_assign_stmt(&mut self, target: Stmt, mut range: TextRange) -> StmtWithRange {
-        let Stmt::Expr(mut target) = target else {
-            unreachable!()
-        };
-
-        if !helpers::is_valid_assignment_target(&target.value) {
-            self.add_error(ParseErrorType::AssignmentError, target.range);
-        }
-
-        if matches!(*target.value, Expr::Tuple(_)) {
-            self.add_error(
-                ParseErrorType::OtherError(
-                    "only single target (not tuple) can be annotated".into(),
-                ),
-                range,
-            );
-        }
-
-        helpers::set_expr_ctx(&mut target.value, ContextExpr::Store);
-
-        let simple = matches!(target.value.as_ref(), Expr::Name(_))
-            && !self.last_ctx.intersects(ParserCtxFlags::PARENTHESIZED_EXPR);
-        let (annotation, ann_range) = self.parse_exprs();
-        range = range.cover(ann_range);
-
-        if matches!(annotation, Expr::Tuple(_))
-            && !self.last_ctx.contains(ParserCtxFlags::PARENTHESIZED_EXPR)
-        {
-            self.add_error(
-                ParseErrorType::OtherError("annotation cannot be unparenthesized".into()),
-                range,
-            );
-        }
-
-        let value = if self.eat(TokenKind::Equal) {
-            let (value, value_range) = self.parse_exprs();
-            range = range.cover(value_range);
-
-            Some(Box::new(value))
-        } else {
-            None
-        };
-
-        (
-            Stmt::AnnAssign(ast::AnnAssignStmt {
-                target: target.value,
-                annotation: Box::new(annotation),
-                value,
-                simple,
-                range,
-            }),
-            range,
-        )
-    }
-
-    fn parse_aug_assign_stmt(
-        &mut self,
-        target: Stmt,
-        op: Operator,
-        mut range: TextRange,
-    ) -> StmtWithRange {
-        // Consume the operator
-        self.next_token();
-        let Stmt::Expr(mut target) = target else {
-            unreachable!()
-        };
-
-        if !helpers::is_valid_aug_assignment_target(&target.value) {
-            self.add_error(ParseErrorType::AugAssignmentError, target.range);
-        }
-
-        helpers::set_expr_ctx(&mut target.value, ContextExpr::Store);
-
-        let (value, value_range) = self.parse_exprs();
-        range = range.cover(value_range);
-
-        (
-            Stmt::AugAssign(ast::AugAssignStmt {
-                target: target.value,
-                op,
-                value: Box::new(value),
-                range,
-            }),
-            range,
-        )
-    }
-
-    fn parse_simple_stmt_newline(&mut self) -> StmtWithRange {
-        let stmt = self.parse_simple_stmt();
-
-        self.last_ctx = ParserCtxFlags::empty();
-        let has_eaten_semicolon = self.eat(TokenKind::Semi);
-        let has_eaten_newline = self.eat(TokenKind::Newline);
-
-        if !has_eaten_newline && !has_eaten_semicolon && self.at_simple_stmt() {
-            let range = self.current_range();
-            self.add_error(ParseErrorType::SimpleStmtsInSameLine, stmt.1.cover(range));
-        }
-
-        if !has_eaten_newline && self.at_compound_stmt() {
-            // Avoid create `SimpleAndCompoundStmtInSameLineStmt` error when the
-            // current node is `Expr::Invalid`. Example of when this may happen:
-            // ```python
-            // ! def x(): ...
-            // ```
-            // The `!` (an unexpected token) will be parsed as `Expr::Invalid`.
-            if let Stmt::Expr(expr) = &stmt.0 {
-                if let Expr::Invalid(_) = expr.value.as_ref() {
-                    return stmt;
-                }
-            }
-            let range = self.current_range();
-            self.add_error(
-                ParseErrorType::SimpleStmtAndCompoundStmtInSameLine,
-                stmt.1.cover(range),
-            );
-        }
-
-        stmt
-    }
-
-    fn parse_simple_stmts(&mut self) -> (Vec<Stmt>, TextRange) {
-        let mut range;
-        let mut stmts = vec![];
+        recovery_context_kind: RecoveryContextKind,
+        mut parse_element: impl FnMut(&mut Parser<'src>),
+    ) {
+        let mut progress = ParserProgress::default();
+
+        let saved_context = self.recovery_context;
+        self.recovery_context = self
+            .recovery_context
+            .union(RecoveryContext::from_kind(recovery_context_kind));
 
         loop {
-            let (stmt, stmt_range) = self.parse_simple_stmt();
-            stmts.push(stmt);
-            range = stmt_range;
+            progress.assert_progressing(self);
 
-            if !self.eat(TokenKind::Semi) {
-                if self.at_simple_stmt() {
-                    for stmt in &stmts {
-                        self.add_error(ParseErrorType::SimpleStmtsInSameLine, stmt.range());
-                    }
-                } else {
+            if recovery_context_kind.is_list_element(self) {
+                parse_element(self);
+            } else if recovery_context_kind.is_regular_list_terminator(self) {
+                break;
+            } else {
+                // Run the error recovery: If the token is recognised as an element or terminator
+                // of an enclosing list, then we try to re-lex in the context of a logical line and
+                // break out of list parsing.
+                if self.is_enclosing_list_element_or_terminator() {
+                    self.tokens.re_lex_logical_token();
                     break;
                 }
-            }
 
-            if !self.at_simple_stmt() {
-                break;
-            }
-        }
-
-        if !self.eat(TokenKind::Newline) && self.at_compound_stmt() {
-            self.add_error(ParseErrorType::SimpleStmtAndCompoundStmtInSameLine, range);
-        }
-
-        (stmts, range)
-    }
-
-    fn parse_simple_stmt(&mut self) -> StmtWithRange {
-        let (kind, range) = self.current_token();
-        match kind {
-            TokenKind::Del => self.parse_del_stmt(range),
-            TokenKind::Pass => self.parse_pass_stmt(range),
-            TokenKind::Break => self.parse_break_stmt(range),
-            TokenKind::Raise => self.parse_raise_stmt(range),
-            TokenKind::Assert => self.parse_assert_stmt(range),
-            TokenKind::Global => self.parse_global_stmt(range),
-            TokenKind::Import => self.parse_import_stmt(range),
-            TokenKind::Return => self.parse_return_stmt(range),
-            TokenKind::From => self.parse_import_from_stmt(range),
-            TokenKind::Continue => self.parse_continue_stmt(range),
-            TokenKind::Nonlocal => self.parse_nonlocal_stmt(range),
-            TokenKind::Type => self.parse_type_stmt(range),
-            TokenKind::EscapeCommand if self.mode == Mode::Ipython => {
-                self.parse_ipython_escape_command_stmt()
-            }
-            _ => {
-                let (expr, expr_range) = self.parse_expr_stmt();
-
-                if self.eat(TokenKind::Equal) {
-                    self.parse_assign_stmt(expr, expr_range)
-                } else if self.eat(TokenKind::Colon) {
-                    self.parse_ann_assign_stmt(expr, expr_range)
-                } else if let Ok(op) = Operator::try_from(self.current_kind()) {
-                    self.parse_aug_assign_stmt(expr, op, expr_range)
-                } else if self.mode == Mode::Ipython && self.at(TokenKind::Question) {
-                    let mut kind = IpyEscapeKind::Help;
-                    let mut ipy_range = expr_range.cover(self.current_range());
-
-                    self.eat(TokenKind::Question);
-                    if self.at(TokenKind::Question) {
-                        kind = IpyEscapeKind::Help2;
-                        ipy_range = ipy_range.cover(self.current_range());
-                        self.eat(TokenKind::Question);
-                    }
-
-                    (
-                        Stmt::IpyEscapeCommand(ast::IpyEscapeCommandStmt {
-                            value: self.src_text(expr_range).to_string(),
-                            kind,
-                            range: ipy_range,
-                        }),
-                        ipy_range,
-                    )
-                } else {
-                    (expr, expr_range)
-                }
-            }
-        }
-    }
-
-    fn parse_ipython_escape_command_stmt(&mut self) -> StmtWithRange {
-        let (Tok::IpyEscapeCommand { value, kind }, range) = self.next_token() else {
-            unreachable!()
-        };
-
-        (
-            Stmt::IpyEscapeCommand(ast::IpyEscapeCommandStmt { range, kind, value }),
-            range,
-        )
-    }
-
-    #[inline]
-    fn parse_pass_stmt(&mut self, range: TextRange) -> StmtWithRange {
-        self.eat(TokenKind::Pass);
-        (Stmt::Pass(ast::PassStmt { range }), range)
-    }
-
-    #[inline]
-    fn parse_continue_stmt(&mut self, range: TextRange) -> StmtWithRange {
-        self.eat(TokenKind::Continue);
-        (Stmt::Continue(ast::ContinueStmt { range }), range)
-    }
-
-    #[inline]
-    fn parse_break_stmt(&mut self, range: TextRange) -> StmtWithRange {
-        self.eat(TokenKind::Break);
-        (Stmt::Break(ast::BreakStmt { range }), range)
-    }
-
-    fn parse_del_stmt(&mut self, mut del_range: TextRange) -> StmtWithRange {
-        self.eat(TokenKind::Del);
-        let mut targets = vec![];
-
-        let range = self.parse_separated(
-            true,
-            TokenKind::Comma,
-            [TokenKind::Newline].as_slice(),
-            |parser| {
-                let (mut target, target_range) = parser.parse_expr();
-                helpers::set_expr_ctx(&mut target, ContextExpr::Del);
-
-                if matches!(target, Expr::BoolOp(_) | Expr::Compare(_)) {
-                    // Should we make `target` an `Expr::Invalid` here?
-                    parser.add_error(
-                        ParseErrorType::OtherError(format!(
-                            "`{}` not allowed in `del` statement",
-                            parser.src_text(target_range)
-                        )),
-                        target_range,
-                    );
-                }
-                targets.push(target);
-                target_range
-            },
-        );
-        del_range = del_range.cover(range.unwrap_or(del_range));
-
-        (
-            Stmt::Delete(ast::DeleteStmt {
-                targets,
-                range: del_range,
-            }),
-            del_range,
-        )
-    }
-
-    fn parse_assert_stmt(&mut self, mut range: TextRange) -> StmtWithRange {
-        self.eat(TokenKind::Assert);
-
-        let (test, test_range) = self.parse_expr();
-        range = range.cover(test_range);
-
-        let msg = if self.eat(TokenKind::Comma) {
-            let (msg, msg_range) = self.parse_expr();
-            range = range.cover(msg_range);
-
-            Some(Box::new(msg))
-        } else {
-            None
-        };
-
-        (
-            Stmt::Assert(ast::AssertStmt {
-                test: Box::new(test),
-                msg,
-                range,
-            }),
-            range,
-        )
-    }
-
-    fn parse_global_stmt(&mut self, global_range: TextRange) -> StmtWithRange {
-        self.eat(TokenKind::Global);
-
-        let mut names = vec![];
-        let range = self.parse_separated(
-            false,
-            TokenKind::Comma,
-            [TokenKind::Newline].as_slice(),
-            |parser| {
-                let ident = parser.parse_identifier();
-                let range = ident.range;
-                names.push(ident);
-                range
-            },
-        );
-        let range = global_range.cover(range.unwrap_or(global_range));
-
-        (Stmt::Global(ast::GlobalStmt { range, names }), range)
-    }
-
-    fn parse_nonlocal_stmt(&mut self, nonlocal_range: TextRange) -> StmtWithRange {
-        self.eat(TokenKind::Nonlocal);
-
-        let mut names = vec![];
-
-        let range = self
-            .parse_separated(
-                false,
-                TokenKind::Comma,
-                [TokenKind::Newline].as_slice(),
-                |parser| {
-                    let ident = parser.parse_identifier();
-                    let range = ident.range;
-                    names.push(ident);
-                    range
-                },
-            )
-            .map_or(nonlocal_range, |range| nonlocal_range.cover(range));
-
-        (Stmt::Nonlocal(ast::NonlocalStmt { range, names }), range)
-    }
-
-    fn parse_return_stmt(&mut self, mut range: TextRange) -> StmtWithRange {
-        self.eat(TokenKind::Return);
-
-        let value = if self.at_expr() {
-            let (value, value_range) = self.parse_exprs();
-            range = range.cover(value_range);
-            Some(Box::new(value))
-        } else {
-            None
-        };
-
-        (Stmt::Return(ast::ReturnStmt { range, value }), range)
-    }
-
-    fn parse_raise_stmt(&mut self, mut range: TextRange) -> StmtWithRange {
-        self.eat(TokenKind::Raise);
-
-        let exc = if self.at(TokenKind::Newline) {
-            None
-        } else {
-            let (exc, exc_range) = self.parse_exprs();
-            range = range.cover(exc_range);
-
-            Some(Box::new(exc))
-        };
-
-        if let Some(Expr::Tuple(node)) = exc.as_deref() {
-            if !self.last_ctx.intersects(ParserCtxFlags::PARENTHESIZED_EXPR) {
-                // Should we make `exc` an `Expr::Invalid` here?
                 self.add_error(
-                    ParseErrorType::OtherError(
-                        "unparenthesized tuple not allowed in `raise` statement".to_string(),
-                    ),
-                    node.range,
+                    recovery_context_kind.create_error(self),
+                    self.current_token_range(),
                 );
+
+                self.bump_any();
             }
         }
 
-        let cause = if exc.is_some() && self.eat(TokenKind::From) {
-            let (cause, cause_range) = self.parse_exprs();
-            range = range.cover(cause_range);
-
-            if let Expr::Tuple(node) = &cause {
-                if !self.last_ctx.intersects(ParserCtxFlags::PARENTHESIZED_EXPR) {
-                    // Should we make `exc` an `Expr::Invalid` here?
-                    self.add_error(
-                        ParseErrorType::OtherError(
-                            "unparenthesized tuple not allowed in `raise from` statement"
-                                .to_string(),
-                        ),
-                        node.range,
-                    );
-                }
-            }
-
-            Some(Box::new(cause))
-        } else {
-            None
-        };
-
-        (Stmt::Raise(ast::RaiseStmt { range, exc, cause }), range)
+        self.recovery_context = saved_context;
     }
 
-    fn parse_type_stmt(&mut self, range: TextRange) -> StmtWithRange {
-        self.eat(TokenKind::Type);
-
-        let (tok, tok_range) = self.next_token();
-        let name = if let Tok::Name { name } = tok {
-            Expr::Name(ast::NameExpr {
-                id: name,
-                ctx: ContextExpr::Store,
-                range: tok_range,
-            })
-        } else {
-            self.add_error(
-                ParseErrorType::OtherError(format!("expecting identifier, got {tok}")),
-                tok_range,
-            );
-            Expr::Invalid(ast::InvalidExpr {
-                value: self.src_text(tok_range).into(),
-                range: tok_range,
-            })
-        };
-        let type_params = if self.at(TokenKind::Lsqb) {
-            Some(self.parse_type_params())
-        } else {
-            None
-        };
-        self.expect_and_recover(TokenKind::Equal, EXPR_SET);
-
-        let (value, value_range) = self.parse_expr();
-        let range = range.cover(value_range);
-
-        (
-            Stmt::TypeAlias(ast::TypeAliasStmt {
-                name: Box::new(name),
-                type_params,
-                value: Box::new(value),
-                range,
-            }),
-            range,
-        )
-    }
-
-    fn parse_type_params(&mut self) -> ast::TypeParams {
-        let mut type_params = vec![];
-        let range = self.parse_delimited(
-            true,
-            TokenKind::Lsqb,
-            TokenKind::Comma,
-            TokenKind::Rsqb,
-            |parser| {
-                type_params.push(parser.parse_type_param());
-            },
-        );
-
-        ast::TypeParams { range, type_params }
-    }
-
-    fn parse_type_param(&mut self) -> ast::TypeParam {
-        let mut range = self.current_range();
-        if self.eat(TokenKind::Star) {
-            let name = self.parse_identifier();
-            ast::TypeParam::TypeVarTuple(ast::TypeParamTypeVarTuple {
-                range: range.cover(name.range),
-                name,
-            })
-        } else if self.eat(TokenKind::DoubleStar) {
-            let name = self.parse_identifier();
-            ast::TypeParam::ParamSpec(ast::TypeParamParamSpec {
-                range: range.cover(name.range),
-                name,
-            })
-        } else {
-            let name = self.parse_identifier();
-            let bound = if self.eat(TokenKind::Colon) {
-                let (bound, bound_range) = self.parse_expr();
-                range = range.cover(bound_range);
-                Some(Box::new(bound))
-            } else {
-                None
-            };
-            ast::TypeParam::TypeVar(ast::TypeParamTypeVar { range, name, bound })
-        }
-    }
-
-    fn parse_dotted_name(&mut self) -> ast::Identifier {
-        let id = self.parse_identifier();
-        let mut range = id.range;
-
-        while self.eat(TokenKind::Dot) {
-            let id = self.parse_identifier();
-            if !id.is_valid() {
-                self.add_error(
-                    ParseErrorType::OtherError("invalid identifier".into()),
-                    id.range,
-                );
-            }
-            range = range.cover(id.range);
-        }
-
-        ast::Identifier {
-            id: self.src_text(range).into(),
-            range,
-        }
-    }
-
-    fn parse_alias(&mut self) -> ast::Alias {
-        let (kind, mut range) = self.current_token();
-        if kind == TokenKind::Star {
-            self.eat(TokenKind::Star);
-            return ast::Alias {
-                name: ast::Identifier {
-                    id: "*".into(),
-                    range,
-                },
-                asname: None,
-                range,
-            };
-        }
-
-        let name = self.parse_dotted_name();
-        range = range.cover(name.range);
-
-        let asname = if self.eat(TokenKind::As) {
-            let id = self.parse_identifier();
-            range = range.cover(id.range);
-            Some(id)
-        } else {
-            None
-        };
-
-        ast::Alias {
-            range,
-            name,
-            asname,
-        }
-    }
-
-    fn parse_import_stmt(&mut self, import_range: TextRange) -> StmtWithRange {
-        self.eat(TokenKind::Import);
-
-        let mut names = vec![];
-        let range = self
-            .parse_separated(
-                false,
-                TokenKind::Comma,
-                [TokenKind::Newline].as_slice(),
-                |parser| {
-                    let alias = parser.parse_alias();
-                    let range = alias.range;
-                    names.push(alias);
-                    range
-                },
-            )
-            .map_or(import_range, |range| import_range.cover(range));
-
-        (Stmt::Import(ast::ImportStmt { range, names }), range)
-    }
-
-    fn parse_import_from_stmt(&mut self, from_range: TextRange) -> StmtWithRange {
-        const DOT_ELLIPSIS_SET: TokenSet = TokenSet::new(&[TokenKind::Dot, TokenKind::Ellipsis]);
-        self.eat(TokenKind::From);
-
-        let mut module = None;
-        let mut level = if self.eat(TokenKind::Ellipsis) { 3 } else { 0 };
-
-        while self.at_ts(DOT_ELLIPSIS_SET) {
-            if self.eat(TokenKind::Dot) {
-                level += 1;
-            }
-
-            if self.eat(TokenKind::Ellipsis) {
-                level += 3;
-            }
-        }
-
-        if self.at(TokenKind::Name) {
-            module = Some(self.parse_dotted_name());
-        };
-
-        if level == 0 && module.is_none() {
-            let range = self.current_range();
-            self.add_error(
-                ParseErrorType::OtherError("missing module name".to_string()),
-                range,
-            );
-        }
-
-        self.expect_and_recover(TokenKind::Import, TokenSet::EMPTY);
-
-        let mut names = vec![];
-        let range = if self.at(TokenKind::Lpar) {
-            let delim_range = self.parse_delimited(
-                true,
-                TokenKind::Lpar,
-                TokenKind::Comma,
-                TokenKind::Rpar,
-                |parser| {
-                    names.push(parser.parse_alias());
-                },
-            );
-            from_range.cover(delim_range)
-        } else {
-            self.parse_separated(
-                false,
-                TokenKind::Comma,
-                [TokenKind::Newline].as_slice(),
-                |parser| {
-                    let alias = parser.parse_alias();
-                    let range = alias.range;
-                    names.push(alias);
-                    range
-                },
-            )
-            .map_or(from_range, |range| from_range.cover(range))
-        };
-
-        (
-            Stmt::ImportFrom(ast::ImportFromStmt {
-                module,
-                names,
-                level: Some(level),
-                range,
-            }),
-            range,
-        )
-    }
-
-    const ELSE_ELIF_SET: TokenSet = TokenSet::new(&[TokenKind::Else, TokenKind::Elif]);
-    fn parse_if_stmt(&mut self) -> StmtWithRange {
-        let mut if_range = self.current_range();
-        assert!(self.eat(TokenKind::If));
-
-        let (test, _) = self.parse_expr_with_recovery(
-            Parser::parse_expr2,
-            [TokenKind::Colon].as_slice(),
-            "expecting expression after `if` keyword",
-        );
-        self.expect_and_recover(TokenKind::Colon, TokenSet::EMPTY);
-
-        let (body, body_range) = self.parse_body(Clause::If);
-        if_range = if_range.cover(body_range);
-
-        let elif_else_clauses = if self.at_ts(Self::ELSE_ELIF_SET) {
-            let (elif_else_clauses, range) = self.parse_elif_else_clauses();
-            if_range = if_range.cover(range);
-
-            elif_else_clauses
-        } else {
-            vec![]
-        };
-
-        (
-            Stmt::If(ast::IfStmt {
-                test: Box::new(test),
-                body,
-                elif_else_clauses,
-                range: if_range,
-            }),
-            if_range,
-        )
-    }
-
-    fn parse_elif_else_clauses(&mut self) -> (Vec<ast::ElifElseClause>, TextRange) {
-        let mut elif_else_stmts = vec![];
-        let mut range = self.current_range();
-        while self.at(TokenKind::Elif) {
-            let elif_range = self.current_range();
-            self.eat(TokenKind::Elif);
-
-            let (test, _) = self.parse_expr_with_recovery(
-                Parser::parse_expr2,
-                [TokenKind::Colon].as_slice(),
-                "expecting expression after `elif` keyword",
-            );
-            self.expect_and_recover(TokenKind::Colon, TokenSet::EMPTY);
-
-            let (body, body_range) = self.parse_body(Clause::ElIf);
-            range = body_range;
-            elif_else_stmts.push(ast::ElifElseClause {
-                test: Some(test),
-                body,
-                range: elif_range.cover(body_range),
-            });
-        }
-
-        if self.at(TokenKind::Else) {
-            let else_range = self.current_range();
-            self.eat(TokenKind::Else);
-            self.expect_and_recover(TokenKind::Colon, TokenSet::EMPTY);
-
-            let (body, body_range) = self.parse_body(Clause::Else);
-            range = body_range;
-            elif_else_stmts.push(ast::ElifElseClause {
-                test: None,
-                body,
-                range: else_range.cover(body_range),
-            });
-        }
-
-        (elif_else_stmts, range)
-    }
-
-    fn parse_body(&mut self, parent_clause: Clause) -> (Vec<Stmt>, TextRange) {
-        let mut last_stmt_range = TextRange::default();
-        let mut stmts = vec![];
-
-        // Check if we are currently at a simple statement
-        if !self.eat(TokenKind::Newline) && self.at_simple_stmt() {
-            return self.parse_simple_stmts();
-        }
-
-        if self.eat(TokenKind::Indent) {
-            const BODY_END_SET: TokenSet =
-                TokenSet::new(&[TokenKind::Dedent]).union(NEWLINE_EOF_SET);
-            while !self.at_ts(BODY_END_SET) {
-                if self.at(TokenKind::Indent) {
-                    last_stmt_range = self.handle_unexpected_indentation(
-                        &mut stmts,
-                        "indentation doesn't match previous indentation",
-                    );
-                    continue;
-                }
-                let (stmt, stmt_range) = self.parse_statement();
-                last_stmt_range = stmt_range;
-                stmts.push(stmt);
-            }
-
-            self.eat(TokenKind::Dedent);
-        } else {
-            let range = self.current_range();
-            self.add_error(
-                ParseErrorType::OtherError(format!(
-                    "expected an indented block after {parent_clause}"
-                )),
-                range,
-            );
-        }
-
-        (stmts, last_stmt_range)
-    }
-
-    fn parse_expr_stmt(&mut self) -> StmtWithRange {
-        let (expr, range) = self.parse_exprs();
-
-        (
-            Stmt::Expr(ast::StmtExpr {
-                value: Box::new(expr),
-                range,
-            }),
-            range,
-        )
-    }
-
-    /// Parses every Python expression.
-    fn parse_exprs(&mut self) -> WithRangeExpr {
-        let (expr, expr_range) = self.parse_expr();
-
-        if self.at(TokenKind::Comma) {
-            return self.parse_tuple_expr(expr, expr_range, Parser::parse_expr);
-        }
-        (expr, expr_range)
-    }
-
-    /// Parses every Python expression except unparenthesized tuple and named expressions.
-    ///
-    /// NOTE: If you have expressions separated by commas and want to parse them individually,
-    /// instead of a tuple, use this function!
-    fn parse_expr(&mut self) -> WithRangeExpr {
-        let (expr, expr_range) = self.parse_expr_simple();
-
-        if self.at(TokenKind::If) {
-            return self.parse_if_expr(expr, expr_range);
-        }
-
-        (expr, expr_range)
-    }
-
-    /// Parses every Python expression except unparenthesized tuple.
-    ///
-    /// NOTE: If you have expressions separated by commas and want to parse them individually,
-    /// instead of a tuple, use this function!
-    fn parse_expr2(&mut self) -> WithRangeExpr {
-        let (expr, expr_range) = self.parse_expr();
-
-        if self.at(TokenKind::ColonEqual) {
-            return self.parse_named_expr(expr, expr_range);
-        }
-
-        (expr, expr_range)
-    }
-
-    /// Parses every Python expression except unparenthesized tuple and `if` expression.
-    fn parse_expr_simple(&mut self) -> WithRangeExpr {
-        self.expr_bp(1)
-    }
-
-    /// Tries to parse an expression (using `parse_func`), and recovers from
-    /// errors by skipping until a specified set of tokens.
-    ///
-    /// If the current token is not part of an expression, adds the `error_msg`
-    /// to the list of errors and returns an `Expr::Invalid`.
-    fn parse_expr_with_recovery(
+    /// Parses a comma separated list of elements into a vector where each element
+    /// is parsed using the given `parse_element` function.
+    fn parse_comma_separated_list_into_vec<T>(
         &mut self,
-        mut parse_func: impl FnMut(&mut Parser<'src, I>) -> WithRangeExpr,
-        recover_set: impl Into<TokenSet>,
-        error_msg: impl Display,
-    ) -> WithRangeExpr {
-        if self.at_expr() {
-            parse_func(self)
-        } else {
-            let range = self.current_range();
-            self.add_error(ParseErrorType::OtherError(error_msg.to_string()), range);
-            self.skip_until(NEWLINE_EOF_SET.union(recover_set.into()));
-
-            (
-                Expr::Invalid(ast::InvalidExpr {
-                    value: self.src_text(range).into(),
-                    range,
-                }),
-                range,
-            )
-        }
+        recovery_context_kind: RecoveryContextKind,
+        parse_element: impl Fn(&mut Parser<'src>) -> T,
+    ) -> Vec<T> {
+        let mut elements = Vec::new();
+        self.parse_comma_separated_list(recovery_context_kind, |p| elements.push(parse_element(p)));
+        elements
     }
 
-    /// Binding powers of operators for a Pratt parser.
+    /// Parses a comma separated list of elements where each element is parsed
+    /// sing the given `parse_element` function.
     ///
-    /// See <https://matklad.github.io/2020/04/13/simple-but-powerful-pratt-parsing.html>
-    fn current_op(&mut self) -> (u8, TokenKind, Associativity) {
-        const NOT_AN_OP: (u8, TokenKind, Associativity) =
-            (0, TokenKind::Invalid, Associativity::Left);
-        let kind = self.current_kind();
-
-        match kind {
-            TokenKind::Or => (4, kind, Associativity::Left),
-            TokenKind::And => (5, kind, Associativity::Left),
-            TokenKind::Not if self.lookahead(1).0 == TokenKind::In => {
-                (7, kind, Associativity::Left)
-            }
-            TokenKind::Is
-            | TokenKind::In
-            | TokenKind::EqEqual
-            | TokenKind::NotEqual
-            | TokenKind::Less
-            | TokenKind::LessEqual
-            | TokenKind::Greater
-            | TokenKind::GreaterEqual => (7, kind, Associativity::Left),
-            TokenKind::Vbar => (8, kind, Associativity::Left),
-            TokenKind::CircumFlex => (9, kind, Associativity::Left),
-            TokenKind::Amper => (10, kind, Associativity::Left),
-            TokenKind::LeftShift | TokenKind::RightShift => (11, kind, Associativity::Left),
-            TokenKind::Plus | TokenKind::Minus => (12, kind, Associativity::Left),
-            TokenKind::Star
-            | TokenKind::Slash
-            | TokenKind::DoubleSlash
-            | TokenKind::Percent
-            | TokenKind::At => (14, kind, Associativity::Left),
-            TokenKind::DoubleStar => (18, kind, Associativity::Right),
-            _ => NOT_AN_OP,
-        }
-    }
-
-    /// Parses expression with binding power of at least bp.
-    ///
-    /// Uses the Pratt parser algorithm.
-    /// See <https://matklad.github.io/2020/04/13/simple-but-powerful-pratt-parsing.html>
-    fn expr_bp(&mut self, bp: u8) -> WithRangeExpr {
-        let (mut lhs, mut lhs_range) = self.parse_lhs();
-
-        loop {
-            let (op_bp, op, associativity) = self.current_op();
-            if op_bp < bp {
-                break;
-            }
-
-            // Don't parse a `CompareExpr` if we are parsing a `Comprehension` or `ForStmt`
-            if op.is_compare_operator() && self.has_ctx(ParserCtxFlags::FOR_TARGET) {
-                break;
-            }
-
-            let op_bp = match associativity {
-                Associativity::Left => op_bp + 1,
-                Associativity::Right => op_bp,
-            };
-
-            self.eat(op);
-
-            // We need to create a dedicated node for boolean operations,
-            // even though boolean operations are infix.
-            if op.is_bool_operator() {
-                (lhs, lhs_range) = self.parse_bool_op_expr(lhs, lhs_range, op, op_bp);
-                continue;
-            }
-
-            // Same here as well
-            if op.is_compare_operator() {
-                (lhs, lhs_range) = self.parse_compare_op_expr(lhs, lhs_range, op, op_bp);
-                continue;
-            }
-
-            let (rhs, rhs_range) = if self.at_expr() {
-                self.expr_bp(op_bp)
-            } else {
-                let rhs_range = self.current_range();
-                self.add_error(
-                    ParseErrorType::OtherError("expecting an expression after operand".into()),
-                    rhs_range,
-                );
-                (
-                    Expr::Invalid(ast::InvalidExpr {
-                        value: self.src_text(rhs_range).into(),
-                        range: rhs_range,
-                    }),
-                    rhs_range,
-                )
-            };
-            lhs_range = lhs_range.cover(rhs_range);
-            lhs = Expr::BinOp(ast::BinOpExpr {
-                left: Box::new(lhs),
-                op: Operator::try_from(op).unwrap(),
-                right: Box::new(rhs),
-                range: lhs_range,
-            });
-        }
-
-        (lhs, lhs_range)
-    }
-
-    fn parse_lhs(&mut self) -> WithRangeExpr {
-        let token = self.next_token();
-        let (mut lhs, mut lhs_range) = match token.0 {
-            Tok::Plus | Tok::Minus | Tok::Not | Tok::Tilde => self.parse_unary_expr(token),
-            Tok::Star => self.parse_starred_expr(token),
-            Tok::Await => self.parse_await_expr(token.1),
-            Tok::Lambda => self.parse_lambda_expr(token.1),
-            _ => self.parse_atom(token),
-        };
-
-        if self.is_current_token_postfix() {
-            (lhs, lhs_range) = self.parse_postfix_expr(lhs, lhs_range);
-        }
-
-        (lhs, lhs_range)
-    }
-
-    fn parse_identifier(&mut self) -> ast::Identifier {
-        let (kind, range) = self.current_token();
-        if kind == TokenKind::Name {
-            let (Tok::Name { name }, _) = self.next_token() else {
-                unreachable!();
-            };
-            ast::Identifier { id: name, range }
-        } else {
-            self.add_error(
-                ParseErrorType::OtherError("expecting an identifier".into()),
-                range,
-            );
-            ast::Identifier {
-                id: String::new(),
-                range,
-            }
-        }
-    }
-
-    fn parse_atom(&mut self, token: Spanned) -> WithRangeExpr {
-        let (tok, mut range) = token;
-        let lhs = match tok {
-            Tok::Float { value } => Expr::NumberLiteral(ast::NumberLiteralExpr {
-                value: Number::Float(value),
-                range,
-            }),
-            Tok::Complex { real, imag } => Expr::NumberLiteral(ast::NumberLiteralExpr {
-                value: Number::Complex { real, imag },
-                range,
-            }),
-            Tok::Int { value } => Expr::NumberLiteral(ast::NumberLiteralExpr {
-                value: Number::Int(value),
-                range,
-            }),
-            Tok::True => Expr::BooleanLiteral(ast::BooleanLiteralExpr { value: true, range }),
-            Tok::False => Expr::BooleanLiteral(ast::BooleanLiteralExpr {
-                value: false,
-                range,
-            }),
-            Tok::None => Expr::NoneLiteral(ast::NoneLiteralExpr { range }),
-            Tok::Ellipsis => Expr::EllipsisLiteral(ast::EllipsisLiteralExpr { range }),
-            Tok::Name { name } => Expr::Name(ast::NameExpr {
-                id: name,
-                ctx: ContextExpr::Load,
-                range,
-            }),
-            Tok::IpyEscapeCommand { value, kind } if self.mode == Mode::Ipython => {
-                Expr::IpyEscapeCommand(ast::IpyEscapeCommandExpr { range, kind, value })
-            }
-            tok @ Tok::String { .. } => return self.parse_string_expr(tok, range),
-            Tok::FStringStart => return self.parse_fstring_expr(range),
-            Tok::Lpar => return self.parse_parenthesized_expr(range),
-            Tok::Lsqb => return self.parse_bracketsized_expr(range),
-            Tok::Lbrace => return self.parse_bracesized_expr(range),
-            Tok::Yield => return self.parse_yield_expr(range),
-            // `Invalid` tokens are created when there's a lexical error, to
-            // avoid creating an "unexpected token" error for `Tok::Invalid`
-            // we handle it here. We try to parse an expression to avoid
-            // creating "statements in the same line" error in some cases.
-            Tok::Invalid => {
-                if self.at_expr() {
-                    let (expr, expr_range) = self.parse_exprs();
-                    range = expr_range;
-                    expr
-                } else {
-                    Expr::Invalid(ast::InvalidExpr {
-                        value: self.src_text(range).into(),
-                        range,
-                    })
-                }
-            }
-            // Handle unexpected token
-            tok => {
-                // Try to parse an expression after seeing an unexpected token
-                let lhs = if self.at_expr() {
-                    let (expr, expr_range) = self.parse_exprs();
-                    range = expr_range;
-                    expr
-                } else {
-                    Expr::Invalid(ast::InvalidExpr {
-                        value: self.src_text(range).into(),
-                        range,
-                    })
-                };
-
-                if matches!(tok, Tok::IpyEscapeCommand { .. }) {
-                    self.add_error(
-                        ParseErrorType::OtherError(
-                            "IPython escape commands are only allowed in `Mode::Ipython`".into(),
-                        ),
-                        range,
-                    );
-                } else {
-                    self.add_error(
-                        ParseErrorType::OtherError(format!("unexpected token `{tok}`")),
-                        range,
-                    );
-                }
-                lhs
-            }
-        };
-
-        (lhs, range)
-    }
-
-    fn parse_postfix_expr(&mut self, mut lhs: Expr, mut lhs_range: TextRange) -> WithRangeExpr {
-        loop {
-            (lhs, lhs_range) = match self.current_kind() {
-                TokenKind::Lpar => self.parse_call_expr(lhs, lhs_range),
-                TokenKind::Lsqb => self.parse_subscript_expr(lhs, lhs_range),
-                TokenKind::Dot => self.parse_attribute_expr(lhs, lhs_range),
-                _ => break,
-            };
-        }
-
-        (lhs, lhs_range)
-    }
-
-    fn parse_call_expr(&mut self, lhs: Expr, lhs_range: TextRange) -> WithRangeExpr {
-        assert!(self.at(TokenKind::Lpar));
-        let arguments = self.parse_arguments();
-        let range = lhs_range.cover(arguments.range);
-
-        (
-            Expr::Call(ast::CallExpr {
-                func: Box::new(lhs),
-                arguments,
-                range,
-            }),
-            range,
-        )
-    }
-
-    fn parse_arguments(&mut self) -> ast::Arguments {
-        self.set_ctx(ParserCtxFlags::ARGUMENTS);
-
-        let mut args: Vec<Expr> = vec![];
-        let mut keywords: Vec<ast::Keyword> = vec![];
-        let mut has_seen_kw_arg = false;
-        let mut has_seen_kw_unpack = false;
-
-        let range = self.parse_delimited(
-            true,
-            TokenKind::Lpar,
-            TokenKind::Comma,
-            TokenKind::Rpar,
-            |parser| {
-                if parser.at(TokenKind::DoubleStar) {
-                    let range = parser.current_range();
-                    parser.eat(TokenKind::DoubleStar);
-
-                    let (expr, expr_range) = parser.parse_expr();
-                    keywords.push(ast::Keyword {
-                        arg: None,
-                        value: expr,
-                        range: range.cover(expr_range),
-                    });
-
-                    has_seen_kw_unpack = true;
-                } else {
-                    let (mut expr, expr_range) = parser.parse_expr2();
-
-                    match parser.current_kind() {
-                        TokenKind::Async | TokenKind::For => {
-                            (expr, _) = parser.parse_generator_expr(expr, expr_range);
-                        }
-                        _ => {}
-                    }
-
-                    if has_seen_kw_unpack && matches!(expr, Expr::Starred(_)) {
-                        parser.add_error(ParseErrorType::UnpackedArgumentError, expr_range);
-                    }
-
-                    if parser.eat(TokenKind::Equal) {
-                        has_seen_kw_arg = true;
-                        let arg = if let Expr::Name(ident_expr) = expr {
-                            ast::Identifier {
-                                id: ident_expr.id,
-                                range: ident_expr.range,
-                            }
-                        } else {
-                            parser.add_error(
-                                ParseErrorType::OtherError(format!(
-                                    "`{}` cannot be used as a keyword argument!",
-                                    parser.src_text(expr_range)
-                                )),
-                                expr_range,
-                            );
-                            ast::Identifier {
-                                id: String::new(),
-                                range: expr_range,
-                            }
-                        };
-
-                        let (value, value_range) = parser.parse_expr();
-
-                        keywords.push(ast::Keyword {
-                            arg: Some(arg),
-                            value,
-                            range: expr_range.cover(value_range),
-                        });
-                    } else {
-                        if has_seen_kw_arg
-                            && !(has_seen_kw_unpack || matches!(expr, Expr::Starred(_)))
-                        {
-                            parser.add_error(ParseErrorType::PositionalArgumentError, expr_range);
-                        }
-                        args.push(expr);
-                    }
-                }
-            },
-        );
-        self.clear_ctx(ParserCtxFlags::ARGUMENTS);
-
-        let arguments = ast::Arguments {
-            range,
-            args,
-            keywords,
-        };
-
-        if let Err(error) = helpers::validate_arguments(&arguments) {
-            self.errors.push(error);
-        }
-
-        arguments
-    }
-
-    fn parse_subscript_expr(&mut self, mut value: Expr, value_range: TextRange) -> WithRangeExpr {
-        assert!(self.eat(TokenKind::Lsqb));
-
-        // To prevent the `value` context from being `Del` within a `del` statement,
-        // we set the context as `Load` here.
-        helpers::set_expr_ctx(&mut value, ContextExpr::Load);
-
-        // Create an error when receiving a empty slice to parse, e.g. `l[]`
-        if !self.at(TokenKind::Colon) && !self.at_expr() {
-            let close_bracket_range = self.current_range();
-            self.expect_and_recover(TokenKind::Rsqb, TokenSet::EMPTY);
-
-            let range = value_range.cover(close_bracket_range);
-            let slice_range = close_bracket_range.sub_start(1.into());
-            self.add_error(ParseErrorType::EmptySlice, range);
-            return (
-                Expr::Subscript(ast::SubscriptExpr {
-                    value: Box::new(value),
-                    slice: Box::new(Expr::Invalid(ast::InvalidExpr {
-                        value: self.src_text(slice_range).into(),
-                        range: slice_range,
-                    })),
-                    ctx: ContextExpr::Load,
-                    range,
-                }),
-                range,
-            );
-        }
-
-        let (mut slice, slice_range) = self.parse_slice();
-
-        if self.at(TokenKind::Comma) {
-            let (_, comma_range) = self.next_token();
-            let mut slices = vec![slice];
-            let slices_range = self
-                .parse_separated(
-                    true,
-                    TokenKind::Comma,
-                    TokenSet::new(&[TokenKind::Rsqb]),
-                    |parser| {
-                        let (slice, slice_range) = parser.parse_slice();
-                        slices.push(slice);
-                        slice_range
-                    },
-                )
-                .unwrap_or(comma_range);
-
-            slice = Expr::Tuple(ast::TupleExpr {
-                elts: slices,
-                ctx: ContextExpr::Load,
-                range: slice_range.cover(slices_range),
-            });
-        }
-
-        let end_range = self.current_range();
-        self.expect_and_recover(TokenKind::Rsqb, TokenSet::EMPTY);
-
-        let range = value_range.cover(end_range);
-        (
-            Expr::Subscript(ast::SubscriptExpr {
-                value: Box::new(value),
-                slice: Box::new(slice),
-                ctx: ContextExpr::Load,
-                range,
-            }),
-            range,
-        )
-    }
-
-    const UPPER_END_SET: TokenSet =
-        TokenSet::new(&[TokenKind::Comma, TokenKind::Colon, TokenKind::Rsqb])
-            .union(NEWLINE_EOF_SET);
-    const STEP_END_SET: TokenSet =
-        TokenSet::new(&[TokenKind::Comma, TokenKind::Rsqb]).union(NEWLINE_EOF_SET);
-    fn parse_slice(&mut self) -> WithRangeExpr {
-        let mut range = self.current_range();
-        let lower = if self.at_expr() {
-            let (expr, expr_range) = self.parse_expr2();
-            range = range.cover(expr_range);
-            Some(expr)
-        } else {
-            None
-        };
-
-        if self.at(TokenKind::Colon)
-            && (lower.is_none()
-                || lower
-                    .as_ref()
-                    .is_some_and(|expr| !matches!(expr, Expr::NamedExpr(_))))
-        {
-            let (_, colon_range) = self.next_token();
-            range = range.cover(colon_range);
-            let lower = lower.map(Box::new);
-            let upper = if self.at_ts(Self::UPPER_END_SET) {
-                None
-            } else {
-                let (upper, upper_range) = self.parse_expr();
-                range = range.cover(upper_range);
-                Some(Box::new(upper))
-            };
-
-            let colon_range = self.current_range();
-            let step = if self.eat(TokenKind::Colon) {
-                range = range.cover(colon_range);
-                if self.at_ts(Self::STEP_END_SET) {
-                    None
-                } else {
-                    let (step, step_range) = self.parse_expr();
-                    range = range.cover(step_range);
-                    Some(Box::new(step))
-                }
-            } else {
-                None
-            };
-
-            (
-                Expr::Slice(ast::SliceExpr {
-                    range,
-                    lower,
-                    upper,
-                    step,
-                }),
-                range,
-            )
-        } else {
-            (lower.unwrap(), range)
-        }
-    }
-
-    fn parse_unary_expr(&mut self, (op_tok, range): Spanned) -> WithRangeExpr {
-        let (rhs, rhs_range) = if matches!(op_tok, Tok::Not) {
-            self.expr_bp(6)
-        } else {
-            // plus, minus and tilde
-            self.expr_bp(17)
-        };
-        let new_range = range.cover(rhs_range);
-
-        (
-            Expr::UnaryOp(ast::UnaryOpExpr {
-                op: UnaryOp::try_from(op_tok).unwrap(),
-                operand: Box::new(rhs),
-                range: new_range,
-            }),
-            new_range,
-        )
-    }
-
-    fn parse_attribute_expr(&mut self, value: Expr, lhs_range: TextRange) -> WithRangeExpr {
-        assert!(self.eat(TokenKind::Dot));
-
-        let attr = self.parse_identifier();
-        let range = lhs_range.cover(attr.range);
-
-        (
-            Expr::Attribute(ast::AttributeExpr {
-                value: Box::new(value),
-                attr,
-                ctx: ContextExpr::Load,
-                range,
-            }),
-            range,
-        )
-    }
-
-    fn parse_bool_op_expr(
+    /// The difference between this function and `parse_comma_separated_list_into_vec`
+    /// is that this function does not return the parsed elements. Instead, it is the
+    /// caller's responsibility to handle the parsed elements. This is the reason
+    /// that the `parse_element` parameter is bound to [`FnMut`] instead of [`Fn`].
+    fn parse_comma_separated_list(
         &mut self,
-        lhs: Expr,
-        mut lhs_range: TextRange,
-        op: TokenKind,
-        op_bp: u8,
-    ) -> WithRangeExpr {
-        let mut values = vec![lhs];
-
-        // Keep adding `expr` to `values` until we see a different
-        // boolean operation than `op`.
-        loop {
-            let (expr, expr_range) = self.expr_bp(op_bp);
-            lhs_range = lhs_range.cover(expr_range);
-            values.push(expr);
-
-            if self.current_kind() != op {
-                break;
-            }
-
-            self.next_token();
-        }
-
-        (
-            Expr::BoolOp(ast::BoolOpExpr {
-                values,
-                op: BoolOp::try_from(op).unwrap(),
-                range: lhs_range,
-            }),
-            lhs_range,
-        )
-    }
-
-    fn parse_compare_op_expr(
-        &mut self,
-        lhs: Expr,
-        mut lhs_range: TextRange,
-        op: TokenKind,
-        op_bp: u8,
-    ) -> WithRangeExpr {
-        let mut comparators = vec![];
-        let op = token_kind_to_cmp_op([op, self.current_kind()]).unwrap();
-        let mut ops = vec![op];
-
-        if matches!(op, CmpOp::IsNot | CmpOp::NotIn) {
-            self.next_token();
-        }
-
-        loop {
-            let (expr, expr_range) = self.expr_bp(op_bp);
-            lhs_range = lhs_range.cover(expr_range);
-            comparators.push(expr);
-
-            if let Ok(op) = token_kind_to_cmp_op([self.current_kind(), self.lookahead(1).0]) {
-                if matches!(op, CmpOp::IsNot | CmpOp::NotIn) {
-                    self.next_token();
-                }
-
-                ops.push(op);
-            } else {
-                break;
-            }
-
-            self.next_token();
-        }
-
-        (
-            Expr::Compare(ast::CompareExpr {
-                left: Box::new(lhs),
-                ops,
-                comparators,
-                range: lhs_range,
-            }),
-            lhs_range,
-        )
-    }
-
-    fn parse_string_expr(&mut self, mut tok: Tok, mut str_range: TextRange) -> WithRangeExpr {
-        let mut final_range = str_range;
-        let mut strings = vec![];
-        while let Tok::String {
-            value,
-            kind,
-            triple_quoted,
-        } = tok
-        {
-            match parse_string_literal(&value, kind, triple_quoted, str_range) {
-                Ok(string) => {
-                    strings.push(string);
-                }
-                Err(error) => {
-                    strings.push(StringType::Invalid(ast::StringLiteral {
-                        value,
-                        range: str_range,
-                        unicode: kind.is_unicode(),
-                    }));
-                    self.add_error(ParseErrorType::Lexical(error.error), error.location);
-                }
-            }
-
-            if !self.at(TokenKind::String) {
-                break;
-            }
-
-            (tok, str_range) = self.next_token();
-            final_range = final_range.cover(str_range);
-        }
-
-        // This handles the case where the string is implicit concatenated with
-        // a fstring, e.g., `"hello " f"{x}"`.
-        if self.at(TokenKind::FStringStart) {
-            let mut fstring_range = self.current_range();
-            self.handle_implicit_concatenated_strings(&mut fstring_range, &mut strings);
-            final_range = final_range.cover(fstring_range);
-        }
-
-        if strings.len() == 1 {
-            return match strings.pop().unwrap() {
-                StringType::Str(string) => {
-                    let range = string.range;
-                    (
-                        Expr::StringLiteral(ast::StringLiteralExpr {
-                            value: ast::StringLiteralValue::single(string),
-                            range,
-                        }),
-                        range,
-                    )
-                }
-                StringType::Bytes(bytes) => {
-                    let range = bytes.range;
-                    (
-                        Expr::BytesLiteral(ast::BytesLiteralExpr {
-                            value: ast::BytesLiteralValue::single(bytes),
-                            range,
-                        }),
-                        range,
-                    )
-                }
-                StringType::Invalid(invalid) => (
-                    Expr::Invalid(ast::InvalidExpr {
-                        value: invalid.value,
-                        range: invalid.range,
-                    }),
-                    invalid.range,
-                ),
-                StringType::FString(_) => unreachable!(),
-            };
-        }
-
-        match concatenated_strings(strings, final_range) {
-            Ok(string) => (string, final_range),
-            Err(error) => {
-                self.add_error(ParseErrorType::Lexical(error.error), error.location);
-                (
-                    Expr::Invalid(ast::InvalidExpr {
-                        value: self.src_text(error.location).into(),
-                        range: error.location,
-                    }),
-                    error.location,
-                )
-            }
-        }
-    }
-
-    const FSTRING_SET: TokenSet = TokenSet::new(&[TokenKind::FStringStart, TokenKind::String]);
-    /// Handles implicit concatenated f-strings, e.g. `f"{x}" f"hello"`, and
-    /// implicit concatenated f-strings with strings, e.g. `f"{x}" "xyz" f"{x}"`.
-    fn handle_implicit_concatenated_strings(
-        &mut self,
-        fstring_range: &mut TextRange,
-        strings: &mut Vec<StringType>,
+        recovery_context_kind: RecoveryContextKind,
+        mut parse_element: impl FnMut(&mut Parser<'src>),
     ) {
-        while self.at_ts(Self::FSTRING_SET) {
-            if self.at(TokenKind::FStringStart) {
-                let (_, range) = self.next_token();
-                let fstring = self.parse_fstring(range);
-                *fstring_range = fstring_range.cover(fstring.range);
-                strings.push(StringType::FString(fstring));
-            } else {
-                let (
-                    Tok::String {
-                        value,
-                        kind,
-                        triple_quoted,
-                    },
-                    str_range,
-                ) = self.next_token()
-                else {
-                    unreachable!()
-                };
+        let mut progress = ParserProgress::default();
 
-                match parse_string_literal(&value, kind, triple_quoted, str_range) {
-                    Ok(string) => {
-                        *fstring_range = fstring_range.cover(str_range);
-                        strings.push(string);
-                    }
-                    Err(error) => {
-                        strings.push(StringType::Invalid(ast::StringLiteral {
-                            value,
-                            range: str_range,
-                            unicode: kind.is_unicode(),
-                        }));
-                        self.add_error(ParseErrorType::Lexical(error.error), error.location);
-                    }
-                }
-            }
-        }
-    }
+        let saved_context = self.recovery_context;
+        self.recovery_context = self
+            .recovery_context
+            .union(RecoveryContext::from_kind(recovery_context_kind));
 
-    fn parse_fstring_expr(&mut self, mut fstring_range: TextRange) -> WithRangeExpr {
-        let fstring = self.parse_fstring(fstring_range);
+        let mut first_element = true;
+        let mut trailing_comma_range: Option<TextRange> = None;
 
-        if !self.at_ts(Self::FSTRING_SET) {
-            let range = fstring.range;
-            return (
-                Expr::FString(ast::FStringExpr {
-                    value: ast::FStringValue::single(fstring),
-                    range,
-                }),
-                range,
-            );
-        }
+        loop {
+            progress.assert_progressing(self);
 
-        let mut strings = vec![StringType::FString(fstring)];
-        self.handle_implicit_concatenated_strings(&mut fstring_range, &mut strings);
+            if recovery_context_kind.is_list_element(self) {
+                parse_element(self);
 
-        match concatenated_strings(strings, fstring_range) {
-            Ok(string) => (string, fstring_range),
-            Err(error) => {
-                self.add_error(ParseErrorType::Lexical(error.error), error.location);
-                (
-                    Expr::Invalid(ast::InvalidExpr {
-                        value: self.src_text(error.location).into(),
-                        range: error.location,
-                    }),
-                    error.location,
-                )
-            }
-        }
-    }
+                // Only unset this when we've completely parsed a single element. This is mainly to
+                // raise the correct error in case the first element isn't valid and the current
+                // token isn't a comma. Without this knowledge, the parser would later expect a
+                // comma instead of raising the context error.
+                first_element = false;
 
-    fn parse_fstring(&mut self, mut fstring_range: TextRange) -> ast::FString {
-        let (elements, _) = self.parse_fstring_elements();
-
-        fstring_range = fstring_range.cover(self.current_range());
-        self.eat(TokenKind::FStringEnd);
-
-        ast::FString {
-            elements,
-            range: fstring_range,
-        }
-    }
-
-    const FSTRING_END_SET: TokenSet =
-        TokenSet::new(&[TokenKind::FStringEnd, TokenKind::Rbrace]).union(NEWLINE_EOF_SET);
-    fn parse_fstring_elements(&mut self) -> (Vec<FStringElement>, TextRange) {
-        let mut elements = vec![];
-        let mut final_range: Option<TextRange> = None;
-        while !self.at_ts(Self::FSTRING_END_SET) {
-            let element = match self.current_kind() {
-                TokenKind::Lbrace => {
-                    let fstring_expr = self.parse_fstring_expr_element();
-                    let range = final_range.get_or_insert(fstring_expr.range);
-                    *range = range.cover(fstring_expr.range);
-                    FStringElement::Expression(fstring_expr)
-                }
-                TokenKind::FStringMiddle => {
-                    let (Tok::FStringMiddle { value, is_raw }, range) = self.next_token() else {
-                        unreachable!()
-                    };
-                    let (fstring_literal, fstring_range) =
-                        match parse_fstring_literal_element(&value, is_raw, range) {
-                            Ok(fstring) => {
-                                let range = fstring.range();
-                                (fstring, range)
-                            }
-                            Err(lex_error) => {
-                                self.add_error(
-                                    ParseErrorType::Lexical(lex_error.error),
-                                    lex_error.location,
-                                );
-                                (
-                                    ast::FStringElement::Invalid(ast::FStringInvalidElement {
-                                        value: self.src_text(lex_error.location).into(),
-                                        range: lex_error.location,
-                                    }),
-                                    lex_error.location,
-                                )
-                            }
-                        };
-                    let range = final_range.get_or_insert(fstring_range);
-                    *range = range.cover(fstring_range);
-                    fstring_literal
-                }
-                // `Invalid` tokens are created when there's a lexical error, so
-                // we ignore it here to avoid creating unexpected token errors
-                TokenKind::Invalid => {
-                    self.next_token();
+                let maybe_comma_range = self.current_token_range();
+                if self.eat(TokenKind::Comma) {
+                    trailing_comma_range = Some(maybe_comma_range);
                     continue;
                 }
-                // Handle an unexpected token
-                _ => {
-                    let (tok, range) = self.next_token();
-                    self.add_error(
-                        ParseErrorType::OtherError(format!("f-string: unexpected token `{tok:?}`")),
-                        range,
-                    );
-                    continue;
-                }
-            };
-            elements.push(element);
-        }
-
-        (elements, final_range.unwrap_or_default())
-    }
-
-    fn parse_fstring_expr_element(&mut self) -> ast::FStringExpressionElement {
-        let range = self.current_range();
-
-        let has_open_brace = self.eat(TokenKind::Lbrace);
-        let (value, value_range) = self.parse_expr_with_recovery(
-            Parser::parse_exprs,
-            [
-                TokenKind::Exclamation,
-                TokenKind::Colon,
-                TokenKind::Rbrace,
-                TokenKind::FStringEnd,
-            ]
-            .as_slice(),
-            "f-string: expecting expression",
-        );
-        if !self.last_ctx.contains(ParserCtxFlags::PARENTHESIZED_EXPR)
-            && matches!(value, Expr::Lambda(_))
-        {
-            self.add_error(
-                ParseErrorType::FStringError(FStringErrorType::LambdaWithoutParentheses),
-                value_range,
-            );
-        }
-        let debug_text = if self.eat(TokenKind::Equal) {
-            let leading_range = range
-                .add_start("{".text_len())
-                .cover_offset(value_range.start());
-            let trailing_range = TextRange::new(value_range.end(), self.current_range().start());
-            Some(ast::DebugText {
-                leading: self.src_text(leading_range).to_string(),
-                trailing: self.src_text(trailing_range).to_string(),
-            })
-        } else {
-            None
-        };
-
-        let conversion = if self.eat(TokenKind::Exclamation) {
-            let (_, range) = self.next_token();
-            match self.src_text(range) {
-                "s" => ConversionFlag::Str,
-                "r" => ConversionFlag::Repr,
-                "a" => ConversionFlag::Ascii,
-                _ => {
-                    self.add_error(
-                        ParseErrorType::FStringError(FStringErrorType::InvalidConversionFlag),
-                        range,
-                    );
-                    ConversionFlag::None
-                }
+                trailing_comma_range = None;
             }
-        } else {
-            ConversionFlag::None
-        };
 
-        let format_spec = if self.eat(TokenKind::Colon) {
-            let (elements, mut range) = self.parse_fstring_elements();
-            // Special case for when the f-string format spec is empty. We set the range
-            // to an empty `TextRange`.
-            if range.is_empty() {
-                range = TextRange::empty(self.current_range().start());
+            // test_ok comma_separated_regular_list_terminator
+            // # The first element is parsed by `parse_list_like_expression` and the comma after
+            // # the first element is expected by `parse_list_expression`
+            // [0]
+            // [0, 1]
+            // [0, 1,]
+            // [0, 1, 2]
+            // [0, 1, 2,]
+            if recovery_context_kind.is_regular_list_terminator(self) {
+                break;
             }
-            Some(Box::new(ast::FStringFormatSpec { range, elements }))
-        } else {
-            None
-        };
 
-        let close_brace_range = self.current_range();
-        if has_open_brace && !self.eat(TokenKind::Rbrace) {
-            self.add_error(
-                ParseErrorType::FStringError(FStringErrorType::UnclosedLbrace),
-                close_brace_range,
-            );
-        }
-
-        ast::FStringExpressionElement {
-            expression: Box::new(value),
-            debug_text,
-            conversion,
-            format_spec,
-            range: range.cover(close_brace_range),
-        }
-    }
-
-    fn parse_bracketsized_expr(&mut self, open_bracket_range: TextRange) -> WithRangeExpr {
-        // Nice error message when having a unclosed open bracket `[`
-        if self.at_ts(NEWLINE_EOF_SET) {
-            let range = self.current_range();
-            self.add_error(
-                ParseErrorType::OtherError("missing closing bracket `]`".to_string()),
-                range,
-            );
-        }
-
-        // Return an empty `ListExpr` when finding a `]` right after the `[`
-        if self.at(TokenKind::Rsqb) {
-            let close_bracket_range = self.current_range();
-            let range = open_bracket_range.cover(close_bracket_range);
-
-            self.eat(TokenKind::Rsqb);
-            return (
-                Expr::List(ast::ListExpr {
-                    elts: vec![],
-                    ctx: ContextExpr::Load,
-                    range,
-                }),
-                range,
-            );
-        }
-
-        let (mut expr, expr_range) = self.parse_expr2();
-
-        match self.current_kind() {
-            TokenKind::Async | TokenKind::For => {
-                (expr, _) = self.parse_list_comprehension_expr(expr, expr_range);
+            // test_err comma_separated_missing_comma_between_elements
+            // # The comma between the first two elements is expected in `parse_list_expression`.
+            // [0, 1 2]
+            if recovery_context_kind.is_list_element(self) {
+                // This is a special case to expect a comma between two elements and should be
+                // checked before running the error recovery. This is because the error recovery
+                // will always run as the parser is currently at a list element.
+                self.expect(TokenKind::Comma);
+                continue;
             }
-            _ => {
-                (expr, _) = self.parse_list_expr(expr);
+
+            // Run the error recovery: If the token is recognised as an element or terminator of an
+            // enclosing list, then we try to re-lex in the context of a logical line and break out
+            // of list parsing.
+            if self.is_enclosing_list_element_or_terminator() {
+                self.tokens.re_lex_logical_token();
+                break;
             }
-        }
-        let close_bracket_range = self.current_range();
-        self.expect_and_recover(TokenKind::Rsqb, TokenSet::EMPTY);
 
-        let range = open_bracket_range.cover(close_bracket_range);
+            if first_element || self.at(TokenKind::Comma) {
+                // There are two conditions when we need to add the recovery context error:
+                //
+                // 1. If the parser is at a comma which means that there's a missing element
+                //    otherwise the comma would've been consumed by the first `eat` call above.
+                //    And, the parser doesn't take the re-lexing route on a comma token.
+                // 2. If it's the first element and the current token is not a comma which means
+                //    that it's an invalid element.
 
-        // Update the range of `Expr::List` or `Expr::ListComp` to
-        // include the parenthesis.
-        if matches!(expr, Expr::List(_) | Expr::ListComp(_)) {
-            helpers::set_expr_range(&mut expr, range);
-        }
+                // test_err comma_separated_missing_element_between_commas
+                // [0, 1, , 2]
 
-        (expr, range)
-    }
+                // test_err comma_separated_missing_first_element
+                // call(= 1)
+                self.add_error(
+                    recovery_context_kind.create_error(self),
+                    self.current_token_range(),
+                );
 
-    fn parse_bracesized_expr(&mut self, lbrace_range: TextRange) -> WithRangeExpr {
-        // Nice error message when having a unclosed open brace `{`
-        if self.at_ts(NEWLINE_EOF_SET) {
-            let range = self.current_range();
-            self.add_error(
-                ParseErrorType::OtherError("missing closing brace `}`".to_string()),
-                range,
-            );
-        }
-
-        // Return an empty `DictExpr` when finding a `}` right after the `{`
-        if self.at(TokenKind::Rbrace) {
-            let close_brace_range = self.current_range();
-            let range = lbrace_range.cover(close_brace_range);
-
-            self.eat(TokenKind::Rbrace);
-            return (
-                Expr::Dict(ast::DictExpr {
-                    keys: vec![],
-                    values: vec![],
-                    range,
-                }),
-                range,
-            );
-        }
-
-        let (mut expr, mut expr_range) = if self.eat(TokenKind::DoubleStar) {
-            // Handle dict unpack
-            let (value, _) = self.parse_expr();
-            self.parse_dict_expr(None, value)
-        } else {
-            self.parse_expr2()
-        };
-
-        match self.current_kind() {
-            TokenKind::Async | TokenKind::For => {
-                (expr, expr_range) = self.parse_set_comprehension_expr(expr, expr_range);
-            }
-            TokenKind::Colon => {
-                self.next_token();
-                let (value, value_range) = self.parse_expr();
-                let range = expr_range.cover(value_range);
-
-                (expr, expr_range) = match self.current_kind() {
-                    TokenKind::Async | TokenKind::For => {
-                        self.parse_dict_comprehension_expr(expr, value, range)
-                    }
-                    _ => self.parse_dict_expr(Some(expr), value),
-                };
-            }
-            _ if !matches!(expr, Expr::Dict(_)) => {
-                (expr, expr_range) = self.parse_set_expr(expr);
-            }
-            _ => {}
-        }
-
-        let rbrace_range = self.current_range();
-        self.expect_and_recover(TokenKind::Rbrace, TokenSet::EMPTY);
-
-        // Check for dict unpack used in a comprehension, e.g. `{**d for i in l}`
-        if matches!(
-            expr,
-            Expr::SetComp(ast::SetCompExpr { ref elt, .. }) if matches!(elt.as_ref(), Expr::Dict(_))
-        ) {
-            self.add_error(
-                ParseErrorType::OtherError(
-                    "dict unpacking cannot be used in dict comprehension".into(),
-                ),
-                expr_range,
-            );
-        }
-
-        let range = lbrace_range.cover(rbrace_range);
-        // Update the range of `Expr::Set`, `Expr::Dict`, `Expr::DictComp` and
-        // `Expr::SetComp` to include the parenthesis.
-        if matches!(
-            expr,
-            Expr::Set(_) | Expr::Dict(_) | Expr::DictComp(_) | Expr::SetComp(_)
-        ) {
-            helpers::set_expr_range(&mut expr, range);
-        }
-
-        (expr, range)
-    }
-
-    fn parse_parenthesized_expr(&mut self, open_paren_range: TextRange) -> WithRangeExpr {
-        self.set_ctx(ParserCtxFlags::PARENTHESIZED_EXPR);
-
-        // Nice error message when having a unclosed open parenthesis `(`
-        if self.at_ts(NEWLINE_EOF_SET) {
-            let range = self.current_range();
-            self.add_error(
-                ParseErrorType::OtherError("missing closing parenthesis `)`".to_string()),
-                range,
-            );
-        }
-
-        // Return an empty `TupleExpr` when finding a `)` right after the `(`
-        if self.at(TokenKind::Rpar) {
-            let close_paren_range = self.current_range();
-            let range = open_paren_range.cover(close_paren_range);
-
-            self.eat(TokenKind::Rpar);
-            self.clear_ctx(ParserCtxFlags::PARENTHESIZED_EXPR);
-
-            return (
-                Expr::Tuple(ast::TupleExpr {
-                    elts: vec![],
-                    ctx: ContextExpr::Load,
-                    range,
-                }),
-                range,
-            );
-        }
-
-        let (mut expr, expr_range) = self.parse_expr2();
-
-        match self.current_kind() {
-            TokenKind::Comma => {
-                (expr, _) = self.parse_tuple_expr(expr, expr_range, Parser::parse_expr2);
-            }
-            TokenKind::Async | TokenKind::For => {
-                (expr, _) = self.parse_generator_expr(expr, expr_range);
-            }
-            _ => {}
-        }
-        let close_paren_range = self.current_range();
-        self.expect_and_recover(TokenKind::Rpar, TokenSet::EMPTY);
-
-        let range = open_paren_range.cover(close_paren_range);
-
-        // Update the range of `Expr::Tuple` or `Expr::Generator` to
-        // include the parenthesis.
-        if matches!(expr, Expr::Tuple(_) | Expr::GeneratorExp(_))
-            && !self.last_ctx.contains(ParserCtxFlags::PARENTHESIZED_EXPR)
-        {
-            helpers::set_expr_range(&mut expr, range);
-        }
-
-        self.clear_ctx(ParserCtxFlags::PARENTHESIZED_EXPR);
-
-        (expr, range)
-    }
-
-    const END_SEQUENCE_SET: TokenSet = END_EXPR_SET.remove(TokenKind::Comma);
-    /// Parses multiple items separated by a comma into a `TupleExpr` node.
-    /// Uses `parse_func` to parse each item.
-    fn parse_tuple_expr(
-        &mut self,
-        first_element: Expr,
-        first_element_range: TextRange,
-        mut parse_func: impl FnMut(&mut Parser<'src, I>) -> WithRangeExpr,
-    ) -> WithRangeExpr {
-        // In case of the tuple only having one element, we need to cover the
-        // range of the comma.
-        let mut final_range = first_element_range.cover(self.current_range());
-        if !self.at_ts(Self::END_SEQUENCE_SET) {
-            self.expect(TokenKind::Comma);
-        }
-
-        let mut elts = vec![first_element];
-
-        final_range = final_range.cover(
-            self.parse_separated(true, TokenKind::Comma, Self::END_SEQUENCE_SET, |parser| {
-                let (expr, range) = parse_func(parser);
-                elts.push(expr);
-                range
-            })
-            .unwrap_or(final_range),
-        );
-
-        (
-            Expr::Tuple(ast::TupleExpr {
-                elts,
-                ctx: ContextExpr::Load,
-                range: final_range,
-            }),
-            final_range,
-        )
-    }
-
-    fn parse_list_expr(&mut self, first_element: Expr) -> WithRangeExpr {
-        if !self.at_ts(Self::END_SEQUENCE_SET) {
-            self.expect(TokenKind::Comma);
-        }
-        let mut elts = vec![first_element];
-
-        let range = self
-            .parse_separated(true, TokenKind::Comma, Self::END_SEQUENCE_SET, |parser| {
-                let (expr, range) = parser.parse_expr2();
-                elts.push(expr);
-                range
-            })
-            // Doesn't really matter what range we get here, since the range will
-            // be modified later in `parse_bracketsized_expr`.
-            .unwrap_or_default();
-
-        (
-            Expr::List(ast::ListExpr {
-                elts,
-                ctx: ContextExpr::Load,
-                range,
-            }),
-            range,
-        )
-    }
-
-    fn parse_set_expr(&mut self, first_element: Expr) -> WithRangeExpr {
-        if !self.at_ts(Self::END_SEQUENCE_SET) {
-            self.expect(TokenKind::Comma);
-        }
-        let mut elts = vec![first_element];
-
-        let range = self
-            .parse_separated(true, TokenKind::Comma, Self::END_SEQUENCE_SET, |parser| {
-                let (expr, range) = parser.parse_expr2();
-                elts.push(expr);
-                range
-            })
-            // Doesn't really matter what range we get here, since the range will
-            // be modified later in `parse_bracesized_expr`.
-            .unwrap_or_default();
-
-        (Expr::Set(ast::SetExpr { range, elts }), range)
-    }
-
-    fn parse_dict_expr(&mut self, key: Option<Expr>, value: Expr) -> WithRangeExpr {
-        if !self.at_ts(Self::END_SEQUENCE_SET) {
-            self.expect(TokenKind::Comma);
-        }
-
-        let mut keys = vec![key];
-        let mut values = vec![value];
-
-        let range = self
-            .parse_separated(true, TokenKind::Comma, Self::END_SEQUENCE_SET, |parser| {
-                if parser.eat(TokenKind::DoubleStar) {
-                    keys.push(None);
+                trailing_comma_range = if self.at(TokenKind::Comma) {
+                    Some(self.current_token_range())
                 } else {
-                    let (key, _) = parser.parse_expr();
-                    keys.push(Some(key));
+                    None
+                };
+            } else {
+                // Otherwise, there should've been a comma at this position. This could be because
+                // the element isn't consumed completely by `parse_element`.
 
-                    parser.expect_and_recover(
-                        TokenKind::Colon,
-                        TokenSet::new(&[TokenKind::Comma]).union(EXPR_SET),
-                    );
-                }
-                let (value, range) = parser.parse_expr();
-                values.push(value);
-                range
-            })
-            // Doesn't really matter what range we get here, since the range will
-            // be modified later in `parse_bracesized_expr`.
-            .unwrap_or_default();
+                // test_err comma_separated_missing_comma
+                // call(**x := 1)
+                self.expect(TokenKind::Comma);
 
-        (
-            Expr::Dict(ast::DictExpr {
-                range,
-                keys,
-                values,
-            }),
-            range,
-        )
-    }
+                trailing_comma_range = None;
+            }
 
-    fn parse_comprehension(&mut self) -> ast::Comprehension {
-        assert!(self.at(TokenKind::For) || self.at(TokenKind::Async));
-
-        let mut range = self.current_range();
-
-        let is_async = self.eat(TokenKind::Async);
-        self.eat(TokenKind::For);
-
-        self.set_ctx(ParserCtxFlags::FOR_TARGET);
-        let (mut target, _) = self.parse_expr_with_recovery(
-            Parser::parse_exprs,
-            [TokenKind::In, TokenKind::Colon].as_slice(),
-            "expecting expression after `for` keyword",
-        );
-        self.clear_ctx(ParserCtxFlags::FOR_TARGET);
-
-        helpers::set_expr_ctx(&mut target, ContextExpr::Store);
-
-        self.expect_and_recover(TokenKind::In, TokenSet::new(&[TokenKind::Rsqb]));
-
-        let (iter, iter_expr) = self.parse_expr_with_recovery(
-            Parser::parse_expr_simple,
-            EXPR_SET.union(
-                [
-                    TokenKind::Rpar,
-                    TokenKind::Rsqb,
-                    TokenKind::Rbrace,
-                    TokenKind::If,
-                    TokenKind::Async,
-                    TokenKind::For,
-                ]
-                .as_slice()
-                .into(),
-            ),
-            "expecting an expression after `in` keyword",
-        );
-        range = range.cover(iter_expr);
-
-        let mut ifs = vec![];
-        while self.eat(TokenKind::If) {
-            let (if_expr, if_range) = self.parse_expr_simple();
-            ifs.push(if_expr);
-            range = range.cover(if_range);
+            self.bump_any();
         }
 
-        ast::Comprehension {
-            range,
-            target,
-            iter,
-            ifs,
-            is_async,
-        }
-    }
-
-    fn parse_generators(&mut self, mut range: TextRange) -> (Vec<ast::Comprehension>, TextRange) {
-        const GENERATOR_SET: TokenSet = TokenSet::new(&[TokenKind::For, TokenKind::Async]);
-        let mut generators = vec![];
-        while self.at_ts(GENERATOR_SET) {
-            let comp = self.parse_comprehension();
-            range = range.cover(comp.range);
-
-            generators.push(comp);
-        }
-
-        (generators, range)
-    }
-
-    fn parse_generator_expr(&mut self, element: Expr, element_range: TextRange) -> WithRangeExpr {
-        let (generators, range) = self.parse_generators(element_range);
-
-        (
-            Expr::GeneratorExp(ast::GeneratorExpExpr {
-                elt: Box::new(element),
-                generators,
-                range,
-            }),
-            range,
-        )
-    }
-
-    fn parse_list_comprehension_expr(
-        &mut self,
-        element: Expr,
-        element_range: TextRange,
-    ) -> WithRangeExpr {
-        let (generators, range) = self.parse_generators(element_range);
-
-        (
-            Expr::ListComp(ast::ListCompExpr {
-                elt: Box::new(element),
-                generators,
-                range,
-            }),
-            range,
-        )
-    }
-
-    fn parse_dict_comprehension_expr(
-        &mut self,
-        key: Expr,
-        value: Expr,
-        range: TextRange,
-    ) -> WithRangeExpr {
-        let (generators, range) = self.parse_generators(range);
-
-        (
-            Expr::DictComp(ast::DictCompExpr {
-                key: Box::new(key),
-                value: Box::new(value),
-                generators,
-                range,
-            }),
-            range,
-        )
-    }
-
-    fn parse_set_comprehension_expr(
-        &mut self,
-        element: Expr,
-        element_range: TextRange,
-    ) -> WithRangeExpr {
-        let (generators, range) = self.parse_generators(element_range);
-
-        (
-            Expr::SetComp(ast::SetCompExpr {
-                elt: Box::new(element),
-                generators,
-                range,
-            }),
-            range,
-        )
-    }
-
-    fn parse_starred_expr(&mut self, (_, range): Spanned) -> WithRangeExpr {
-        let (expr, expr_range) = self.parse_expr();
-        let star_range = range.cover(expr_range);
-
-        (
-            Expr::Starred(ast::StarredExpr {
-                value: Box::new(expr),
-                ctx: ContextExpr::Load,
-                range: star_range,
-            }),
-            star_range,
-        )
-    }
-
-    fn parse_await_expr(&mut self, start_range: TextRange) -> WithRangeExpr {
-        let mut await_range = start_range;
-
-        let (expr, expr_range) = self.expr_bp(19);
-        await_range = await_range.cover(expr_range);
-
-        if matches!(expr, Expr::Starred(_)) {
-            self.add_error(
-                ParseErrorType::OtherError(format!(
-                    "starred expression `{}` is not allowed in an `await` statement",
-                    self.src_text(expr_range)
-                )),
-                expr_range,
-            );
-        }
-
-        (
-            Expr::Await(ast::AwaitExpr {
-                value: Box::new(expr),
-                range: await_range,
-            }),
-            await_range,
-        )
-    }
-
-    fn parse_yield_expr(&mut self, mut yield_range: TextRange) -> WithRangeExpr {
-        if self.eat(TokenKind::From) {
-            return self.parse_yield_from_expr(yield_range);
-        }
-
-        let value = if self.at_expr() {
-            let (expr, expr_range) = self.parse_exprs();
-            yield_range = yield_range.cover(expr_range);
-
-            Some(Box::new(expr))
-        } else {
-            None
-        };
-
-        (
-            Expr::Yield(ast::YieldExpr {
-                value,
-                range: yield_range,
-            }),
-            yield_range,
-        )
-    }
-
-    fn parse_yield_from_expr(&mut self, mut yield_range: TextRange) -> WithRangeExpr {
-        let (expr, expr_range) = self.parse_exprs();
-        yield_range = yield_range.cover(expr_range);
-
-        match expr {
-            Expr::Starred(_) => {
-                // Should we make `expr` an `Expr::Invalid` here?
+        if let Some(trailing_comma_range) = trailing_comma_range {
+            if !recovery_context_kind.allow_trailing_comma() {
                 self.add_error(
-                    ParseErrorType::OtherError(format!(
-                        "starred expression `{}` is not allowed in a `yield from` statement",
-                        self.src_text(expr_range)
-                    )),
-                    expr_range,
+                    ParseErrorType::OtherError("Trailing comma not allowed".to_string()),
+                    trailing_comma_range,
                 );
             }
-            Expr::Tuple(_) if !self.last_ctx.contains(ParserCtxFlags::PARENTHESIZED_EXPR) => {
-                // Should we make `expr` an `Expr::Invalid` here?
-                self.add_error(
-                    ParseErrorType::OtherError(format!(
-                        "unparenthesized tuple `{}` is not allowed in a `yield from` statement",
-                        self.src_text(expr_range)
-                    )),
-                    expr_range,
-                );
+        }
+
+        self.recovery_context = saved_context;
+    }
+
+    #[cold]
+    fn is_enclosing_list_element_or_terminator(&self) -> bool {
+        for context in self.recovery_context.kind_iter() {
+            if context.is_list_terminator(self) || context.is_list_element(self) {
+                return true;
             }
-            _ => {}
         }
 
-        (
-            Expr::YieldFrom(ast::YieldFromExpr {
-                value: Box::new(expr),
-                range: yield_range,
-            }),
-            yield_range,
-        )
+        false
     }
 
-    fn parse_if_expr(&mut self, body: Expr, body_range: TextRange) -> WithRangeExpr {
-        assert!(self.eat(TokenKind::If));
-
-        let (test, _) = self.parse_expr_simple();
-
-        self.expect_and_recover(TokenKind::Else, TokenSet::EMPTY);
-
-        let (orelse, orelse_range) = self.parse_expr_with_recovery(
-            Parser::parse_expr,
-            TokenSet::EMPTY,
-            "expecting expression after `else` keyword",
-        );
-        let if_range = body_range.cover(orelse_range);
-
-        (
-            Expr::IfExp(ast::IfExpr {
-                body: Box::new(body),
-                test: Box::new(test),
-                orelse: Box::new(orelse),
-                range: if_range,
-            }),
-            if_range,
-        )
-    }
-
-    fn parse_lambda_expr(&mut self, start_range: TextRange) -> WithRangeExpr {
-        let mut lambda_range = start_range;
-
-        let parameters: Option<Box<ast::Parameters>> = if self.at(TokenKind::Colon) {
-            None
-        } else {
-            Some(Box::new(self.parse_parameters(FunctionKind::Lambda)))
-        };
-
-        self.expect_and_recover(TokenKind::Colon, TokenSet::EMPTY);
-
-        // Check for forbidden tokens in the `lambda`'s body
-        let (kind, range) = self.current_token();
-        match kind {
-            TokenKind::Yield => self.add_error(
-                ParseErrorType::OtherError(
-                    "`yield` not allowed in a `lambda` expression".to_string(),
-                ),
-                range,
-            ),
-            TokenKind::Star => {
-                self.add_error(
-                    ParseErrorType::OtherError(
-                        "starred expression not allowed in a `lambda` expression".to_string(),
-                    ),
-                    range,
-                );
-            }
-            TokenKind::DoubleStar => {
-                self.add_error(
-                    ParseErrorType::OtherError(
-                        "double starred expression not allowed in a `lambda` expression"
-                            .to_string(),
-                    ),
-                    range,
-                );
-            }
-            _ => {}
-        }
-
-        let (body, body_range) = self.parse_expr();
-        lambda_range = lambda_range.cover(body_range);
-
-        (
-            Expr::Lambda(ast::LambdaExpr {
-                body: Box::new(body),
-                parameters,
-                range: lambda_range,
-            }),
-            lambda_range,
-        )
-    }
-
-    fn parse_parameter(&mut self, function_kind: FunctionKind) -> ast::Parameter {
-        let name = self.parse_identifier();
-        let mut range = name.range;
-        // If we are at a colon and we're currently parsing a `lambda` expression,
-        // this is the `lambda`'s body, don't try to parse as an annotation.
-        let annotation = if self.at(TokenKind::Colon) && function_kind != FunctionKind::Lambda {
-            self.eat(TokenKind::Colon);
-            let (ann, ann_range) = self.parse_expr();
-            range = range.cover(ann_range);
-            Some(Box::new(ann))
-        } else {
-            None
-        };
-
-        ast::Parameter {
-            range,
-            name,
-            annotation,
+    /// Creates a checkpoint to which the parser can later return to using [`Self::rewind`].
+    fn checkpoint(&self) -> ParserCheckpoint {
+        ParserCheckpoint {
+            tokens: self.tokens.checkpoint(),
+            errors_position: self.errors.len(),
+            current_token_id: self.current_token_id,
+            prev_token_end: self.prev_token_end,
+            recovery_context: self.recovery_context,
         }
     }
 
-    fn parse_parameter_with_default(
-        &mut self,
-        function_kind: FunctionKind,
-    ) -> ast::ParameterWithDefault {
-        let parameter = self.parse_parameter(function_kind);
-        let mut range = parameter.range;
+    /// Restore the parser to the given checkpoint.
+    fn rewind(&mut self, checkpoint: ParserCheckpoint) {
+        let ParserCheckpoint {
+            tokens,
+            errors_position,
+            current_token_id,
+            prev_token_end,
+            recovery_context,
+        } = checkpoint;
 
-        let default = if self.eat(TokenKind::Equal) {
-            let (expr, expr_range) = self.parse_expr();
-            range = range.cover(expr_range);
-            Some(Box::new(expr))
-        } else {
-            None
-        };
+        self.tokens.rewind(tokens);
+        self.errors.truncate(errors_position);
+        self.current_token_id = current_token_id;
+        self.prev_token_end = prev_token_end;
+        self.recovery_context = recovery_context;
+    }
+}
 
-        ast::ParameterWithDefault {
-            range,
-            parameter,
-            default,
+struct ParserCheckpoint {
+    tokens: TokenSourceCheckpoint,
+    errors_position: usize,
+    current_token_id: TokenId,
+    prev_token_end: TextSize,
+    recovery_context: RecoveryContext,
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+enum SequenceMatchPatternParentheses {
+    Tuple,
+    List,
+}
+
+impl SequenceMatchPatternParentheses {
+    /// Returns the token kind that closes the parentheses.
+    const fn closing_kind(self) -> TokenKind {
+        match self {
+            SequenceMatchPatternParentheses::Tuple => TokenKind::Rpar,
+            SequenceMatchPatternParentheses::List => TokenKind::Rsqb,
         }
     }
 
-    fn parse_parameters(&mut self, function_kind: FunctionKind) -> ast::Parameters {
-        let mut args = vec![];
-        let mut posonlyargs = vec![];
-        let mut kwonlyargs = vec![];
-        let mut kwarg = None;
-        let mut vararg = None;
+    /// Returns `true` if the parentheses are for a list pattern e.g., `case [a, b]: ...`.
+    const fn is_list(self) -> bool {
+        matches!(self, SequenceMatchPatternParentheses::List)
+    }
+}
 
-        let mut has_seen_asterisk = false;
-        let mut has_seen_vararg = false;
-        let mut has_seen_default_param = false;
+#[derive(Debug, PartialEq, Copy, Clone)]
+enum FunctionKind {
+    /// A lambda expression, e.g., `lambda x: x`
+    Lambda,
+    /// A function definition, e.g., `def f(x): ...`
+    FunctionDef,
+}
 
-        let ending = match function_kind {
+impl FunctionKind {
+    /// Returns the token that terminates a list of parameters.
+    const fn list_terminator(self) -> TokenKind {
+        match self {
             FunctionKind::Lambda => TokenKind::Colon,
             FunctionKind::FunctionDef => TokenKind::Rpar,
-        };
-
-        let ending_set = TokenSet::new(&[TokenKind::Rarrow, ending]).union(COMPOUND_STMT_SET);
-        let first_param_range = self.current_range();
-        let range = self
-            .parse_separated(true, TokenKind::Comma, ending_set, |parser| {
-                let mut range = parser.current_range();
-                // Don't allow any parameter after we have seen a vararg `**kwargs`
-                if has_seen_vararg {
-                    parser.add_error(ParseErrorType::ParamFollowsVarKeywordParam, range);
-                }
-
-                if parser.eat(TokenKind::Star) {
-                    has_seen_asterisk = true;
-                    if parser.at(TokenKind::Comma) {
-                        has_seen_default_param = false;
-                    } else if parser.at_expr() {
-                        let param = parser.parse_parameter(function_kind);
-                        range = param.range;
-                        vararg = Some(Box::new(param));
-                    }
-                } else if parser.eat(TokenKind::DoubleStar) {
-                    has_seen_vararg = true;
-                    let param = parser.parse_parameter(function_kind);
-                    range = param.range;
-                    kwarg = Some(Box::new(param));
-                } else if parser.eat(TokenKind::Slash) {
-                    // Don't allow `/` after a `*`
-                    if has_seen_asterisk {
-                        let range = parser.current_range();
-                        parser.add_error(
-                            ParseErrorType::OtherError("`/` must be ahead of `*`".to_string()),
-                            range,
-                        );
-                    }
-                    std::mem::swap(&mut args, &mut posonlyargs);
-                } else if parser.at(TokenKind::Name) {
-                    let param = parser.parse_parameter_with_default(function_kind);
-                    // Don't allow non-default parameters after default parameters e.g. `a=1, b`,
-                    // can't place `b` after `a=1`. Non-default parameters are only allowed after
-                    // default parameters if we have a `*` before them, e.g. `a=1, *, b`.
-                    if param.default.is_none() && has_seen_default_param && !has_seen_asterisk {
-                        let range = parser.current_range();
-                        parser.add_error(ParseErrorType::DefaultArgumentError, range);
-                    }
-                    has_seen_default_param = param.default.is_some();
-
-                    range = param.range;
-                    if has_seen_asterisk {
-                        kwonlyargs.push(param);
-                    } else {
-                        args.push(param);
-                    }
-                } else {
-                    if parser.at_ts(SIMPLE_STMT_SET) {
-                        return TextRange::default(); // We can return any range here
-                    }
-
-                    let mut range = parser.current_range();
-                    parser.skip_until(
-                        ending_set.union([TokenKind::Comma, TokenKind::Colon].as_slice().into()),
-                    );
-                    range = range.cover(parser.current_range());
-                    parser.add_error(
-                        ParseErrorType::OtherError("expected parameter".to_string()),
-                        range,
-                    );
-                }
-
-                range
-            })
-            .map_or(first_param_range, |range| first_param_range.cover(range));
-
-        let parameters = ast::Parameters {
-            range,
-            posonlyargs,
-            args,
-            vararg,
-            kwonlyargs,
-            kwarg,
-        };
-
-        if let Err(error) = helpers::validate_parameters(&parameters) {
-            self.errors.push(error);
         }
+    }
+}
 
-        parameters
+#[derive(Debug, PartialEq, Copy, Clone)]
+enum WithItemKind {
+    /// A list of `with` items that are surrounded by parentheses.
+    ///
+    /// ```python
+    /// with (item1, item2): ...
+    /// with (item1, item2 as foo): ...
+    /// ```
+    ///
+    /// The parentheses belongs to the `with` statement.
+    Parenthesized,
+
+    /// The `with` item has a parenthesized expression.
+    ///
+    /// ```python
+    /// with (item) as foo: ...
+    /// ```
+    ///
+    /// The parentheses belongs to the context expression.
+    ParenthesizedExpression,
+
+    /// The `with` items aren't parenthesized in any way.
+    ///
+    /// ```python
+    /// with item: ...
+    /// with item as foo: ...
+    /// with item1, item2: ...
+    /// ```
+    ///
+    /// There are no parentheses around the items.
+    Unparenthesized,
+}
+
+impl WithItemKind {
+    /// Returns `true` if the with items are parenthesized.
+    const fn is_parenthesized(self) -> bool {
+        matches!(self, WithItemKind::Parenthesized)
+    }
+}
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+enum FStringElementsKind {
+    /// The regular f-string elements.
+    ///
+    /// For example, the `"hello "`, `x`, and `" world"` elements in:
+    /// ```py
+    /// f"hello {x:.2f} world"
+    /// ```
+    Regular,
+
+    /// The f-string elements are part of the format specifier.
+    ///
+    /// For example, the `.2f` in:
+    /// ```py
+    /// f"hello {x:.2f} world"
+    /// ```
+    FormatSpec,
+}
+
+impl FStringElementsKind {
+    const fn list_terminator(self) -> TokenKind {
+        match self {
+            FStringElementsKind::Regular => TokenKind::FStringEnd,
+            // test_ok fstring_format_spec_terminator
+            // f"hello {x:} world"
+            // f"hello {x:.3f} world"
+            FStringElementsKind::FormatSpec => TokenKind::Rbrace,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+enum Parenthesized {
+    /// The elements are parenthesized, e.g., `(a, b)`.
+    Yes,
+    /// The elements are not parenthesized, e.g., `a, b`.
+    No,
+}
+
+impl From<bool> for Parenthesized {
+    fn from(value: bool) -> Self {
+        if value {
+            Parenthesized::Yes
+        } else {
+            Parenthesized::No
+        }
+    }
+}
+
+impl Parenthesized {
+    /// Returns `true` if the parenthesized value is `Yes`.
+    const fn is_yes(self) -> bool {
+        matches!(self, Parenthesized::Yes)
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+enum ListTerminatorKind {
+    /// The current token terminates the list.
+    Regular,
+    /// The current token doesn't terminate the list, but is useful for better error recovery.
+    ErrorRecovery,
+}
+
+#[derive(Copy, Clone, Debug)]
+enum RecoveryContextKind {
+    /// When parsing a list of statements at the module level i.e., at the top level of a file.
+    ModuleStatements,
+
+    /// When parsing a list of statements in a block e.g., the body of a function or a class.
+    BlockStatements,
+
+    /// The `elif` clauses of an `if` statement
+    Elif,
+
+    /// The `except` clauses of a `try` statement
+    Except,
+
+    /// When parsing a list of assignment targets
+    AssignmentTargets,
+
+    /// When parsing a list of type parameters
+    TypeParams,
+
+    /// When parsing a list of names in a `from ... import ...` statement
+    ImportFromAsNames(Parenthesized),
+
+    /// When parsing a list of names in an `import` statement
+    ImportNames,
+
+    /// When parsing a list of slice elements e.g., `data[1, 2]`.
+    ///
+    /// This is different from `ListElements` as the surrounding context is
+    /// different in that the list is part of a subscript expression.
+    Slices,
+
+    /// When parsing a list of elements in a list expression e.g., `[1, 2]`
+    ListElements,
+
+    /// When parsing a list of elements in a set expression e.g., `{1, 2}`
+    SetElements,
+
+    /// When parsing a list of elements in a dictionary expression e.g., `{1: "a", **data}`
+    DictElements,
+
+    /// When parsing a list of elements in a tuple expression e.g., `(1, 2)`
+    TupleElements(Parenthesized),
+
+    /// When parsing a list of patterns in a match statement with an optional
+    /// parentheses, e.g., `case a, b: ...`, `case (a, b): ...`, `case [a, b]: ...`
+    SequenceMatchPattern(Option<SequenceMatchPatternParentheses>),
+
+    /// When parsing a mapping pattern in a match statement
+    MatchPatternMapping,
+
+    /// When parsing a list of arguments in a class pattern for the match statement
+    MatchPatternClassArguments,
+
+    /// When parsing a list of arguments in a function call or a class definition
+    Arguments,
+
+    /// When parsing a `del` statement
+    DeleteTargets,
+
+    /// When parsing a list of identifiers
+    Identifiers,
+
+    /// When parsing a list of parameters in a function definition which can be
+    /// either a function definition or a lambda expression.
+    Parameters(FunctionKind),
+
+    /// When parsing a list of items in a `with` statement
+    WithItems(WithItemKind),
+
+    /// When parsing a list of f-string elements which are either literal elements
+    /// or expressions.
+    FStringElements(FStringElementsKind),
+}
+
+impl RecoveryContextKind {
+    /// Returns `true` if a trailing comma is allowed in the current context.
+    const fn allow_trailing_comma(self) -> bool {
+        matches!(
+            self,
+            RecoveryContextKind::Slices
+                | RecoveryContextKind::TupleElements(_)
+                | RecoveryContextKind::SetElements
+                | RecoveryContextKind::ListElements
+                | RecoveryContextKind::DictElements
+                | RecoveryContextKind::Arguments
+                | RecoveryContextKind::MatchPatternMapping
+                | RecoveryContextKind::SequenceMatchPattern(_)
+                | RecoveryContextKind::MatchPatternClassArguments
+                // Only allow a trailing comma if the with item itself is parenthesized
+                | RecoveryContextKind::WithItems(WithItemKind::Parenthesized)
+                | RecoveryContextKind::Parameters(_)
+                | RecoveryContextKind::TypeParams
+                | RecoveryContextKind::DeleteTargets
+                | RecoveryContextKind::ImportFromAsNames(Parenthesized::Yes)
+        )
     }
 
-    fn parse_named_expr(&mut self, mut target: Expr, target_range: TextRange) -> WithRangeExpr {
-        assert!(self.eat(TokenKind::ColonEqual));
+    /// Returns `true` if the parser is at a token that terminates the list as per the context.
+    ///
+    /// This token could either end the list or is only present for better error recovery. Refer to
+    /// [`is_regular_list_terminator`] to only check against the former.
+    ///
+    /// [`is_regular_list_terminator`]: RecoveryContextKind::is_regular_list_terminator
+    fn is_list_terminator(self, p: &Parser) -> bool {
+        self.list_terminator_kind(p).is_some()
+    }
 
-        if !helpers::is_valid_assignment_target(&target) {
-            self.add_error(ParseErrorType::NamedAssignmentError, target_range);
-        }
-        helpers::set_expr_ctx(&mut target, ContextExpr::Store);
-
-        let (value, value_range) = self.parse_expr();
-        let range = target_range.cover(value_range);
-
-        (
-            Expr::NamedExpr(ast::NamedExpr {
-                target: Box::new(target),
-                value: Box::new(value),
-                range,
-            }),
-            range,
+    /// Returns `true` if the parser is at a token that terminates the list as per the context but
+    /// the token isn't part of the error recovery set.
+    fn is_regular_list_terminator(self, p: &Parser) -> bool {
+        matches!(
+            self.list_terminator_kind(p),
+            Some(ListTerminatorKind::Regular)
         )
+    }
+
+    /// Checks the current token the parser is at and returns the list terminator kind if the token
+    /// terminates the list as per the context.
+    fn list_terminator_kind(self, p: &Parser) -> Option<ListTerminatorKind> {
+        // The end of file marker ends all lists.
+        if p.at(TokenKind::EndOfFile) {
+            return Some(ListTerminatorKind::Regular);
+        }
+
+        match self {
+            // The parser must consume all tokens until the end
+            RecoveryContextKind::ModuleStatements => None,
+            RecoveryContextKind::BlockStatements => p
+                .at(TokenKind::Dedent)
+                .then_some(ListTerminatorKind::Regular),
+
+            RecoveryContextKind::Elif => {
+                p.at(TokenKind::Else).then_some(ListTerminatorKind::Regular)
+            }
+            RecoveryContextKind::Except => {
+                matches!(p.current_token_kind(), TokenKind::Finally | TokenKind::Else)
+                    .then_some(ListTerminatorKind::Regular)
+            }
+            RecoveryContextKind::AssignmentTargets => {
+                // test_ok assign_targets_terminator
+                // x = y = z = 1; a, b
+                // x = y = z = 1
+                // a, b
+                matches!(p.current_token_kind(), TokenKind::Newline | TokenKind::Semi)
+                    .then_some(ListTerminatorKind::Regular)
+            }
+
+            // Tokens other than `]` are for better error recovery. For example, recover when we
+            // find the `:` of a clause header or the equal of a type assignment.
+            RecoveryContextKind::TypeParams => {
+                if p.at(TokenKind::Rsqb) {
+                    Some(ListTerminatorKind::Regular)
+                } else {
+                    matches!(
+                        p.current_token_kind(),
+                        TokenKind::Newline | TokenKind::Colon | TokenKind::Equal | TokenKind::Lpar
+                    )
+                    .then_some(ListTerminatorKind::ErrorRecovery)
+                }
+            }
+            // The names of an import statement cannot be parenthesized, so `)` is not a
+            // terminator.
+            RecoveryContextKind::ImportNames => {
+                // test_ok import_stmt_terminator
+                // import a, b; import c, d
+                // import a, b
+                // c, d
+                matches!(p.current_token_kind(), TokenKind::Semi | TokenKind::Newline)
+                    .then_some(ListTerminatorKind::Regular)
+            }
+            RecoveryContextKind::ImportFromAsNames(_) => {
+                // test_ok from_import_stmt_terminator
+                // from a import (b, c)
+                // from a import (b, c); x, y
+                // from a import b, c; x, y
+                // from a import b, c
+                // x, y
+                matches!(
+                    p.current_token_kind(),
+                    TokenKind::Rpar | TokenKind::Semi | TokenKind::Newline
+                )
+                .then_some(ListTerminatorKind::Regular)
+            }
+            // The elements in a container expression cannot end with a newline
+            // as all of them are actually non-logical newlines.
+            RecoveryContextKind::Slices | RecoveryContextKind::ListElements => {
+                p.at(TokenKind::Rsqb).then_some(ListTerminatorKind::Regular)
+            }
+            RecoveryContextKind::SetElements | RecoveryContextKind::DictElements => p
+                .at(TokenKind::Rbrace)
+                .then_some(ListTerminatorKind::Regular),
+            RecoveryContextKind::TupleElements(parenthesized) => {
+                if parenthesized.is_yes() {
+                    p.at(TokenKind::Rpar).then_some(ListTerminatorKind::Regular)
+                } else {
+                    p.at_sequence_end().then_some(ListTerminatorKind::Regular)
+                }
+            }
+            RecoveryContextKind::SequenceMatchPattern(parentheses) => match parentheses {
+                None => {
+                    // test_ok match_sequence_pattern_terminator
+                    // match subject:
+                    //     case a: ...
+                    //     case a if x: ...
+                    //     case a, b: ...
+                    //     case a, b if x: ...
+                    matches!(p.current_token_kind(), TokenKind::Colon | TokenKind::If)
+                        .then_some(ListTerminatorKind::Regular)
+                }
+                Some(parentheses) => {
+                    // test_ok match_sequence_pattern_parentheses_terminator
+                    // match subject:
+                    //     case [a, b]: ...
+                    //     case (a, b): ...
+                    p.at(parentheses.closing_kind())
+                        .then_some(ListTerminatorKind::Regular)
+                }
+            },
+            RecoveryContextKind::MatchPatternMapping => p
+                .at(TokenKind::Rbrace)
+                .then_some(ListTerminatorKind::Regular),
+            RecoveryContextKind::MatchPatternClassArguments => {
+                p.at(TokenKind::Rpar).then_some(ListTerminatorKind::Regular)
+            }
+            RecoveryContextKind::Arguments => {
+                p.at(TokenKind::Rpar).then_some(ListTerminatorKind::Regular)
+            }
+            RecoveryContextKind::DeleteTargets | RecoveryContextKind::Identifiers => {
+                // test_ok del_targets_terminator
+                // del a, b; c, d
+                // del a, b
+                // c, d
+                matches!(p.current_token_kind(), TokenKind::Semi | TokenKind::Newline)
+                    .then_some(ListTerminatorKind::Regular)
+            }
+            RecoveryContextKind::Parameters(function_kind) => {
+                // `lambda x, y: ...` or `def f(x, y): ...`
+                if p.at(function_kind.list_terminator()) {
+                    Some(ListTerminatorKind::Regular)
+                } else {
+                    // To recover from missing closing parentheses
+                    (p.at(TokenKind::Rarrow) || p.at_compound_stmt())
+                        .then_some(ListTerminatorKind::ErrorRecovery)
+                }
+            }
+            RecoveryContextKind::WithItems(with_item_kind) => match with_item_kind {
+                WithItemKind::Parenthesized => match p.current_token_kind() {
+                    TokenKind::Rpar => Some(ListTerminatorKind::Regular),
+                    TokenKind::Colon => Some(ListTerminatorKind::ErrorRecovery),
+                    _ => None,
+                },
+                WithItemKind::Unparenthesized | WithItemKind::ParenthesizedExpression => p
+                    .at(TokenKind::Colon)
+                    .then_some(ListTerminatorKind::Regular),
+            },
+            RecoveryContextKind::FStringElements(kind) => {
+                if p.at(kind.list_terminator()) {
+                    Some(ListTerminatorKind::Regular)
+                } else {
+                    // test_err unterminated_fstring_newline_recovery
+                    // f"hello
+                    // 1 + 1
+                    // f"hello {x
+                    // 2 + 2
+                    // f"hello {x:
+                    // 3 + 3
+                    // f"hello {x}
+                    // 4 + 4
+                    p.at(TokenKind::Newline)
+                        .then_some(ListTerminatorKind::ErrorRecovery)
+                }
+            }
+        }
+    }
+
+    fn is_list_element(self, p: &Parser) -> bool {
+        match self {
+            RecoveryContextKind::ModuleStatements => p.at_stmt(),
+            RecoveryContextKind::BlockStatements => p.at_stmt(),
+            RecoveryContextKind::Elif => p.at(TokenKind::Elif),
+            RecoveryContextKind::Except => p.at(TokenKind::Except),
+            RecoveryContextKind::AssignmentTargets => p.at(TokenKind::Equal),
+            RecoveryContextKind::TypeParams => p.at_type_param(),
+            RecoveryContextKind::ImportNames => p.at_name_or_soft_keyword(),
+            RecoveryContextKind::ImportFromAsNames(_) => {
+                p.at(TokenKind::Star) || p.at_name_or_soft_keyword()
+            }
+            RecoveryContextKind::Slices => p.at(TokenKind::Colon) || p.at_expr(),
+            RecoveryContextKind::ListElements
+            | RecoveryContextKind::SetElements
+            | RecoveryContextKind::TupleElements(_) => p.at_expr(),
+            RecoveryContextKind::DictElements => p.at(TokenKind::DoubleStar) || p.at_expr(),
+            RecoveryContextKind::SequenceMatchPattern(_) => {
+                // `+` doesn't start any pattern but is here for better error recovery.
+                p.at(TokenKind::Plus) || p.at_pattern_start()
+            }
+            RecoveryContextKind::MatchPatternMapping => {
+                // A star pattern is invalid as a mapping key and is here only for
+                // better error recovery.
+                p.at(TokenKind::Star) || p.at_mapping_pattern_start()
+            }
+            RecoveryContextKind::MatchPatternClassArguments => p.at_pattern_start(),
+            RecoveryContextKind::Arguments => p.at_expr(),
+            RecoveryContextKind::DeleteTargets => p.at_expr(),
+            RecoveryContextKind::Identifiers => p.at_name_or_soft_keyword(),
+            RecoveryContextKind::Parameters(_) => {
+                matches!(
+                    p.current_token_kind(),
+                    TokenKind::Star | TokenKind::DoubleStar | TokenKind::Slash
+                ) || p.at_name_or_soft_keyword()
+            }
+            RecoveryContextKind::WithItems(_) => p.at_expr(),
+            RecoveryContextKind::FStringElements(_) => matches!(
+                p.current_token_kind(),
+                // Literal element
+                TokenKind::FStringMiddle
+                // Expression element
+                | TokenKind::Lbrace
+            ),
+        }
+    }
+
+    fn create_error(self, p: &Parser) -> ParseErrorType {
+        match self {
+            RecoveryContextKind::ModuleStatements | RecoveryContextKind::BlockStatements => {
+                if p.at(TokenKind::Indent) {
+                    ParseErrorType::UnexpectedIndentation
+                } else {
+                    ParseErrorType::OtherError("Expected a statement".to_string())
+                }
+            }
+            RecoveryContextKind::Elif => ParseErrorType::OtherError(
+                "Expected an `elif` or `else` clause, or the end of the `if` statement."
+                    .to_string(),
+            ),
+            RecoveryContextKind::Except => ParseErrorType::OtherError(
+                "Expected an `except` or `finally` clause or the end of the `try` statement."
+                    .to_string(),
+            ),
+            RecoveryContextKind::AssignmentTargets => {
+                if p.current_token_kind().is_keyword() {
+                    ParseErrorType::OtherError(
+                        "The keyword is not allowed as a variable declaration name".to_string(),
+                    )
+                } else {
+                    ParseErrorType::OtherError("Expected an assignment target".to_string())
+                }
+            }
+            RecoveryContextKind::TypeParams => ParseErrorType::OtherError(
+                "Expected a type parameter or the end of the type parameter list".to_string(),
+            ),
+            RecoveryContextKind::ImportFromAsNames(parenthesized) => {
+                if parenthesized.is_yes() {
+                    ParseErrorType::OtherError("Expected an import name or a ')'".to_string())
+                } else {
+                    ParseErrorType::OtherError("Expected an import name".to_string())
+                }
+            }
+            RecoveryContextKind::ImportNames => {
+                ParseErrorType::OtherError("Expected an import name".to_string())
+            }
+            RecoveryContextKind::Slices => ParseErrorType::OtherError(
+                "Expected an expression or the end of the slice list".to_string(),
+            ),
+            RecoveryContextKind::ListElements => {
+                ParseErrorType::OtherError("Expected an expression or a ']'".to_string())
+            }
+            RecoveryContextKind::SetElements | RecoveryContextKind::DictElements => {
+                ParseErrorType::OtherError("Expected an expression or a '}'".to_string())
+            }
+            RecoveryContextKind::TupleElements(parenthesized) => {
+                if parenthesized.is_yes() {
+                    ParseErrorType::OtherError("Expected an expression or a ')'".to_string())
+                } else {
+                    ParseErrorType::OtherError("Expected an expression".to_string())
+                }
+            }
+            RecoveryContextKind::SequenceMatchPattern(_) => ParseErrorType::OtherError(
+                "Expected a pattern or the end of the sequence pattern".to_string(),
+            ),
+            RecoveryContextKind::MatchPatternMapping => ParseErrorType::OtherError(
+                "Expected a mapping pattern or the end of the mapping pattern".to_string(),
+            ),
+            RecoveryContextKind::MatchPatternClassArguments => {
+                ParseErrorType::OtherError("Expected a pattern or a ')'".to_string())
+            }
+            RecoveryContextKind::Arguments => {
+                ParseErrorType::OtherError("Expected an expression or a ')'".to_string())
+            }
+            RecoveryContextKind::DeleteTargets => {
+                ParseErrorType::OtherError("Expected a delete target".to_string())
+            }
+            RecoveryContextKind::Identifiers => {
+                ParseErrorType::OtherError("Expected an identifier".to_string())
+            }
+            RecoveryContextKind::Parameters(_) => ParseErrorType::OtherError(
+                "Expected a parameter or the end of the parameter list".to_string(),
+            ),
+            RecoveryContextKind::WithItems(with_item_kind) => match with_item_kind {
+                WithItemKind::Parenthesized => {
+                    ParseErrorType::OtherError("Expected an expression or a ')'".to_string())
+                }
+                _ => ParseErrorType::OtherError(
+                    "Expected an expression or the end of the with item list".to_string(),
+                ),
+            },
+            RecoveryContextKind::FStringElements(kind) => match kind {
+                FStringElementsKind::Regular => ParseErrorType::OtherError(
+                    "Expected an f-string element or the end of the f-string".to_string(),
+                ),
+                FStringElementsKind::FormatSpec => {
+                    ParseErrorType::OtherError("Expected an f-string element or a '}'".to_string())
+                }
+            },
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
+struct RecoveryContext(u32);
+
+bitflags! {
+    impl RecoveryContext: u32 {
+        const MODULE_STATEMENTS = 1 << 0;
+        const BLOCK_STATEMENTS = 1 << 1;
+        const ELIF = 1 << 2;
+        const EXCEPT = 1 << 3;
+        const ASSIGNMENT_TARGETS = 1 << 4;
+        const TYPE_PARAMS = 1 << 5;
+        const IMPORT_FROM_AS_NAMES_PARENTHESIZED = 1 << 6;
+        const IMPORT_FROM_AS_NAMES_UNPARENTHESIZED = 1 << 7;
+        const IMPORT_NAMES = 1 << 8;
+        const SLICES = 1 << 9;
+        const LIST_ELEMENTS = 1 << 10;
+        const SET_ELEMENTS = 1 << 11;
+        const DICT_ELEMENTS = 1 << 12;
+        const TUPLE_ELEMENTS_PARENTHESIZED = 1 << 13;
+        const TUPLE_ELEMENTS_UNPARENTHESIZED = 1 << 14;
+        const SEQUENCE_MATCH_PATTERN = 1 << 15;
+        const SEQUENCE_MATCH_PATTERN_LIST = 1 << 16;
+        const SEQUENCE_MATCH_PATTERN_TUPLE = 1 << 17;
+        const MATCH_PATTERN_MAPPING = 1 << 18;
+        const MATCH_PATTERN_CLASS_ARGUMENTS = 1 << 19;
+        const ARGUMENTS = 1 << 20;
+        const DELETE = 1 << 21;
+        const IDENTIFIERS = 1 << 22;
+        const FUNCTION_PARAMETERS = 1 << 23;
+        const LAMBDA_PARAMETERS = 1 << 24;
+        const WITH_ITEMS_PARENTHESIZED = 1 << 25;
+        const WITH_ITEMS_PARENTHESIZED_EXPRESSION = 1 << 26;
+        const WITH_ITEMS_UNPARENTHESIZED = 1 << 28;
+        const F_STRING_ELEMENTS = 1 << 29;
+        const F_STRING_ELEMENTS_IN_FORMAT_SPEC = 1 << 30;
+    }
+}
+
+impl RecoveryContext {
+    const fn from_kind(kind: RecoveryContextKind) -> Self {
+        match kind {
+            RecoveryContextKind::ModuleStatements => RecoveryContext::MODULE_STATEMENTS,
+            RecoveryContextKind::BlockStatements => RecoveryContext::BLOCK_STATEMENTS,
+            RecoveryContextKind::Elif => RecoveryContext::ELIF,
+            RecoveryContextKind::Except => RecoveryContext::EXCEPT,
+            RecoveryContextKind::AssignmentTargets => RecoveryContext::ASSIGNMENT_TARGETS,
+            RecoveryContextKind::TypeParams => RecoveryContext::TYPE_PARAMS,
+            RecoveryContextKind::ImportFromAsNames(parenthesized) => match parenthesized {
+                Parenthesized::Yes => RecoveryContext::IMPORT_FROM_AS_NAMES_PARENTHESIZED,
+                Parenthesized::No => RecoveryContext::IMPORT_FROM_AS_NAMES_UNPARENTHESIZED,
+            },
+            RecoveryContextKind::ImportNames => RecoveryContext::IMPORT_NAMES,
+            RecoveryContextKind::Slices => RecoveryContext::SLICES,
+            RecoveryContextKind::ListElements => RecoveryContext::LIST_ELEMENTS,
+            RecoveryContextKind::SetElements => RecoveryContext::SET_ELEMENTS,
+            RecoveryContextKind::DictElements => RecoveryContext::DICT_ELEMENTS,
+            RecoveryContextKind::TupleElements(parenthesized) => match parenthesized {
+                Parenthesized::Yes => RecoveryContext::TUPLE_ELEMENTS_PARENTHESIZED,
+                Parenthesized::No => RecoveryContext::TUPLE_ELEMENTS_UNPARENTHESIZED,
+            },
+            RecoveryContextKind::SequenceMatchPattern(parentheses) => match parentheses {
+                None => RecoveryContext::SEQUENCE_MATCH_PATTERN,
+                Some(SequenceMatchPatternParentheses::List) => {
+                    RecoveryContext::SEQUENCE_MATCH_PATTERN_LIST
+                }
+                Some(SequenceMatchPatternParentheses::Tuple) => {
+                    RecoveryContext::SEQUENCE_MATCH_PATTERN_TUPLE
+                }
+            },
+            RecoveryContextKind::MatchPatternMapping => RecoveryContext::MATCH_PATTERN_MAPPING,
+            RecoveryContextKind::MatchPatternClassArguments => {
+                RecoveryContext::MATCH_PATTERN_CLASS_ARGUMENTS
+            }
+            RecoveryContextKind::Arguments => RecoveryContext::ARGUMENTS,
+            RecoveryContextKind::DeleteTargets => RecoveryContext::DELETE,
+            RecoveryContextKind::Identifiers => RecoveryContext::IDENTIFIERS,
+            RecoveryContextKind::Parameters(function_kind) => match function_kind {
+                FunctionKind::Lambda => RecoveryContext::LAMBDA_PARAMETERS,
+                FunctionKind::FunctionDef => RecoveryContext::FUNCTION_PARAMETERS,
+            },
+            RecoveryContextKind::WithItems(with_item_kind) => match with_item_kind {
+                WithItemKind::Parenthesized => RecoveryContext::WITH_ITEMS_PARENTHESIZED,
+                WithItemKind::ParenthesizedExpression => {
+                    RecoveryContext::WITH_ITEMS_PARENTHESIZED_EXPRESSION
+                }
+                WithItemKind::Unparenthesized => RecoveryContext::WITH_ITEMS_UNPARENTHESIZED,
+            },
+            RecoveryContextKind::FStringElements(kind) => match kind {
+                FStringElementsKind::Regular => RecoveryContext::F_STRING_ELEMENTS,
+                FStringElementsKind::FormatSpec => {
+                    RecoveryContext::F_STRING_ELEMENTS_IN_FORMAT_SPEC
+                }
+            },
+        }
+    }
+
+    /// Safe conversion to the corresponding [`RecoveryContextKind`] (inverse of [`Self::from_kind`]).
+    ///
+    /// Returns `None` if the `RecoveryContext` is empty or has multiple flags set.
+    const fn to_kind(self) -> Option<RecoveryContextKind> {
+        Some(match self {
+            RecoveryContext::MODULE_STATEMENTS => RecoveryContextKind::ModuleStatements,
+            RecoveryContext::BLOCK_STATEMENTS => RecoveryContextKind::BlockStatements,
+            RecoveryContext::ELIF => RecoveryContextKind::Elif,
+            RecoveryContext::EXCEPT => RecoveryContextKind::Except,
+            RecoveryContext::ASSIGNMENT_TARGETS => RecoveryContextKind::AssignmentTargets,
+            RecoveryContext::TYPE_PARAMS => RecoveryContextKind::TypeParams,
+            RecoveryContext::IMPORT_FROM_AS_NAMES_PARENTHESIZED => {
+                RecoveryContextKind::ImportFromAsNames(Parenthesized::Yes)
+            }
+            RecoveryContext::IMPORT_FROM_AS_NAMES_UNPARENTHESIZED => {
+                RecoveryContextKind::ImportFromAsNames(Parenthesized::No)
+            }
+            RecoveryContext::IMPORT_NAMES => RecoveryContextKind::ImportNames,
+            RecoveryContext::SLICES => RecoveryContextKind::Slices,
+            RecoveryContext::LIST_ELEMENTS => RecoveryContextKind::ListElements,
+            RecoveryContext::SET_ELEMENTS => RecoveryContextKind::SetElements,
+            RecoveryContext::DICT_ELEMENTS => RecoveryContextKind::DictElements,
+            RecoveryContext::TUPLE_ELEMENTS_PARENTHESIZED => {
+                RecoveryContextKind::TupleElements(Parenthesized::Yes)
+            }
+            RecoveryContext::TUPLE_ELEMENTS_UNPARENTHESIZED => {
+                RecoveryContextKind::TupleElements(Parenthesized::No)
+            }
+            RecoveryContext::SEQUENCE_MATCH_PATTERN => {
+                RecoveryContextKind::SequenceMatchPattern(None)
+            }
+            RecoveryContext::SEQUENCE_MATCH_PATTERN_LIST => {
+                RecoveryContextKind::SequenceMatchPattern(Some(
+                    SequenceMatchPatternParentheses::List,
+                ))
+            }
+            RecoveryContext::SEQUENCE_MATCH_PATTERN_TUPLE => {
+                RecoveryContextKind::SequenceMatchPattern(Some(
+                    SequenceMatchPatternParentheses::Tuple,
+                ))
+            }
+            RecoveryContext::MATCH_PATTERN_MAPPING => RecoveryContextKind::MatchPatternMapping,
+            RecoveryContext::MATCH_PATTERN_CLASS_ARGUMENTS => {
+                RecoveryContextKind::MatchPatternClassArguments
+            }
+            RecoveryContext::ARGUMENTS => RecoveryContextKind::Arguments,
+            RecoveryContext::DELETE => RecoveryContextKind::DeleteTargets,
+            RecoveryContext::IDENTIFIERS => RecoveryContextKind::Identifiers,
+            RecoveryContext::FUNCTION_PARAMETERS => {
+                RecoveryContextKind::Parameters(FunctionKind::FunctionDef)
+            }
+            RecoveryContext::LAMBDA_PARAMETERS => {
+                RecoveryContextKind::Parameters(FunctionKind::Lambda)
+            }
+            RecoveryContext::WITH_ITEMS_PARENTHESIZED => {
+                RecoveryContextKind::WithItems(WithItemKind::Parenthesized)
+            }
+            RecoveryContext::WITH_ITEMS_PARENTHESIZED_EXPRESSION => {
+                RecoveryContextKind::WithItems(WithItemKind::ParenthesizedExpression)
+            }
+            RecoveryContext::WITH_ITEMS_UNPARENTHESIZED => {
+                RecoveryContextKind::WithItems(WithItemKind::Unparenthesized)
+            }
+            RecoveryContext::F_STRING_ELEMENTS => {
+                RecoveryContextKind::FStringElements(FStringElementsKind::Regular)
+            }
+            RecoveryContext::F_STRING_ELEMENTS_IN_FORMAT_SPEC => {
+                RecoveryContextKind::FStringElements(FStringElementsKind::FormatSpec)
+            }
+            _ => return None,
+        })
+    }
+
+    fn kind_iter(self) -> impl Iterator<Item = RecoveryContextKind> {
+        self.iter().map(|context| {
+            context
+                .to_kind()
+                .expect("Expected context to be of a single kind.")
+        })
     }
 }

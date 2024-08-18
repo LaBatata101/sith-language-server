@@ -1,6 +1,6 @@
 ---
 source: crates/python_parser/src/string.rs
-expression: parse_ast
+expression: suite
 ---
 [
     Expr(
@@ -271,6 +271,10 @@ expression: parse_ast
                                     254,
                                     255,
                                 ],
+                                flags: BytesLiteralFlags {
+                                    prefix: Regular,
+                                    triple_quoted: false,
+                                },
                             },
                         ),
                     },

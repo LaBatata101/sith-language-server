@@ -1,0 +1,158 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/invalid/expressions/yield_from/unparenthesized.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..192,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 35..47,
+                    value: YieldFrom(
+                        YieldFromExpr {
+                            range: 35..47,
+                            value: Name(
+                                NameExpr {
+                                    range: 46..47,
+                                    id: Name("x"),
+                                    ctx: Load,
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 51..52,
+                    value: NumberLiteral(
+                        NumberLiteralExpr {
+                            range: 51..52,
+                            value: Int(
+                                1,
+                            ),
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 89..104,
+                    value: YieldFrom(
+                        YieldFromExpr {
+                            range: 89..104,
+                            value: Tuple(
+                                TupleExpr {
+                                    range: 100..104,
+                                    elts: [
+                                        Name(
+                                            NameExpr {
+                                                range: 100..101,
+                                                id: Name("x"),
+                                                ctx: Load,
+                                            },
+                                        ),
+                                        Name(
+                                            NameExpr {
+                                                range: 103..104,
+                                                id: Name("y"),
+                                                ctx: Load,
+                                            },
+                                        ),
+                                    ],
+                                    ctx: Load,
+                                    parenthesized: false,
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 168..192,
+                    value: YieldFrom(
+                        YieldFromExpr {
+                            range: 168..192,
+                            value: Tuple(
+                                TupleExpr {
+                                    range: 179..192,
+                                    elts: [
+                                        Name(
+                                            NameExpr {
+                                                range: 180..181,
+                                                id: Name("x"),
+                                                ctx: Load,
+                                            },
+                                        ),
+                                        Starred(
+                                            StarredExpr {
+                                                range: 183..191,
+                                                value: BoolOp(
+                                                    BoolOpExpr {
+                                                        range: 184..191,
+                                                        op: And,
+                                                        values: [
+                                                            Name(
+                                                                NameExpr {
+                                                                    range: 184..185,
+                                                                    id: Name("x"),
+                                                                    ctx: Load,
+                                                                },
+                                                            ),
+                                                            Name(
+                                                                NameExpr {
+                                                                    range: 190..191,
+                                                                    id: Name("y"),
+                                                                    ctx: Load,
+                                                                },
+                                                            ),
+                                                        ],
+                                                    },
+                                                ),
+                                                ctx: Load,
+                                            },
+                                        ),
+                                    ],
+                                    ctx: Load,
+                                    parenthesized: true,
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | # Unparenthesized named expression
+2 | yield from x := 1
+  |              ^^ Syntax Error: Expected a statement
+3 | 
+4 | # Unparenthesized tuple expression
+  |
+
+
+  |
+4 | # Unparenthesized tuple expression
+5 | yield from x, y
+  |            ^^^^ Syntax Error: Unparenthesized tuple expression cannot be used here
+6 | 
+7 | # This is a tuple expression parsing
+  |
+
+
+  |
+7 | # This is a tuple expression parsing
+8 | #          vvvvvvvvvvvvv
+9 | yield from (x, *x and y)
+  |                 ^^^^^^^ Syntax Error: Boolean expression cannot be used here
+  |

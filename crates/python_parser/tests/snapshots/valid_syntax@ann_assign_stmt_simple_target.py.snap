@@ -1,0 +1,123 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/ok/ann_assign_stmt_simple_target.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..45,
+        body: [
+            AnnAssign(
+                AnnAssignStmt {
+                    range: 0..6,
+                    target: Name(
+                        NameExpr {
+                            range: 0..1,
+                            id: Name("a"),
+                            ctx: Store,
+                        },
+                    ),
+                    annotation: Name(
+                        NameExpr {
+                            range: 3..6,
+                            id: Name("int"),
+                            ctx: Load,
+                        },
+                    ),
+                    value: None,
+                    simple: true,
+                },
+            ),
+            AnnAssign(
+                AnnAssignStmt {
+                    range: 17..25,
+                    target: Name(
+                        NameExpr {
+                            range: 18..19,
+                            id: Name("a"),
+                            ctx: Store,
+                        },
+                    ),
+                    annotation: Name(
+                        NameExpr {
+                            range: 22..25,
+                            id: Name("int"),
+                            ctx: Load,
+                        },
+                    ),
+                    value: None,
+                    simple: false,
+                },
+            ),
+            AnnAssign(
+                AnnAssignStmt {
+                    range: 26..34,
+                    target: Attribute(
+                        AttributeExpr {
+                            range: 26..29,
+                            value: Name(
+                                NameExpr {
+                                    range: 26..27,
+                                    id: Name("a"),
+                                    ctx: Load,
+                                },
+                            ),
+                            attr: Identifier {
+                                id: Name("b"),
+                                range: 28..29,
+                            },
+                            ctx: Store,
+                        },
+                    ),
+                    annotation: Name(
+                        NameExpr {
+                            range: 31..34,
+                            id: Name("int"),
+                            ctx: Load,
+                        },
+                    ),
+                    value: None,
+                    simple: false,
+                },
+            ),
+            AnnAssign(
+                AnnAssignStmt {
+                    range: 35..44,
+                    target: Subscript(
+                        SubscriptExpr {
+                            range: 35..39,
+                            value: Name(
+                                NameExpr {
+                                    range: 35..36,
+                                    id: Name("a"),
+                                    ctx: Load,
+                                },
+                            ),
+                            slice: NumberLiteral(
+                                NumberLiteralExpr {
+                                    range: 37..38,
+                                    value: Int(
+                                        0,
+                                    ),
+                                },
+                            ),
+                            ctx: Store,
+                        },
+                    ),
+                    annotation: Name(
+                        NameExpr {
+                            range: 41..44,
+                            id: Name("int"),
+                            ctx: Load,
+                        },
+                    ),
+                    value: None,
+                    simple: false,
+                },
+            ),
+        ],
+    },
+)
+```

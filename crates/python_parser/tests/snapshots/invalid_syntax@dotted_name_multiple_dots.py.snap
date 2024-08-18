@@ -1,0 +1,88 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/err/dotted_name_multiple_dots.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..25,
+        body: [
+            Import(
+                ImportStmt {
+                    range: 0..11,
+                    names: [
+                        Alias {
+                            range: 7..11,
+                            name: Identifier {
+                                id: Name("a..b"),
+                                range: 7..11,
+                            },
+                            asname: None,
+                        },
+                    ],
+                },
+            ),
+            Import(
+                ImportStmt {
+                    range: 12..20,
+                    names: [
+                        Alias {
+                            range: 19..20,
+                            name: Identifier {
+                                id: Name("a"),
+                                range: 19..20,
+                            },
+                            asname: None,
+                        },
+                    ],
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 20..23,
+                    value: EllipsisLiteral(
+                        EllipsisLiteralExpr {
+                            range: 20..23,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 23..24,
+                    value: Name(
+                        NameExpr {
+                            range: 23..24,
+                            id: Name("b"),
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | import a..b
+  |          ^ Syntax Error: Expected an identifier
+2 | import a...b
+  |
+
+
+  |
+1 | import a..b
+2 | import a...b
+  |         ^^^ Syntax Error: Simple statements must be separated by newlines or semicolons
+  |
+
+
+  |
+1 | import a..b
+2 | import a...b
+  |            ^ Syntax Error: Simple statements must be separated by newlines or semicolons
+  |

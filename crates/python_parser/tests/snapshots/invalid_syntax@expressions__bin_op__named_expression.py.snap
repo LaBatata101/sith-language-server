@@ -1,0 +1,122 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/invalid/expressions/bin_op/named_expression.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..26,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 0..5,
+                    value: BinOp(
+                        BinOpExpr {
+                            range: 0..5,
+                            left: Name(
+                                NameExpr {
+                                    range: 0..1,
+                                    id: Name("x"),
+                                    ctx: Load,
+                                },
+                            ),
+                            op: Sub,
+                            right: Name(
+                                NameExpr {
+                                    range: 4..5,
+                                    id: Name("y"),
+                                    ctx: Load,
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 9..15,
+                    value: Tuple(
+                        TupleExpr {
+                            range: 9..15,
+                            elts: [
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 10..11,
+                                        value: Int(
+                                            1,
+                                        ),
+                                    },
+                                ),
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 13..14,
+                                        value: Int(
+                                            2,
+                                        ),
+                                    },
+                                ),
+                            ],
+                            ctx: Load,
+                            parenthesized: true,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 16..21,
+                    value: BinOp(
+                        BinOpExpr {
+                            range: 16..21,
+                            left: Name(
+                                NameExpr {
+                                    range: 16..17,
+                                    id: Name("x"),
+                                    ctx: Load,
+                                },
+                            ),
+                            op: Div,
+                            right: Name(
+                                NameExpr {
+                                    range: 20..21,
+                                    id: Name("y"),
+                                    ctx: Load,
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 25..26,
+                    value: NumberLiteral(
+                        NumberLiteralExpr {
+                            range: 25..26,
+                            value: Int(
+                                2,
+                            ),
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | x - y := (1, 2)
+  |       ^^ Syntax Error: Expected a statement
+2 | x / y := 2
+  |
+
+
+  |
+1 | x - y := (1, 2)
+2 | x / y := 2
+  |       ^^ Syntax Error: Expected a statement
+  |

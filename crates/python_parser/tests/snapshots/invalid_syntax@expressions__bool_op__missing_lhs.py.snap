@@ -1,0 +1,33 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/invalid/expressions/bool_op/missing_lhs.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..5,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 4..5,
+                    value: Name(
+                        NameExpr {
+                            range: 4..5,
+                            id: Name("y"),
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | and y
+  | ^^^ Syntax Error: Expected a statement
+  |

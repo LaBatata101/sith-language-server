@@ -1,0 +1,110 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/err/raise_stmt_invalid_exc.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..36,
+        body: [
+            Raise(
+                RaiseStmt {
+                    range: 0..8,
+                    exc: Some(
+                        Starred(
+                            StarredExpr {
+                                range: 6..8,
+                                value: Name(
+                                    NameExpr {
+                                        range: 7..8,
+                                        id: Name("x"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                ctx: Load,
+                            },
+                        ),
+                    ),
+                    cause: None,
+                },
+            ),
+            Raise(
+                RaiseStmt {
+                    range: 9..22,
+                    exc: Some(
+                        Yield(
+                            YieldExpr {
+                                range: 15..22,
+                                value: Some(
+                                    Name(
+                                        NameExpr {
+                                            range: 21..22,
+                                            id: Name("x"),
+                                            ctx: Load,
+                                        },
+                                    ),
+                                ),
+                            },
+                        ),
+                    ),
+                    cause: None,
+                },
+            ),
+            Raise(
+                RaiseStmt {
+                    range: 23..30,
+                    exc: Some(
+                        Name(
+                            NameExpr {
+                                range: 29..30,
+                                id: Name("x"),
+                                ctx: Load,
+                            },
+                        ),
+                    ),
+                    cause: None,
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 34..35,
+                    value: NumberLiteral(
+                        NumberLiteralExpr {
+                            range: 34..35,
+                            value: Int(
+                                1,
+                            ),
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | raise *x
+  |       ^^ Syntax Error: Starred expression cannot be used here
+2 | raise yield x
+3 | raise x := 1
+  |
+
+
+  |
+1 | raise *x
+2 | raise yield x
+  |       ^^^^^^^ Syntax Error: Yield expression cannot be used here
+3 | raise x := 1
+  |
+
+
+  |
+1 | raise *x
+2 | raise yield x
+3 | raise x := 1
+  |         ^^ Syntax Error: Expected a statement
+  |

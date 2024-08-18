@@ -1,0 +1,64 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/err/match_stmt_missing_pattern.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..24,
+        body: [
+            Match(
+                MatchStmt {
+                    range: 0..23,
+                    subject: Name(
+                        NameExpr {
+                            range: 6..7,
+                            id: Name("x"),
+                            ctx: Load,
+                        },
+                    ),
+                    cases: [
+                        MatchCase {
+                            range: 13..23,
+                            pattern: MatchValue(
+                                PatternMatchValue {
+                                    range: 17..17,
+                                    value: Name(
+                                        NameExpr {
+                                            range: 17..17,
+                                            id: Name(""),
+                                            ctx: Invalid,
+                                        },
+                                    ),
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Expr(
+                                    ExprStmt {
+                                        range: 20..23,
+                                        value: EllipsisLiteral(
+                                            EllipsisLiteralExpr {
+                                                range: 20..23,
+                                            },
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ],
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | match x:
+2 |     case : ...
+  |          ^ Syntax Error: Expected a pattern
+  |

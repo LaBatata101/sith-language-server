@@ -1,0 +1,103 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/err/function_def_missing_identifier.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..31,
+        body: [
+            FunctionDef(
+                FunctionDefStmt {
+                    range: 0..11,
+                    is_async: false,
+                    decorator_list: [],
+                    name: Identifier {
+                        id: Name(""),
+                        range: 3..3,
+                    },
+                    type_params: None,
+                    parameters: Parameters {
+                        range: 4..6,
+                        posonlyargs: [],
+                        args: [],
+                        vararg: None,
+                        kwonlyargs: [],
+                        kwarg: None,
+                    },
+                    returns: None,
+                    body: [
+                        Expr(
+                            ExprStmt {
+                                range: 8..11,
+                                value: EllipsisLiteral(
+                                    EllipsisLiteralExpr {
+                                        range: 8..11,
+                                    },
+                                ),
+                            },
+                        ),
+                    ],
+                },
+            ),
+            FunctionDef(
+                FunctionDefStmt {
+                    range: 12..30,
+                    is_async: false,
+                    decorator_list: [],
+                    name: Identifier {
+                        id: Name(""),
+                        range: 15..15,
+                    },
+                    type_params: None,
+                    parameters: Parameters {
+                        range: 16..18,
+                        posonlyargs: [],
+                        args: [],
+                        vararg: None,
+                        kwonlyargs: [],
+                        kwarg: None,
+                    },
+                    returns: Some(
+                        Name(
+                            NameExpr {
+                                range: 22..25,
+                                id: Name("int"),
+                                ctx: Load,
+                            },
+                        ),
+                    ),
+                    body: [
+                        Expr(
+                            ExprStmt {
+                                range: 27..30,
+                                value: EllipsisLiteral(
+                                    EllipsisLiteralExpr {
+                                        range: 27..30,
+                                    },
+                                ),
+                            },
+                        ),
+                    ],
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | def (): ...
+  |     ^ Syntax Error: Expected an identifier
+2 | def () -> int: ...
+  |
+
+
+  |
+1 | def (): ...
+2 | def () -> int: ...
+  |     ^ Syntax Error: Expected an identifier
+  |

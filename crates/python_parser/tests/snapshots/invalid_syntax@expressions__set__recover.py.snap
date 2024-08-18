@@ -1,0 +1,302 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/invalid/expressions/set/recover.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..323,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 197..200,
+                    value: Set(
+                        SetExpr {
+                            range: 197..200,
+                            elts: [
+                                Name(
+                                    NameExpr {
+                                        range: 198..198,
+                                        id: Name(""),
+                                        ctx: Invalid,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 202..208,
+                    value: Set(
+                        SetExpr {
+                            range: 202..208,
+                            elts: [
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 203..204,
+                                        value: Int(
+                                            1,
+                                        ),
+                                    },
+                                ),
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 206..207,
+                                        value: Int(
+                                            2,
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 210..215,
+                    value: Set(
+                        SetExpr {
+                            range: 210..215,
+                            elts: [
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 211..212,
+                                        value: Int(
+                                            1,
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 233..238,
+                    value: Set(
+                        SetExpr {
+                            range: 233..238,
+                            elts: [
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 234..235,
+                                        value: Int(
+                                            1,
+                                        ),
+                                    },
+                                ),
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 236..237,
+                                        value: Int(
+                                            2,
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 271..277,
+                    value: Dict(
+                        DictExpr {
+                            range: 271..277,
+                            items: [
+                                DictItem {
+                                    key: Some(
+                                        NumberLiteral(
+                                            NumberLiteralExpr {
+                                                range: 272..273,
+                                                value: Int(
+                                                    1,
+                                                ),
+                                            },
+                                        ),
+                                    ),
+                                    value: NumberLiteral(
+                                        NumberLiteralExpr {
+                                            range: 275..276,
+                                            value: Int(
+                                                2,
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 300..309,
+                    value: Set(
+                        SetExpr {
+                            range: 300..309,
+                            elts: [
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 301..302,
+                                        value: Int(
+                                            1,
+                                        ),
+                                    },
+                                ),
+                                BinOp(
+                                    BinOpExpr {
+                                        range: 304..307,
+                                        left: Name(
+                                            NameExpr {
+                                                range: 304..305,
+                                                id: Name("x"),
+                                                ctx: Load,
+                                            },
+                                        ),
+                                        op: Add,
+                                        right: Name(
+                                            NameExpr {
+                                                range: 307..307,
+                                                id: Name(""),
+                                                ctx: Invalid,
+                                            },
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 311..317,
+                    value: Set(
+                        SetExpr {
+                            range: 311..317,
+                            elts: [
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 312..313,
+                                        value: Int(
+                                            1,
+                                        ),
+                                    },
+                                ),
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 315..316,
+                                        value: Int(
+                                            2,
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 319..322,
+                    value: List(
+                        ListExpr {
+                            range: 319..322,
+                            elts: [
+                                Starred(
+                                    StarredExpr {
+                                        range: 320..321,
+                                        value: Name(
+                                            NameExpr {
+                                                range: 321..321,
+                                                id: Name(""),
+                                                ctx: Invalid,
+                                            },
+                                        ),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+3 | # These are same as for the list expressions.
+4 | 
+5 | {,}
+  |  ^ Syntax Error: Expected an expression
+6 | 
+7 | {1,,2}
+  |
+
+
+  |
+5 | {,}
+6 | 
+7 | {1,,2}
+  |    ^ Syntax Error: Expected an expression or a '}'
+8 | 
+9 | {1,,}
+  |
+
+
+   |
+ 7 | {1,,2}
+ 8 | 
+ 9 | {1,,}
+   |    ^ Syntax Error: Expected an expression or a '}'
+10 | 
+11 | # Missing comma
+   |
+
+
+   |
+11 | # Missing comma
+12 | {1 2}
+   |    ^ Syntax Error: Expected ',', found int
+13 | 
+14 | # Dictionary element in a list
+   |
+
+
+   |
+17 | # Missing expression
+18 | {1, x + }
+   |         ^ Syntax Error: Expected an expression
+19 | 
+20 | {1; 2}
+   |
+
+
+   |
+18 | {1, x + }
+19 | 
+20 | {1; 2}
+   |   ^ Syntax Error: Expected an expression or a '}'
+21 | 
+22 | [*]
+   |
+
+
+   |
+20 | {1; 2}
+21 | 
+22 | [*]
+   |   ^ Syntax Error: Expected an expression
+   |

@@ -1,0 +1,27 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/err/nonlocal_stmt_empty.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..9,
+        body: [
+            Nonlocal(
+                NonlocalStmt {
+                    range: 0..8,
+                    names: [],
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | nonlocal
+  |         ^ Syntax Error: Nonlocal statement must have at least one name
+  |

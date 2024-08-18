@@ -1,0 +1,98 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/err/if_stmt_missing_colon.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..25,
+        body: [
+            If(
+                IfStmt {
+                    range: 0..4,
+                    test: Name(
+                        NameExpr {
+                            range: 3..4,
+                            id: Name("x"),
+                            ctx: Load,
+                        },
+                    ),
+                    body: [],
+                    elif_else_clauses: [],
+                },
+            ),
+            If(
+                IfStmt {
+                    range: 5..18,
+                    test: Name(
+                        NameExpr {
+                            range: 8..9,
+                            id: Name("x"),
+                            ctx: Load,
+                        },
+                    ),
+                    body: [
+                        Pass(
+                            PassStmt {
+                                range: 14..18,
+                            },
+                        ),
+                    ],
+                    elif_else_clauses: [],
+                },
+            ),
+            Assign(
+                AssignStmt {
+                    range: 19..24,
+                    targets: [
+                        Name(
+                            NameExpr {
+                                range: 19..20,
+                                id: Name("a"),
+                                ctx: Store,
+                            },
+                        ),
+                    ],
+                    value: NumberLiteral(
+                        NumberLiteralExpr {
+                            range: 23..24,
+                            value: Int(
+                                1,
+                            ),
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | if x
+  |     ^ Syntax Error: Expected ':', found newline
+2 | if x
+3 |     pass
+4 | a = 1
+  |
+
+
+  |
+1 | if x
+2 | if x
+  | ^^ Syntax Error: Expected an indented block after `if` statement
+3 |     pass
+4 | a = 1
+  |
+
+
+  |
+1 | if x
+2 | if x
+  |     ^ Syntax Error: Expected ':', found newline
+3 |     pass
+4 | a = 1
+  |

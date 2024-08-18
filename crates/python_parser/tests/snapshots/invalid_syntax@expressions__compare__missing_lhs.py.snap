@@ -1,0 +1,62 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/invalid/expressions/compare/missing_lhs.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..10,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 2..3,
+                    value: Name(
+                        NameExpr {
+                            range: 2..3,
+                            id: Name("y"),
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 5..10,
+                    value: BinOp(
+                        BinOpExpr {
+                            range: 5..10,
+                            left: NumberLiteral(
+                                NumberLiteralExpr {
+                                    range: 5..6,
+                                    value: Int(
+                                        1,
+                                    ),
+                                },
+                            ),
+                            op: Add,
+                            right: NumberLiteral(
+                                NumberLiteralExpr {
+                                    range: 9..10,
+                                    value: Int(
+                                        2,
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | > y
+  | ^ Syntax Error: Expected a statement
+2 | 
+3 | 1 + 2
+  |

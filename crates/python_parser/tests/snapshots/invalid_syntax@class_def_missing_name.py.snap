@@ -1,0 +1,140 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/err/class_def_missing_name.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..53,
+        body: [
+            ClassDef(
+                ClassDefStmt {
+                    range: 0..11,
+                    decorator_list: [],
+                    name: Identifier {
+                        id: Name(""),
+                        range: 5..5,
+                    },
+                    type_params: None,
+                    arguments: None,
+                    body: [
+                        Expr(
+                            ExprStmt {
+                                range: 8..11,
+                                value: EllipsisLiteral(
+                                    EllipsisLiteralExpr {
+                                        range: 8..11,
+                                    },
+                                ),
+                            },
+                        ),
+                    ],
+                },
+            ),
+            ClassDef(
+                ClassDefStmt {
+                    range: 12..25,
+                    decorator_list: [],
+                    name: Identifier {
+                        id: Name(""),
+                        range: 17..17,
+                    },
+                    type_params: None,
+                    arguments: Some(
+                        Arguments {
+                            range: 18..20,
+                            args: [],
+                            keywords: [],
+                        },
+                    ),
+                    body: [
+                        Expr(
+                            ExprStmt {
+                                range: 22..25,
+                                value: EllipsisLiteral(
+                                    EllipsisLiteralExpr {
+                                        range: 22..25,
+                                    },
+                                ),
+                            },
+                        ),
+                    ],
+                },
+            ),
+            ClassDef(
+                ClassDefStmt {
+                    range: 26..52,
+                    decorator_list: [],
+                    name: Identifier {
+                        id: Name(""),
+                        range: 31..31,
+                    },
+                    type_params: None,
+                    arguments: Some(
+                        Arguments {
+                            range: 32..47,
+                            args: [],
+                            keywords: [
+                                Keyword {
+                                    range: 33..46,
+                                    arg: Some(
+                                        Identifier {
+                                            id: Name("metaclass"),
+                                            range: 33..42,
+                                        },
+                                    ),
+                                    value: Name(
+                                        NameExpr {
+                                            range: 43..46,
+                                            id: Name("ABC"),
+                                            ctx: Load,
+                                        },
+                                    ),
+                                },
+                            ],
+                        },
+                    ),
+                    body: [
+                        Expr(
+                            ExprStmt {
+                                range: 49..52,
+                                value: EllipsisLiteral(
+                                    EllipsisLiteralExpr {
+                                        range: 49..52,
+                                    },
+                                ),
+                            },
+                        ),
+                    ],
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | class : ...
+  |       ^ Syntax Error: Expected an identifier
+2 | class (): ...
+3 | class (metaclass=ABC): ...
+  |
+
+
+  |
+1 | class : ...
+2 | class (): ...
+  |       ^ Syntax Error: Expected an identifier
+3 | class (metaclass=ABC): ...
+  |
+
+
+  |
+1 | class : ...
+2 | class (): ...
+3 | class (metaclass=ABC): ...
+  |       ^ Syntax Error: Expected an identifier
+  |

@@ -1,0 +1,70 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/err/comma_separated_missing_comma.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..15,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 0..14,
+                    value: Call(
+                        CallExpr {
+                            range: 0..14,
+                            func: Name(
+                                NameExpr {
+                                    range: 0..4,
+                                    id: Name("call"),
+                                    ctx: Load,
+                                },
+                            ),
+                            arguments: Arguments {
+                                range: 4..14,
+                                args: [
+                                    NumberLiteral(
+                                        NumberLiteralExpr {
+                                            range: 12..13,
+                                            value: Int(
+                                                1,
+                                            ),
+                                        },
+                                    ),
+                                ],
+                                keywords: [
+                                    Keyword {
+                                        range: 5..8,
+                                        arg: None,
+                                        value: Name(
+                                            NameExpr {
+                                                range: 7..8,
+                                                id: Name("x"),
+                                                ctx: Load,
+                                            },
+                                        ),
+                                    },
+                                ],
+                            },
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | call(**x := 1)
+  |          ^^ Syntax Error: Expected ',', found ':='
+  |
+
+
+  |
+1 | call(**x := 1)
+  |             ^ Syntax Error: Positional argument cannot follow keyword argument unpacking
+  |

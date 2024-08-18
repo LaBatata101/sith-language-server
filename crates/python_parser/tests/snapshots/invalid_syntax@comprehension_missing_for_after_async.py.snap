@@ -1,0 +1,80 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/err/comprehension_missing_for_after_async.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..28,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 0..7,
+                    value: Name(
+                        NameExpr {
+                            range: 1..6,
+                            id: Name("async"),
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 8..27,
+                    value: Generator(
+                        GeneratorExpr {
+                            range: 8..27,
+                            elt: Name(
+                                NameExpr {
+                                    range: 9..10,
+                                    id: Name("x"),
+                                    ctx: Load,
+                                },
+                            ),
+                            generators: [
+                                Comprehension {
+                                    range: 11..26,
+                                    target: Name(
+                                        NameExpr {
+                                            range: 17..18,
+                                            id: Name("x"),
+                                            ctx: Store,
+                                        },
+                                    ),
+                                    iter: Name(
+                                        NameExpr {
+                                            range: 22..26,
+                                            id: Name("iter"),
+                                            ctx: Load,
+                                        },
+                                    ),
+                                    ifs: [],
+                                    is_async: true,
+                                },
+                            ],
+                            parenthesized: true,
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | (async)
+  |  ^^^^^ Syntax Error: Expected an identifier, but found a keyword 'async' that cannot be used here
+2 | (x async x in iter)
+  |
+
+
+  |
+1 | (async)
+2 | (x async x in iter)
+  |          ^ Syntax Error: Expected 'for', found name
+  |

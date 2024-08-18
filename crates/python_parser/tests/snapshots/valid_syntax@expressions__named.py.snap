@@ -1,0 +1,316 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/valid/expressions/named.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..157,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 0..11,
+                    value: Named(
+                        NamedExpr {
+                            range: 1..10,
+                            target: Name(
+                                NameExpr {
+                                    range: 1..5,
+                                    id: Name("name"),
+                                    ctx: Store,
+                                },
+                            ),
+                            value: NumberLiteral(
+                                NumberLiteralExpr {
+                                    range: 9..10,
+                                    value: Int(
+                                        0,
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 12..29,
+                    value: Named(
+                        NamedExpr {
+                            range: 13..28,
+                            target: Name(
+                                NameExpr {
+                                    range: 13..17,
+                                    id: Name("name"),
+                                    ctx: Store,
+                                },
+                            ),
+                            value: BinOp(
+                                BinOpExpr {
+                                    range: 22..27,
+                                    left: Name(
+                                        NameExpr {
+                                            range: 22..23,
+                                            id: Name("x"),
+                                            ctx: Load,
+                                        },
+                                    ),
+                                    op: Mult,
+                                    right: Name(
+                                        NameExpr {
+                                            range: 26..27,
+                                            id: Name("y"),
+                                            ctx: Load,
+                                        },
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 30..45,
+                    value: Named(
+                        NamedExpr {
+                            range: 31..44,
+                            target: Name(
+                                NameExpr {
+                                    range: 31..35,
+                                    id: Name("name"),
+                                    ctx: Store,
+                                },
+                            ),
+                            value: BinOp(
+                                BinOpExpr {
+                                    range: 39..44,
+                                    left: NumberLiteral(
+                                        NumberLiteralExpr {
+                                            range: 39..40,
+                                            value: Int(
+                                                1,
+                                            ),
+                                        },
+                                    ),
+                                    op: Add,
+                                    right: NumberLiteral(
+                                        NumberLiteralExpr {
+                                            range: 43..44,
+                                            value: Int(
+                                                1,
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 46..63,
+                    value: Named(
+                        NamedExpr {
+                            range: 47..62,
+                            target: Name(
+                                NameExpr {
+                                    range: 47..51,
+                                    id: Name("name"),
+                                    ctx: Store,
+                                },
+                            ),
+                            value: Tuple(
+                                TupleExpr {
+                                    range: 55..62,
+                                    elts: [
+                                        Starred(
+                                            StarredExpr {
+                                                range: 56..58,
+                                                value: Name(
+                                                    NameExpr {
+                                                        range: 57..58,
+                                                        id: Name("x"),
+                                                        ctx: Load,
+                                                    },
+                                                ),
+                                                ctx: Load,
+                                            },
+                                        ),
+                                        Name(
+                                            NameExpr {
+                                                range: 60..61,
+                                                id: Name("y"),
+                                                ctx: Load,
+                                            },
+                                        ),
+                                    ],
+                                    ctx: Load,
+                                    parenthesized: true,
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 64..90,
+                    value: Named(
+                        NamedExpr {
+                            range: 65..89,
+                            target: Name(
+                                NameExpr {
+                                    range: 65..69,
+                                    id: Name("name"),
+                                    ctx: Store,
+                                },
+                            ),
+                            value: If(
+                                IfExpr {
+                                    range: 73..89,
+                                    test: BooleanLiteral(
+                                        BooleanLiteralExpr {
+                                            range: 78..82,
+                                            value: true,
+                                        },
+                                    ),
+                                    body: Name(
+                                        NameExpr {
+                                            range: 73..74,
+                                            id: Name("x"),
+                                            ctx: Load,
+                                        },
+                                    ),
+                                    orelse: Name(
+                                        NameExpr {
+                                            range: 88..89,
+                                            id: Name("y"),
+                                            ctx: Load,
+                                        },
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 91..112,
+                    value: Named(
+                        NamedExpr {
+                            range: 92..111,
+                            target: Name(
+                                NameExpr {
+                                    range: 92..96,
+                                    id: Name("name"),
+                                    ctx: Store,
+                                },
+                            ),
+                            value: Lambda(
+                                LambdaExpr {
+                                    range: 100..111,
+                                    parameters: Some(
+                                        Parameters {
+                                            range: 107..108,
+                                            posonlyargs: [],
+                                            args: [
+                                                ParameterWithDefault {
+                                                    range: 107..108,
+                                                    parameter: Parameter {
+                                                        range: 107..108,
+                                                        name: Identifier {
+                                                            id: Name("x"),
+                                                            range: 107..108,
+                                                        },
+                                                        annotation: None,
+                                                    },
+                                                    default: None,
+                                                },
+                                            ],
+                                            vararg: None,
+                                            kwonlyargs: [],
+                                            kwarg: None,
+                                        },
+                                    ),
+                                    body: Name(
+                                        NameExpr {
+                                            range: 110..111,
+                                            id: Name("x"),
+                                            ctx: Load,
+                                        },
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 113..132,
+                    value: Named(
+                        NamedExpr {
+                            range: 114..131,
+                            target: Name(
+                                NameExpr {
+                                    range: 114..118,
+                                    id: Name("name"),
+                                    ctx: Store,
+                                },
+                            ),
+                            value: Yield(
+                                YieldExpr {
+                                    range: 123..130,
+                                    value: Some(
+                                        Name(
+                                            NameExpr {
+                                                range: 129..130,
+                                                id: Name("x"),
+                                                ctx: Load,
+                                            },
+                                        ),
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 133..157,
+                    value: Named(
+                        NamedExpr {
+                            range: 134..156,
+                            target: Name(
+                                NameExpr {
+                                    range: 134..138,
+                                    id: Name("name"),
+                                    ctx: Store,
+                                },
+                            ),
+                            value: YieldFrom(
+                                YieldFromExpr {
+                                    range: 143..155,
+                                    value: Name(
+                                        NameExpr {
+                                            range: 154..155,
+                                            id: Name("x"),
+                                            ctx: Load,
+                                        },
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```

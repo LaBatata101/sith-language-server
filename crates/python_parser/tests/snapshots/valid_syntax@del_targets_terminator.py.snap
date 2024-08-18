@@ -1,0 +1,113 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/ok/del_targets_terminator.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..29,
+        body: [
+            Delete(
+                DeleteStmt {
+                    range: 0..8,
+                    targets: [
+                        Name(
+                            NameExpr {
+                                range: 4..5,
+                                id: Name("a"),
+                                ctx: Del,
+                            },
+                        ),
+                        Name(
+                            NameExpr {
+                                range: 7..8,
+                                id: Name("b"),
+                                ctx: Del,
+                            },
+                        ),
+                    ],
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 10..14,
+                    value: Tuple(
+                        TupleExpr {
+                            range: 10..14,
+                            elts: [
+                                Name(
+                                    NameExpr {
+                                        range: 10..11,
+                                        id: Name("c"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                Name(
+                                    NameExpr {
+                                        range: 13..14,
+                                        id: Name("d"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                            ctx: Load,
+                            parenthesized: false,
+                        },
+                    ),
+                },
+            ),
+            Delete(
+                DeleteStmt {
+                    range: 15..23,
+                    targets: [
+                        Name(
+                            NameExpr {
+                                range: 19..20,
+                                id: Name("a"),
+                                ctx: Del,
+                            },
+                        ),
+                        Name(
+                            NameExpr {
+                                range: 22..23,
+                                id: Name("b"),
+                                ctx: Del,
+                            },
+                        ),
+                    ],
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 24..28,
+                    value: Tuple(
+                        TupleExpr {
+                            range: 24..28,
+                            elts: [
+                                Name(
+                                    NameExpr {
+                                        range: 24..25,
+                                        id: Name("c"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                Name(
+                                    NameExpr {
+                                        range: 27..28,
+                                        id: Name("d"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                            ctx: Load,
+                            parenthesized: false,
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```

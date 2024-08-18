@@ -1,0 +1,1067 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/invalid/statements/match/invalid_lhs_or_rhs_pattern.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..695,
+        body: [
+            Match(
+                MatchStmt {
+                    range: 0..332,
+                    subject: Name(
+                        NameExpr {
+                            range: 6..25,
+                            id: Name("invalid_lhs_pattern"),
+                            ctx: Load,
+                        },
+                    ),
+                    cases: [
+                        MatchCase {
+                            range: 31..60,
+                            pattern: MatchValue(
+                                PatternMatchValue {
+                                    range: 36..46,
+                                    value: BinOp(
+                                        BinOpExpr {
+                                            range: 36..46,
+                                            left: Call(
+                                                CallExpr {
+                                                    range: 36..41,
+                                                    func: Name(
+                                                        NameExpr {
+                                                            range: 36..39,
+                                                            id: Name("Foo"),
+                                                            ctx: Load,
+                                                        },
+                                                    ),
+                                                    arguments: Arguments {
+                                                        range: 39..41,
+                                                        args: [],
+                                                        keywords: [],
+                                                    },
+                                                },
+                                            ),
+                                            op: Add,
+                                            right: NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 44..46,
+                                                    value: Complex,
+                                                },
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Pass(
+                                    PassStmt {
+                                        range: 56..60,
+                                    },
+                                ),
+                            ],
+                        },
+                        MatchCase {
+                            range: 65..90,
+                            pattern: MatchValue(
+                                PatternMatchValue {
+                                    range: 70..76,
+                                    value: BinOp(
+                                        BinOpExpr {
+                                            range: 70..76,
+                                            left: Name(
+                                                NameExpr {
+                                                    range: 70..71,
+                                                    id: Name("x"),
+                                                    ctx: Store,
+                                                },
+                                            ),
+                                            op: Add,
+                                            right: NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 74..76,
+                                                    value: Complex,
+                                                },
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Pass(
+                                    PassStmt {
+                                        range: 86..90,
+                                    },
+                                ),
+                            ],
+                        },
+                        MatchCase {
+                            range: 95..120,
+                            pattern: MatchValue(
+                                PatternMatchValue {
+                                    range: 100..106,
+                                    value: BinOp(
+                                        BinOpExpr {
+                                            range: 100..106,
+                                            left: Name(
+                                                NameExpr {
+                                                    range: 100..101,
+                                                    id: Name("_"),
+                                                    ctx: Store,
+                                                },
+                                            ),
+                                            op: Add,
+                                            right: NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 104..106,
+                                                    value: Complex,
+                                                },
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Pass(
+                                    PassStmt {
+                                        range: 116..120,
+                                    },
+                                ),
+                            ],
+                        },
+                        MatchCase {
+                            range: 125..156,
+                            pattern: MatchValue(
+                                PatternMatchValue {
+                                    range: 130..142,
+                                    value: BinOp(
+                                        BinOpExpr {
+                                            range: 130..142,
+                                            left: BinOp(
+                                                BinOpExpr {
+                                                    range: 131..136,
+                                                    left: NumberLiteral(
+                                                        NumberLiteralExpr {
+                                                            range: 131..132,
+                                                            value: Int(
+                                                                1,
+                                                            ),
+                                                        },
+                                                    ),
+                                                    op: BitOr,
+                                                    right: NumberLiteral(
+                                                        NumberLiteralExpr {
+                                                            range: 135..136,
+                                                            value: Int(
+                                                                2,
+                                                            ),
+                                                        },
+                                                    ),
+                                                },
+                                            ),
+                                            op: Add,
+                                            right: NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 140..142,
+                                                    value: Complex,
+                                                },
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Pass(
+                                    PassStmt {
+                                        range: 152..156,
+                                    },
+                                ),
+                            ],
+                        },
+                        MatchCase {
+                            range: 161..191,
+                            pattern: MatchValue(
+                                PatternMatchValue {
+                                    range: 166..177,
+                                    value: BinOp(
+                                        BinOpExpr {
+                                            range: 166..177,
+                                            left: List(
+                                                ListExpr {
+                                                    range: 166..172,
+                                                    elts: [
+                                                        NumberLiteral(
+                                                            NumberLiteralExpr {
+                                                                range: 167..168,
+                                                                value: Int(
+                                                                    1,
+                                                                ),
+                                                            },
+                                                        ),
+                                                        NumberLiteral(
+                                                            NumberLiteralExpr {
+                                                                range: 170..171,
+                                                                value: Int(
+                                                                    2,
+                                                                ),
+                                                            },
+                                                        ),
+                                                    ],
+                                                    ctx: Store,
+                                                },
+                                            ),
+                                            op: Add,
+                                            right: NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 175..177,
+                                                    value: Complex,
+                                                },
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Pass(
+                                    PassStmt {
+                                        range: 187..191,
+                                    },
+                                ),
+                            ],
+                        },
+                        MatchCase {
+                            range: 196..229,
+                            pattern: MatchValue(
+                                PatternMatchValue {
+                                    range: 201..215,
+                                    value: BinOp(
+                                        BinOpExpr {
+                                            range: 201..215,
+                                            left: Dict(
+                                                DictExpr {
+                                                    range: 201..210,
+                                                    items: [
+                                                        DictItem {
+                                                            key: Some(
+                                                                BooleanLiteral(
+                                                                    BooleanLiteralExpr {
+                                                                        range: 202..206,
+                                                                        value: true,
+                                                                    },
+                                                                ),
+                                                            ),
+                                                            value: NumberLiteral(
+                                                                NumberLiteralExpr {
+                                                                    range: 208..209,
+                                                                    value: Int(
+                                                                        1,
+                                                                    ),
+                                                                },
+                                                            ),
+                                                        },
+                                                    ],
+                                                },
+                                            ),
+                                            op: Add,
+                                            right: NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 213..215,
+                                                    value: Complex,
+                                                },
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Pass(
+                                    PassStmt {
+                                        range: 225..229,
+                                    },
+                                ),
+                            ],
+                        },
+                        MatchCase {
+                            range: 234..260,
+                            pattern: MatchValue(
+                                PatternMatchValue {
+                                    range: 239..246,
+                                    value: BinOp(
+                                        BinOpExpr {
+                                            range: 239..246,
+                                            left: NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 239..241,
+                                                    value: Complex,
+                                                },
+                                            ),
+                                            op: Add,
+                                            right: NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 244..246,
+                                                    value: Complex,
+                                                },
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Pass(
+                                    PassStmt {
+                                        range: 256..260,
+                                    },
+                                ),
+                            ],
+                        },
+                        MatchCase {
+                            range: 265..292,
+                            pattern: MatchValue(
+                                PatternMatchValue {
+                                    range: 270..278,
+                                    value: BinOp(
+                                        BinOpExpr {
+                                            range: 270..278,
+                                            left: UnaryOp(
+                                                UnaryOpExpr {
+                                                    range: 270..273,
+                                                    op: USub,
+                                                    operand: NumberLiteral(
+                                                        NumberLiteralExpr {
+                                                            range: 271..273,
+                                                            value: Complex,
+                                                        },
+                                                    ),
+                                                },
+                                            ),
+                                            op: Add,
+                                            right: NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 276..278,
+                                                    value: Complex,
+                                                },
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Pass(
+                                    PassStmt {
+                                        range: 288..292,
+                                    },
+                                ),
+                            ],
+                        },
+                        MatchCase {
+                            range: 297..332,
+                            pattern: MatchValue(
+                                PatternMatchValue {
+                                    range: 302..318,
+                                    value: BinOp(
+                                        BinOpExpr {
+                                            range: 302..318,
+                                            left: Call(
+                                                CallExpr {
+                                                    range: 302..313,
+                                                    func: Name(
+                                                        NameExpr {
+                                                            range: 302..305,
+                                                            id: Name("Foo"),
+                                                            ctx: Load,
+                                                        },
+                                                    ),
+                                                    arguments: Arguments {
+                                                        range: 305..313,
+                                                        args: [
+                                                            Name(
+                                                                NameExpr {
+                                                                    range: 306..312,
+                                                                    id: Name(""),
+                                                                    ctx: Invalid,
+                                                                },
+                                                            ),
+                                                        ],
+                                                        keywords: [],
+                                                    },
+                                                },
+                                            ),
+                                            op: Add,
+                                            right: NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 316..318,
+                                                    value: Complex,
+                                                },
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Pass(
+                                    PassStmt {
+                                        range: 328..332,
+                                    },
+                                ),
+                            ],
+                        },
+                    ],
+                },
+            ),
+            Match(
+                MatchStmt {
+                    range: 334..625,
+                    subject: Name(
+                        NameExpr {
+                            range: 340..359,
+                            id: Name("invalid_rhs_pattern"),
+                            ctx: Load,
+                        },
+                    ),
+                    cases: [
+                        MatchCase {
+                            range: 365..393,
+                            pattern: MatchValue(
+                                PatternMatchValue {
+                                    range: 370..379,
+                                    value: BinOp(
+                                        BinOpExpr {
+                                            range: 370..379,
+                                            left: NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 370..371,
+                                                    value: Int(
+                                                        1,
+                                                    ),
+                                                },
+                                            ),
+                                            op: Add,
+                                            right: Call(
+                                                CallExpr {
+                                                    range: 374..379,
+                                                    func: Name(
+                                                        NameExpr {
+                                                            range: 374..377,
+                                                            id: Name("Foo"),
+                                                            ctx: Load,
+                                                        },
+                                                    ),
+                                                    arguments: Arguments {
+                                                        range: 377..379,
+                                                        args: [],
+                                                        keywords: [],
+                                                    },
+                                                },
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Pass(
+                                    PassStmt {
+                                        range: 389..393,
+                                    },
+                                ),
+                            ],
+                        },
+                        MatchCase {
+                            range: 398..422,
+                            pattern: MatchValue(
+                                PatternMatchValue {
+                                    range: 403..408,
+                                    value: BinOp(
+                                        BinOpExpr {
+                                            range: 403..408,
+                                            left: NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 403..404,
+                                                    value: Int(
+                                                        2,
+                                                    ),
+                                                },
+                                            ),
+                                            op: Add,
+                                            right: Name(
+                                                NameExpr {
+                                                    range: 407..408,
+                                                    id: Name("x"),
+                                                    ctx: Store,
+                                                },
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Pass(
+                                    PassStmt {
+                                        range: 418..422,
+                                    },
+                                ),
+                            ],
+                        },
+                        MatchCase {
+                            range: 427..451,
+                            pattern: MatchValue(
+                                PatternMatchValue {
+                                    range: 432..437,
+                                    value: BinOp(
+                                        BinOpExpr {
+                                            range: 432..437,
+                                            left: NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 432..433,
+                                                    value: Int(
+                                                        3,
+                                                    ),
+                                                },
+                                            ),
+                                            op: Add,
+                                            right: Name(
+                                                NameExpr {
+                                                    range: 436..437,
+                                                    id: Name("_"),
+                                                    ctx: Store,
+                                                },
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Pass(
+                                    PassStmt {
+                                        range: 447..451,
+                                    },
+                                ),
+                            ],
+                        },
+                        MatchCase {
+                            range: 456..486,
+                            pattern: MatchValue(
+                                PatternMatchValue {
+                                    range: 461..472,
+                                    value: BinOp(
+                                        BinOpExpr {
+                                            range: 461..472,
+                                            left: NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 461..462,
+                                                    value: Int(
+                                                        4,
+                                                    ),
+                                                },
+                                            ),
+                                            op: Add,
+                                            right: BinOp(
+                                                BinOpExpr {
+                                                    range: 466..471,
+                                                    left: NumberLiteral(
+                                                        NumberLiteralExpr {
+                                                            range: 466..467,
+                                                            value: Int(
+                                                                1,
+                                                            ),
+                                                        },
+                                                    ),
+                                                    op: BitOr,
+                                                    right: NumberLiteral(
+                                                        NumberLiteralExpr {
+                                                            range: 470..471,
+                                                            value: Int(
+                                                                2,
+                                                            ),
+                                                        },
+                                                    ),
+                                                },
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Pass(
+                                    PassStmt {
+                                        range: 482..486,
+                                    },
+                                ),
+                            ],
+                        },
+                        MatchCase {
+                            range: 491..520,
+                            pattern: MatchValue(
+                                PatternMatchValue {
+                                    range: 496..506,
+                                    value: BinOp(
+                                        BinOpExpr {
+                                            range: 496..506,
+                                            left: NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 496..497,
+                                                    value: Int(
+                                                        5,
+                                                    ),
+                                                },
+                                            ),
+                                            op: Add,
+                                            right: List(
+                                                ListExpr {
+                                                    range: 500..506,
+                                                    elts: [
+                                                        NumberLiteral(
+                                                            NumberLiteralExpr {
+                                                                range: 501..502,
+                                                                value: Int(
+                                                                    1,
+                                                                ),
+                                                            },
+                                                        ),
+                                                        NumberLiteral(
+                                                            NumberLiteralExpr {
+                                                                range: 504..505,
+                                                                value: Int(
+                                                                    2,
+                                                                ),
+                                                            },
+                                                        ),
+                                                    ],
+                                                    ctx: Store,
+                                                },
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Pass(
+                                    PassStmt {
+                                        range: 516..520,
+                                    },
+                                ),
+                            ],
+                        },
+                        MatchCase {
+                            range: 525..557,
+                            pattern: MatchValue(
+                                PatternMatchValue {
+                                    range: 530..543,
+                                    value: BinOp(
+                                        BinOpExpr {
+                                            range: 530..543,
+                                            left: NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 530..531,
+                                                    value: Int(
+                                                        6,
+                                                    ),
+                                                },
+                                            ),
+                                            op: Add,
+                                            right: Dict(
+                                                DictExpr {
+                                                    range: 534..543,
+                                                    items: [
+                                                        DictItem {
+                                                            key: Some(
+                                                                BooleanLiteral(
+                                                                    BooleanLiteralExpr {
+                                                                        range: 535..539,
+                                                                        value: true,
+                                                                    },
+                                                                ),
+                                                            ),
+                                                            value: NumberLiteral(
+                                                                NumberLiteralExpr {
+                                                                    range: 541..542,
+                                                                    value: Int(
+                                                                        1,
+                                                                    ),
+                                                                },
+                                                            ),
+                                                        },
+                                                    ],
+                                                },
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Pass(
+                                    PassStmt {
+                                        range: 553..557,
+                                    },
+                                ),
+                            ],
+                        },
+                        MatchCase {
+                            range: 562..586,
+                            pattern: MatchValue(
+                                PatternMatchValue {
+                                    range: 567..572,
+                                    value: BinOp(
+                                        BinOpExpr {
+                                            range: 567..572,
+                                            left: NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 567..568,
+                                                    value: Int(
+                                                        1,
+                                                    ),
+                                                },
+                                            ),
+                                            op: Add,
+                                            right: NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 571..572,
+                                                    value: Int(
+                                                        2,
+                                                    ),
+                                                },
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Pass(
+                                    PassStmt {
+                                        range: 582..586,
+                                    },
+                                ),
+                            ],
+                        },
+                        MatchCase {
+                            range: 591..625,
+                            pattern: MatchValue(
+                                PatternMatchValue {
+                                    range: 596..611,
+                                    value: BinOp(
+                                        BinOpExpr {
+                                            range: 596..611,
+                                            left: NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 596..597,
+                                                    value: Int(
+                                                        1,
+                                                    ),
+                                                },
+                                            ),
+                                            op: Add,
+                                            right: Call(
+                                                CallExpr {
+                                                    range: 600..611,
+                                                    func: Name(
+                                                        NameExpr {
+                                                            range: 600..603,
+                                                            id: Name("Foo"),
+                                                            ctx: Load,
+                                                        },
+                                                    ),
+                                                    arguments: Arguments {
+                                                        range: 603..611,
+                                                        args: [
+                                                            Name(
+                                                                NameExpr {
+                                                                    range: 604..610,
+                                                                    id: Name(""),
+                                                                    ctx: Invalid,
+                                                                },
+                                                            ),
+                                                        ],
+                                                        keywords: [],
+                                                    },
+                                                },
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Pass(
+                                    PassStmt {
+                                        range: 621..625,
+                                    },
+                                ),
+                            ],
+                        },
+                    ],
+                },
+            ),
+            Match(
+                MatchStmt {
+                    range: 627..694,
+                    subject: Name(
+                        NameExpr {
+                            range: 633..656,
+                            id: Name("invalid_lhs_rhs_pattern"),
+                            ctx: Load,
+                        },
+                    ),
+                    cases: [
+                        MatchCase {
+                            range: 662..694,
+                            pattern: MatchValue(
+                                PatternMatchValue {
+                                    range: 667..680,
+                                    value: BinOp(
+                                        BinOpExpr {
+                                            range: 667..680,
+                                            left: Call(
+                                                CallExpr {
+                                                    range: 667..672,
+                                                    func: Name(
+                                                        NameExpr {
+                                                            range: 667..670,
+                                                            id: Name("Foo"),
+                                                            ctx: Load,
+                                                        },
+                                                    ),
+                                                    arguments: Arguments {
+                                                        range: 670..672,
+                                                        args: [],
+                                                        keywords: [],
+                                                    },
+                                                },
+                                            ),
+                                            op: Add,
+                                            right: Call(
+                                                CallExpr {
+                                                    range: 675..680,
+                                                    func: Name(
+                                                        NameExpr {
+                                                            range: 675..678,
+                                                            id: Name("Bar"),
+                                                            ctx: Load,
+                                                        },
+                                                    ),
+                                                    arguments: Arguments {
+                                                        range: 678..680,
+                                                        args: [],
+                                                        keywords: [],
+                                                    },
+                                                },
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Pass(
+                                    PassStmt {
+                                        range: 690..694,
+                                    },
+                                ),
+                            ],
+                        },
+                    ],
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | match invalid_lhs_pattern:
+2 |     case Foo() + 1j:
+  |          ^^^^^ Syntax Error: Expected a real number in complex literal pattern
+3 |         pass
+4 |     case x + 2j:
+  |
+
+
+  |
+2 |     case Foo() + 1j:
+3 |         pass
+4 |     case x + 2j:
+  |          ^ Syntax Error: Expected a real number in complex literal pattern
+5 |         pass
+6 |     case _ + 3j:
+  |
+
+
+  |
+4 |     case x + 2j:
+5 |         pass
+6 |     case _ + 3j:
+  |          ^ Syntax Error: Expected a real number in complex literal pattern
+7 |         pass
+8 |     case (1 | 2) + 4j:
+  |
+
+
+   |
+ 6 |     case _ + 3j:
+ 7 |         pass
+ 8 |     case (1 | 2) + 4j:
+   |           ^^^^^ Syntax Error: Expected a real number in complex literal pattern
+ 9 |         pass
+10 |     case [1, 2] + 5j:
+   |
+
+
+   |
+ 8 |     case (1 | 2) + 4j:
+ 9 |         pass
+10 |     case [1, 2] + 5j:
+   |          ^^^^^^ Syntax Error: Expected a real number in complex literal pattern
+11 |         pass
+12 |     case {True: 1} + 6j:
+   |
+
+
+   |
+10 |     case [1, 2] + 5j:
+11 |         pass
+12 |     case {True: 1} + 6j:
+   |          ^^^^^^^^^ Syntax Error: Expected a real number in complex literal pattern
+13 |         pass
+14 |     case 1j + 2j:
+   |
+
+
+   |
+12 |     case {True: 1} + 6j:
+13 |         pass
+14 |     case 1j + 2j:
+   |          ^^ Syntax Error: Expected a real number in complex literal pattern
+15 |         pass
+16 |     case -1j + 2j:
+   |
+
+
+   |
+14 |     case 1j + 2j:
+15 |         pass
+16 |     case -1j + 2j:
+   |          ^^^ Syntax Error: Expected a real number in complex literal pattern
+17 |         pass
+18 |     case Foo(a as b) + 1j:
+   |
+
+
+   |
+16 |     case -1j + 2j:
+17 |         pass
+18 |     case Foo(a as b) + 1j:
+   |          ^^^^^^^^^^^ Syntax Error: Expected a real number in complex literal pattern
+19 |         pass
+   |
+
+
+   |
+21 | match invalid_rhs_pattern:
+22 |     case 1 + Foo():
+   |              ^^^^^ Syntax Error: Expected an imaginary number in complex literal pattern
+23 |         pass
+24 |     case 2 + x:
+   |
+
+
+   |
+22 |     case 1 + Foo():
+23 |         pass
+24 |     case 2 + x:
+   |              ^ Syntax Error: Expected an imaginary number in complex literal pattern
+25 |         pass
+26 |     case 3 + _:
+   |
+
+
+   |
+24 |     case 2 + x:
+25 |         pass
+26 |     case 3 + _:
+   |              ^ Syntax Error: Expected an imaginary number in complex literal pattern
+27 |         pass
+28 |     case 4 + (1 | 2):
+   |
+
+
+   |
+26 |     case 3 + _:
+27 |         pass
+28 |     case 4 + (1 | 2):
+   |               ^^^^^ Syntax Error: Expected an imaginary number in complex literal pattern
+29 |         pass
+30 |     case 5 + [1, 2]:
+   |
+
+
+   |
+28 |     case 4 + (1 | 2):
+29 |         pass
+30 |     case 5 + [1, 2]:
+   |              ^^^^^^ Syntax Error: Expected an imaginary number in complex literal pattern
+31 |         pass
+32 |     case 6 + {True: 1}:
+   |
+
+
+   |
+30 |     case 5 + [1, 2]:
+31 |         pass
+32 |     case 6 + {True: 1}:
+   |              ^^^^^^^^^ Syntax Error: Expected an imaginary number in complex literal pattern
+33 |         pass
+34 |     case 1 + 2:
+   |
+
+
+   |
+32 |     case 6 + {True: 1}:
+33 |         pass
+34 |     case 1 + 2:
+   |              ^ Syntax Error: Expected an imaginary number in complex literal pattern
+35 |         pass
+36 |     case 1 + Foo(a as b):
+   |
+
+
+   |
+34 |     case 1 + 2:
+35 |         pass
+36 |     case 1 + Foo(a as b):
+   |              ^^^^^^^^^^^ Syntax Error: Expected an imaginary number in complex literal pattern
+37 |         pass
+   |
+
+
+   |
+39 | match invalid_lhs_rhs_pattern:
+40 |     case Foo() + Bar():
+   |          ^^^^^ Syntax Error: Expected a real number in complex literal pattern
+41 |         pass
+   |
+
+
+   |
+39 | match invalid_lhs_rhs_pattern:
+40 |     case Foo() + Bar():
+   |                  ^^^^^ Syntax Error: Expected an imaginary number in complex literal pattern
+41 |         pass
+   |

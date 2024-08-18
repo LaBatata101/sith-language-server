@@ -1,0 +1,66 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/invalid/expressions/unary/no_expression_1.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..8,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 0..1,
+                    value: UnaryOp(
+                        UnaryOpExpr {
+                            range: 0..1,
+                            op: UAdd,
+                            operand: Name(
+                                NameExpr {
+                                    range: 1..1,
+                                    id: Name(""),
+                                    ctx: Invalid,
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 3..8,
+                    value: BinOp(
+                        BinOpExpr {
+                            range: 3..8,
+                            left: Name(
+                                NameExpr {
+                                    range: 3..4,
+                                    id: Name("x"),
+                                    ctx: Load,
+                                },
+                            ),
+                            op: Add,
+                            right: Name(
+                                NameExpr {
+                                    range: 7..8,
+                                    id: Name("y"),
+                                    ctx: Load,
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | +
+  |  ^ Syntax Error: Expected an expression
+2 | 
+3 | x + y
+  |

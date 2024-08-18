@@ -1,0 +1,222 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/err/ann_assign_stmt_invalid_value.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..65,
+        body: [
+            AnnAssign(
+                AnnAssignStmt {
+                    range: 0..17,
+                    target: Name(
+                        NameExpr {
+                            range: 0..1,
+                            id: Name("x"),
+                            ctx: Store,
+                        },
+                    ),
+                    annotation: Name(
+                        NameExpr {
+                            range: 3..6,
+                            id: Name("Any"),
+                            ctx: Load,
+                        },
+                    ),
+                    value: Some(
+                        Starred(
+                            StarredExpr {
+                                range: 9..17,
+                                value: BoolOp(
+                                    BoolOpExpr {
+                                        range: 10..17,
+                                        op: And,
+                                        values: [
+                                            Name(
+                                                NameExpr {
+                                                    range: 10..11,
+                                                    id: Name("a"),
+                                                    ctx: Load,
+                                                },
+                                            ),
+                                            Name(
+                                                NameExpr {
+                                                    range: 16..17,
+                                                    id: Name("b"),
+                                                    ctx: Load,
+                                                },
+                                            ),
+                                        ],
+                                    },
+                                ),
+                                ctx: Load,
+                            },
+                        ),
+                    ),
+                    simple: true,
+                },
+            ),
+            AnnAssign(
+                AnnAssignStmt {
+                    range: 18..28,
+                    target: Name(
+                        NameExpr {
+                            range: 18..19,
+                            id: Name("x"),
+                            ctx: Store,
+                        },
+                    ),
+                    annotation: Name(
+                        NameExpr {
+                            range: 21..24,
+                            id: Name("Any"),
+                            ctx: Load,
+                        },
+                    ),
+                    value: Some(
+                        Name(
+                            NameExpr {
+                                range: 27..28,
+                                id: Name("x"),
+                                ctx: Load,
+                            },
+                        ),
+                    ),
+                    simple: true,
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 32..33,
+                    value: NumberLiteral(
+                        NumberLiteralExpr {
+                            range: 32..33,
+                            value: Int(
+                                1,
+                            ),
+                        },
+                    ),
+                },
+            ),
+            AnnAssign(
+                AnnAssignStmt {
+                    range: 34..64,
+                    target: Name(
+                        NameExpr {
+                            range: 34..35,
+                            id: Name("x"),
+                            ctx: Store,
+                        },
+                    ),
+                    annotation: Name(
+                        NameExpr {
+                            range: 37..41,
+                            id: Name("list"),
+                            ctx: Load,
+                        },
+                    ),
+                    value: Some(
+                        List(
+                            ListExpr {
+                                range: 44..64,
+                                elts: [
+                                    Name(
+                                        NameExpr {
+                                            range: 45..46,
+                                            id: Name("x"),
+                                            ctx: Load,
+                                        },
+                                    ),
+                                    Starred(
+                                        StarredExpr {
+                                            range: 48..54,
+                                            value: BinOp(
+                                                BinOpExpr {
+                                                    range: 49..54,
+                                                    left: Name(
+                                                        NameExpr {
+                                                            range: 49..50,
+                                                            id: Name("a"),
+                                                            ctx: Load,
+                                                        },
+                                                    ),
+                                                    op: BitOr,
+                                                    right: Name(
+                                                        NameExpr {
+                                                            range: 53..54,
+                                                            id: Name("b"),
+                                                            ctx: Load,
+                                                        },
+                                                    ),
+                                                },
+                                            ),
+                                            ctx: Load,
+                                        },
+                                    ),
+                                    Starred(
+                                        StarredExpr {
+                                            range: 56..63,
+                                            value: BoolOp(
+                                                BoolOpExpr {
+                                                    range: 57..63,
+                                                    op: Or,
+                                                    values: [
+                                                        Name(
+                                                            NameExpr {
+                                                                range: 57..58,
+                                                                id: Name("a"),
+                                                                ctx: Load,
+                                                            },
+                                                        ),
+                                                        Name(
+                                                            NameExpr {
+                                                                range: 62..63,
+                                                                id: Name("b"),
+                                                                ctx: Load,
+                                                            },
+                                                        ),
+                                                    ],
+                                                },
+                                            ),
+                                            ctx: Load,
+                                        },
+                                    ),
+                                ],
+                                ctx: Load,
+                            },
+                        ),
+                    ),
+                    simple: true,
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | x: Any = *a and b
+  |           ^^^^^^^ Syntax Error: Boolean expression cannot be used here
+2 | x: Any = x := 1
+3 | x: list = [x, *a | b, *a or b]
+  |
+
+
+  |
+1 | x: Any = *a and b
+2 | x: Any = x := 1
+  |            ^^ Syntax Error: Expected a statement
+3 | x: list = [x, *a | b, *a or b]
+  |
+
+
+  |
+1 | x: Any = *a and b
+2 | x: Any = x := 1
+3 | x: list = [x, *a | b, *a or b]
+  |                        ^^^^^^ Syntax Error: Boolean expression cannot be used here
+  |

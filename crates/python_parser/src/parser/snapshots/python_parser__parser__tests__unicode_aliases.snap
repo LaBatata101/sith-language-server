@@ -1,0 +1,37 @@
+---
+source: crates/python_parser/src/parser/tests.rs
+expression: suite
+---
+[
+    Assign(
+        AssignStmt {
+            range: 0..37,
+            targets: [
+                Name(
+                    NameExpr {
+                        range: 0..1,
+                        id: Name("x"),
+                        ctx: Store,
+                    },
+                ),
+            ],
+            value: StringLiteral(
+                StringLiteralExpr {
+                    range: 4..37,
+                    value: StringLiteralValue {
+                        inner: Single(
+                            StringLiteral {
+                                range: 4..37,
+                                value: "\u{8}another cool trick",
+                                flags: StringLiteralFlags {
+                                    prefix: Empty,
+                                    triple_quoted: false,
+                                },
+                            },
+                        ),
+                    },
+                },
+            ),
+        },
+    ),
+]

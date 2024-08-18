@@ -1020,4 +1020,13 @@ f"Invalid args in command: {command, *args}"
 "#
         ));
     }
+
+    #[test]
+    fn p2() {
+        assert_debug_snapshot!(parse(
+            r#"
+"Lorem dolor sit amet.\n"
+"#
+        ));
+    }
 }

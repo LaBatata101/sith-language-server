@@ -1,0 +1,74 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/invalid/expressions/parenthesized/parenthesized.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..125,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 66..70,
+                    value: Starred(
+                        StarredExpr {
+                            range: 67..69,
+                            value: Name(
+                                NameExpr {
+                                    range: 68..69,
+                                    id: Name("x"),
+                                    ctx: Load,
+                                },
+                            ),
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 119..120,
+                    value: Name(
+                        NameExpr {
+                            range: 119..120,
+                            id: Name("x"),
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 124..125,
+                    value: NumberLiteral(
+                        NumberLiteralExpr {
+                            range: 124..125,
+                            value: Int(
+                                1,
+                            ),
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | # Starred expression isn't allowed in a parenthesized expression.
+2 | (*x)
+  |  ^^ Syntax Error: Starred expression cannot be used here
+3 | 
+4 | # Unparenthesized named expression is allowed.
+  |
+
+
+  |
+4 | # Unparenthesized named expression is allowed.
+5 | x := 1
+  |   ^^ Syntax Error: Expected a statement
+  |

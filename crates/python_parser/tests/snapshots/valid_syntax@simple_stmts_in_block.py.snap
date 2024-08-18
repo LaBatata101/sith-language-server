@@ -1,0 +1,123 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/ok/simple_stmts_in_block.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..84,
+        body: [
+            If(
+                IfStmt {
+                    range: 0..13,
+                    test: BooleanLiteral(
+                        BooleanLiteralExpr {
+                            range: 3..7,
+                            value: true,
+                        },
+                    ),
+                    body: [
+                        Pass(
+                            PassStmt {
+                                range: 9..13,
+                            },
+                        ),
+                    ],
+                    elif_else_clauses: [],
+                },
+            ),
+            If(
+                IfStmt {
+                    range: 14..27,
+                    test: BooleanLiteral(
+                        BooleanLiteralExpr {
+                            range: 17..21,
+                            value: true,
+                        },
+                    ),
+                    body: [
+                        Pass(
+                            PassStmt {
+                                range: 23..27,
+                            },
+                        ),
+                    ],
+                    elif_else_clauses: [],
+                },
+            ),
+            If(
+                IfStmt {
+                    range: 29..52,
+                    test: BooleanLiteral(
+                        BooleanLiteralExpr {
+                            range: 32..36,
+                            value: true,
+                        },
+                    ),
+                    body: [
+                        Pass(
+                            PassStmt {
+                                range: 38..42,
+                            },
+                        ),
+                        Continue(
+                            ContinueStmt {
+                                range: 44..52,
+                            },
+                        ),
+                    ],
+                    elif_else_clauses: [],
+                },
+            ),
+            If(
+                IfStmt {
+                    range: 53..76,
+                    test: BooleanLiteral(
+                        BooleanLiteralExpr {
+                            range: 56..60,
+                            value: true,
+                        },
+                    ),
+                    body: [
+                        Pass(
+                            PassStmt {
+                                range: 62..66,
+                            },
+                        ),
+                        Continue(
+                            ContinueStmt {
+                                range: 68..76,
+                            },
+                        ),
+                    ],
+                    elif_else_clauses: [],
+                },
+            ),
+            Assign(
+                AssignStmt {
+                    range: 78..83,
+                    targets: [
+                        Name(
+                            NameExpr {
+                                range: 78..79,
+                                id: Name("x"),
+                                ctx: Store,
+                            },
+                        ),
+                    ],
+                    value: NumberLiteral(
+                        NumberLiteralExpr {
+                            range: 82..83,
+                            value: Int(
+                                1,
+                            ),
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```

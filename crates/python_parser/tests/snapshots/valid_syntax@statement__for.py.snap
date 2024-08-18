@@ -1,0 +1,833 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/valid/statement/for.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..660,
+        body: [
+            For(
+                ForStmt {
+                    range: 0..28,
+                    is_async: false,
+                    target: Name(
+                        NameExpr {
+                            range: 4..10,
+                            id: Name("target"),
+                            ctx: Store,
+                        },
+                    ),
+                    iter: Name(
+                        NameExpr {
+                            range: 14..18,
+                            id: Name("iter"),
+                            ctx: Load,
+                        },
+                    ),
+                    body: [
+                        Pass(
+                            PassStmt {
+                                range: 24..28,
+                            },
+                        ),
+                    ],
+                    orelse: [],
+                },
+            ),
+            For(
+                ForStmt {
+                    range: 30..63,
+                    is_async: false,
+                    target: Name(
+                        NameExpr {
+                            range: 34..40,
+                            id: Name("target"),
+                            ctx: Store,
+                        },
+                    ),
+                    iter: Tuple(
+                        TupleExpr {
+                            range: 44..53,
+                            elts: [
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 45..46,
+                                        value: Int(
+                                            1,
+                                        ),
+                                    },
+                                ),
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 48..49,
+                                        value: Int(
+                                            2,
+                                        ),
+                                    },
+                                ),
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 51..52,
+                                        value: Int(
+                                            3,
+                                        ),
+                                    },
+                                ),
+                            ],
+                            ctx: Load,
+                            parenthesized: true,
+                        },
+                    ),
+                    body: [
+                        Pass(
+                            PassStmt {
+                                range: 59..63,
+                            },
+                        ),
+                    ],
+                    orelse: [],
+                },
+            ),
+            For(
+                ForStmt {
+                    range: 65..100,
+                    is_async: false,
+                    target: Attribute(
+                        AttributeExpr {
+                            range: 69..80,
+                            value: Name(
+                                NameExpr {
+                                    range: 69..75,
+                                    id: Name("target"),
+                                    ctx: Load,
+                                },
+                            ),
+                            attr: Identifier {
+                                id: Name("attr"),
+                                range: 76..80,
+                            },
+                            ctx: Store,
+                        },
+                    ),
+                    iter: Call(
+                        CallExpr {
+                            range: 84..90,
+                            func: Name(
+                                NameExpr {
+                                    range: 84..88,
+                                    id: Name("call"),
+                                    ctx: Load,
+                                },
+                            ),
+                            arguments: Arguments {
+                                range: 88..90,
+                                args: [],
+                                keywords: [],
+                            },
+                        },
+                    ),
+                    body: [
+                        Pass(
+                            PassStmt {
+                                range: 96..100,
+                            },
+                        ),
+                    ],
+                    orelse: [],
+                },
+            ),
+            For(
+                ForStmt {
+                    range: 102..135,
+                    is_async: false,
+                    target: Subscript(
+                        SubscriptExpr {
+                            range: 106..115,
+                            value: Name(
+                                NameExpr {
+                                    range: 106..112,
+                                    id: Name("target"),
+                                    ctx: Load,
+                                },
+                            ),
+                            slice: NumberLiteral(
+                                NumberLiteralExpr {
+                                    range: 113..114,
+                                    value: Int(
+                                        0,
+                                    ),
+                                },
+                            ),
+                            ctx: Store,
+                        },
+                    ),
+                    iter: Attribute(
+                        AttributeExpr {
+                            range: 119..125,
+                            value: Name(
+                                NameExpr {
+                                    range: 119..120,
+                                    id: Name("x"),
+                                    ctx: Load,
+                                },
+                            ),
+                            attr: Identifier {
+                                id: Name("attr"),
+                                range: 121..125,
+                            },
+                            ctx: Load,
+                        },
+                    ),
+                    body: [
+                        Pass(
+                            PassStmt {
+                                range: 131..135,
+                            },
+                        ),
+                    ],
+                    orelse: [],
+                },
+            ),
+            For(
+                ForStmt {
+                    range: 137..167,
+                    is_async: false,
+                    target: Name(
+                        NameExpr {
+                            range: 141..147,
+                            id: Name("target"),
+                            ctx: Store,
+                        },
+                    ),
+                    iter: Compare(
+                        CompareExpr {
+                            range: 151..157,
+                            left: Name(
+                                NameExpr {
+                                    range: 151..152,
+                                    id: Name("x"),
+                                    ctx: Load,
+                                },
+                            ),
+                            ops: [
+                                LtE,
+                            ],
+                            comparators: [
+                                Name(
+                                    NameExpr {
+                                        range: 156..157,
+                                        id: Name("y"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                    body: [
+                        Pass(
+                            PassStmt {
+                                range: 163..167,
+                            },
+                        ),
+                    ],
+                    orelse: [],
+                },
+            ),
+            For(
+                ForStmt {
+                    range: 169..200,
+                    is_async: false,
+                    target: Name(
+                        NameExpr {
+                            range: 173..179,
+                            id: Name("target"),
+                            ctx: Store,
+                        },
+                    ),
+                    iter: BoolOp(
+                        BoolOpExpr {
+                            range: 183..190,
+                            op: And,
+                            values: [
+                                Name(
+                                    NameExpr {
+                                        range: 183..184,
+                                        id: Name("a"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                Name(
+                                    NameExpr {
+                                        range: 189..190,
+                                        id: Name("b"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                    body: [
+                        Pass(
+                            PassStmt {
+                                range: 196..200,
+                            },
+                        ),
+                    ],
+                    orelse: [],
+                },
+            ),
+            For(
+                ForStmt {
+                    range: 202..232,
+                    is_async: false,
+                    target: Tuple(
+                        TupleExpr {
+                            range: 206..214,
+                            elts: [
+                                Name(
+                                    NameExpr {
+                                        range: 206..207,
+                                        id: Name("a"),
+                                        ctx: Store,
+                                    },
+                                ),
+                                Name(
+                                    NameExpr {
+                                        range: 209..210,
+                                        id: Name("b"),
+                                        ctx: Store,
+                                    },
+                                ),
+                                Name(
+                                    NameExpr {
+                                        range: 212..213,
+                                        id: Name("c"),
+                                        ctx: Store,
+                                    },
+                                ),
+                            ],
+                            ctx: Store,
+                            parenthesized: false,
+                        },
+                    ),
+                    iter: Name(
+                        NameExpr {
+                            range: 218..222,
+                            id: Name("iter"),
+                            ctx: Load,
+                        },
+                    ),
+                    body: [
+                        Pass(
+                            PassStmt {
+                                range: 228..232,
+                            },
+                        ),
+                    ],
+                    orelse: [],
+                },
+            ),
+            For(
+                ForStmt {
+                    range: 234..262,
+                    is_async: false,
+                    target: Tuple(
+                        TupleExpr {
+                            range: 238..244,
+                            elts: [
+                                Name(
+                                    NameExpr {
+                                        range: 239..240,
+                                        id: Name("a"),
+                                        ctx: Store,
+                                    },
+                                ),
+                                Name(
+                                    NameExpr {
+                                        range: 242..243,
+                                        id: Name("b"),
+                                        ctx: Store,
+                                    },
+                                ),
+                            ],
+                            ctx: Store,
+                            parenthesized: true,
+                        },
+                    ),
+                    iter: Name(
+                        NameExpr {
+                            range: 248..252,
+                            id: Name("iter"),
+                            ctx: Load,
+                        },
+                    ),
+                    body: [
+                        Pass(
+                            PassStmt {
+                                range: 258..262,
+                            },
+                        ),
+                    ],
+                    orelse: [],
+                },
+            ),
+            For(
+                ForStmt {
+                    range: 264..295,
+                    is_async: false,
+                    target: Name(
+                        NameExpr {
+                            range: 268..274,
+                            id: Name("target"),
+                            ctx: Store,
+                        },
+                    ),
+                    iter: Starred(
+                        StarredExpr {
+                            range: 278..285,
+                            value: Attribute(
+                                AttributeExpr {
+                                    range: 279..285,
+                                    value: Name(
+                                        NameExpr {
+                                            range: 279..280,
+                                            id: Name("x"),
+                                            ctx: Load,
+                                        },
+                                    ),
+                                    attr: Identifier {
+                                        id: Name("attr"),
+                                        range: 281..285,
+                                    },
+                                    ctx: Load,
+                                },
+                            ),
+                            ctx: Load,
+                        },
+                    ),
+                    body: [
+                        Pass(
+                            PassStmt {
+                                range: 291..295,
+                            },
+                        ),
+                    ],
+                    orelse: [],
+                },
+            ),
+            For(
+                ForStmt {
+                    range: 297..327,
+                    is_async: false,
+                    target: Name(
+                        NameExpr {
+                            range: 301..307,
+                            id: Name("target"),
+                            ctx: Store,
+                        },
+                    ),
+                    iter: List(
+                        ListExpr {
+                            range: 311..317,
+                            elts: [
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 312..313,
+                                        value: Int(
+                                            1,
+                                        ),
+                                    },
+                                ),
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 315..316,
+                                        value: Int(
+                                            2,
+                                        ),
+                                    },
+                                ),
+                            ],
+                            ctx: Load,
+                        },
+                    ),
+                    body: [
+                        Pass(
+                            PassStmt {
+                                range: 323..327,
+                            },
+                        ),
+                    ],
+                    orelse: [],
+                },
+            ),
+            For(
+                ForStmt {
+                    range: 329..377,
+                    is_async: false,
+                    target: Starred(
+                        StarredExpr {
+                            range: 333..340,
+                            value: Name(
+                                NameExpr {
+                                    range: 334..340,
+                                    id: Name("target"),
+                                    ctx: Store,
+                                },
+                            ),
+                            ctx: Store,
+                        },
+                    ),
+                    iter: Tuple(
+                        TupleExpr {
+                            range: 344..352,
+                            elts: [
+                                Name(
+                                    NameExpr {
+                                        range: 344..345,
+                                        id: Name("a"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                Name(
+                                    NameExpr {
+                                        range: 347..348,
+                                        id: Name("b"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                Name(
+                                    NameExpr {
+                                        range: 350..351,
+                                        id: Name("c"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                            ctx: Load,
+                            parenthesized: false,
+                        },
+                    ),
+                    body: [
+                        Pass(
+                            PassStmt {
+                                range: 358..362,
+                            },
+                        ),
+                    ],
+                    orelse: [
+                        Pass(
+                            PassStmt {
+                                range: 373..377,
+                            },
+                        ),
+                    ],
+                },
+            ),
+            For(
+                ForStmt {
+                    range: 379..404,
+                    is_async: false,
+                    target: Name(
+                        NameExpr {
+                            range: 383..389,
+                            id: Name("target"),
+                            ctx: Store,
+                        },
+                    ),
+                    iter: Starred(
+                        StarredExpr {
+                            range: 393..399,
+                            value: BinOp(
+                                BinOpExpr {
+                                    range: 394..399,
+                                    left: Name(
+                                        NameExpr {
+                                            range: 394..395,
+                                            id: Name("x"),
+                                            ctx: Load,
+                                        },
+                                    ),
+                                    op: BitOr,
+                                    right: Name(
+                                        NameExpr {
+                                            range: 398..399,
+                                            id: Name("y"),
+                                            ctx: Load,
+                                        },
+                                    ),
+                                },
+                            ),
+                            ctx: Load,
+                        },
+                    ),
+                    body: [
+                        Expr(
+                            ExprStmt {
+                                range: 401..404,
+                                value: EllipsisLiteral(
+                                    EllipsisLiteralExpr {
+                                        range: 401..404,
+                                    },
+                                ),
+                            },
+                        ),
+                    ],
+                    orelse: [],
+                },
+            ),
+            For(
+                ForStmt {
+                    range: 405..432,
+                    is_async: false,
+                    target: Name(
+                        NameExpr {
+                            range: 409..415,
+                            id: Name("target"),
+                            ctx: Store,
+                        },
+                    ),
+                    iter: Starred(
+                        StarredExpr {
+                            range: 419..427,
+                            value: Await(
+                                AwaitExpr {
+                                    range: 420..427,
+                                    value: Name(
+                                        NameExpr {
+                                            range: 426..427,
+                                            id: Name("x"),
+                                            ctx: Load,
+                                        },
+                                    ),
+                                },
+                            ),
+                            ctx: Load,
+                        },
+                    ),
+                    body: [
+                        Expr(
+                            ExprStmt {
+                                range: 429..432,
+                                value: EllipsisLiteral(
+                                    EllipsisLiteralExpr {
+                                        range: 429..432,
+                                    },
+                                ),
+                            },
+                        ),
+                    ],
+                    orelse: [],
+                },
+            ),
+            For(
+                ForStmt {
+                    range: 433..459,
+                    is_async: false,
+                    target: Name(
+                        NameExpr {
+                            range: 437..443,
+                            id: Name("target"),
+                            ctx: Store,
+                        },
+                    ),
+                    iter: Await(
+                        AwaitExpr {
+                            range: 447..454,
+                            value: Name(
+                                NameExpr {
+                                    range: 453..454,
+                                    id: Name("x"),
+                                    ctx: Load,
+                                },
+                            ),
+                        },
+                    ),
+                    body: [
+                        Expr(
+                            ExprStmt {
+                                range: 456..459,
+                                value: EllipsisLiteral(
+                                    EllipsisLiteralExpr {
+                                        range: 456..459,
+                                    },
+                                ),
+                            },
+                        ),
+                    ],
+                    orelse: [],
+                },
+            ),
+            For(
+                ForStmt {
+                    range: 460..490,
+                    is_async: false,
+                    target: Name(
+                        NameExpr {
+                            range: 464..470,
+                            id: Name("target"),
+                            ctx: Store,
+                        },
+                    ),
+                    iter: Lambda(
+                        LambdaExpr {
+                            range: 474..485,
+                            parameters: Some(
+                                Parameters {
+                                    range: 481..482,
+                                    posonlyargs: [],
+                                    args: [
+                                        ParameterWithDefault {
+                                            range: 481..482,
+                                            parameter: Parameter {
+                                                range: 481..482,
+                                                name: Identifier {
+                                                    id: Name("x"),
+                                                    range: 481..482,
+                                                },
+                                                annotation: None,
+                                            },
+                                            default: None,
+                                        },
+                                    ],
+                                    vararg: None,
+                                    kwonlyargs: [],
+                                    kwarg: None,
+                                },
+                            ),
+                            body: Name(
+                                NameExpr {
+                                    range: 484..485,
+                                    id: Name("x"),
+                                    ctx: Load,
+                                },
+                            ),
+                        },
+                    ),
+                    body: [
+                        Expr(
+                            ExprStmt {
+                                range: 487..490,
+                                value: EllipsisLiteral(
+                                    EllipsisLiteralExpr {
+                                        range: 487..490,
+                                    },
+                                ),
+                            },
+                        ),
+                    ],
+                    orelse: [],
+                },
+            ),
+            For(
+                ForStmt {
+                    range: 491..526,
+                    is_async: false,
+                    target: Name(
+                        NameExpr {
+                            range: 495..501,
+                            id: Name("target"),
+                            ctx: Store,
+                        },
+                    ),
+                    iter: If(
+                        IfExpr {
+                            range: 505..521,
+                            test: BooleanLiteral(
+                                BooleanLiteralExpr {
+                                    range: 510..514,
+                                    value: true,
+                                },
+                            ),
+                            body: Name(
+                                NameExpr {
+                                    range: 505..506,
+                                    id: Name("x"),
+                                    ctx: Load,
+                                },
+                            ),
+                            orelse: Name(
+                                NameExpr {
+                                    range: 520..521,
+                                    id: Name("y"),
+                                    ctx: Load,
+                                },
+                            ),
+                        },
+                    ),
+                    body: [
+                        Expr(
+                            ExprStmt {
+                                range: 523..526,
+                                value: EllipsisLiteral(
+                                    EllipsisLiteralExpr {
+                                        range: 523..526,
+                                    },
+                                ),
+                            },
+                        ),
+                    ],
+                    orelse: [],
+                },
+            ),
+            If(
+                IfStmt {
+                    range: 528..659,
+                    test: Name(
+                        NameExpr {
+                            range: 531..532,
+                            id: Name("x"),
+                            ctx: Load,
+                        },
+                    ),
+                    body: [
+                        For(
+                            ForStmt {
+                                range: 538..570,
+                                is_async: false,
+                                target: Name(
+                                    NameExpr {
+                                        range: 542..548,
+                                        id: Name("target"),
+                                        ctx: Store,
+                                    },
+                                ),
+                                iter: Name(
+                                    NameExpr {
+                                        range: 552..556,
+                                        id: Name("iter"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                body: [
+                                    Pass(
+                                        PassStmt {
+                                            range: 566..570,
+                                        },
+                                    ),
+                                ],
+                                orelse: [],
+                            },
+                        ),
+                    ],
+                    elif_else_clauses: [
+                        ElifElseClause {
+                            range: 645..659,
+                            test: None,
+                            body: [
+                                Pass(
+                                    PassStmt {
+                                        range: 655..659,
+                                    },
+                                ),
+                            ],
+                        },
+                    ],
+                },
+            ),
+        ],
+    },
+)
+```

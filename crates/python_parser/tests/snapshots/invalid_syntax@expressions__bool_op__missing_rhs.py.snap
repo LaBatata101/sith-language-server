@@ -1,0 +1,77 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/invalid/expressions/bool_op/missing_rhs.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..12,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 0..5,
+                    value: BoolOp(
+                        BoolOpExpr {
+                            range: 0..5,
+                            op: And,
+                            values: [
+                                Name(
+                                    NameExpr {
+                                        range: 0..1,
+                                        id: Name("x"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                Name(
+                                    NameExpr {
+                                        range: 5..5,
+                                        id: Name(""),
+                                        ctx: Invalid,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 7..12,
+                    value: BinOp(
+                        BinOpExpr {
+                            range: 7..12,
+                            left: NumberLiteral(
+                                NumberLiteralExpr {
+                                    range: 7..8,
+                                    value: Int(
+                                        1,
+                                    ),
+                                },
+                            ),
+                            op: Add,
+                            right: NumberLiteral(
+                                NumberLiteralExpr {
+                                    range: 11..12,
+                                    value: Int(
+                                        2,
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | x and
+  |      ^ Syntax Error: Expected an expression
+2 | 
+3 | 1 + 2
+  |

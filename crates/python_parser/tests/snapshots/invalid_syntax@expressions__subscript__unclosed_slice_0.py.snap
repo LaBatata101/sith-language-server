@@ -1,0 +1,70 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/invalid/expressions/subscript/unclosed_slice_0.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..10,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 0..10,
+                    value: Subscript(
+                        SubscriptExpr {
+                            range: 0..10,
+                            value: Name(
+                                NameExpr {
+                                    range: 0..1,
+                                    id: Name("x"),
+                                    ctx: Load,
+                                },
+                            ),
+                            slice: Slice(
+                                SliceExpr {
+                                    range: 2..10,
+                                    lower: None,
+                                    upper: Some(
+                                        BinOp(
+                                            BinOpExpr {
+                                                range: 5..10,
+                                                left: Name(
+                                                    NameExpr {
+                                                        range: 5..6,
+                                                        id: Name("x"),
+                                                        ctx: Load,
+                                                    },
+                                                ),
+                                                op: Add,
+                                                right: Name(
+                                                    NameExpr {
+                                                        range: 9..10,
+                                                        id: Name("y"),
+                                                        ctx: Load,
+                                                    },
+                                                ),
+                                            },
+                                        ),
+                                    ),
+                                    step: None,
+                                },
+                            ),
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | x[:
+2 | 
+3 | x + y
+  |       Syntax Error: unexpected EOF while parsing
+  |

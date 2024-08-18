@@ -1,0 +1,73 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/err/invalid_string_literal.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..56,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 0..25,
+                    value: StringLiteral(
+                        StringLiteralExpr {
+                            range: 0..25,
+                            value: StringLiteralValue {
+                                inner: Single(
+                                    StringLiteral {
+                                        range: 0..25,
+                                        value: "",
+                                        flags: StringLiteralFlags {
+                                            prefix: Empty,
+                                            triple_quoted: false,
+                                        },
+                                    },
+                                ),
+                            },
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 26..55,
+                    value: StringLiteral(
+                        StringLiteralExpr {
+                            range: 26..55,
+                            value: StringLiteralValue {
+                                inner: Single(
+                                    StringLiteral {
+                                        range: 26..55,
+                                        value: "",
+                                        flags: StringLiteralFlags {
+                                            prefix: Empty,
+                                            triple_quoted: true,
+                                        },
+                                    },
+                                ),
+                            },
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | 'hello \N{INVALID} world'
+  |           ^^^^^^^ Syntax Error: Got unexpected unicode
+2 | """hello \N{INVALID} world"""
+  |
+
+
+  |
+1 | 'hello \N{INVALID} world'
+2 | """hello \N{INVALID} world"""
+  |             ^^^^^^^ Syntax Error: Got unexpected unicode
+  |

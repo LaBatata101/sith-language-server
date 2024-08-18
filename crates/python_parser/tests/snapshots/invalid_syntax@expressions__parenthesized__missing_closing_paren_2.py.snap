@@ -1,0 +1,65 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/invalid/expressions/parenthesized/missing_closing_paren_2.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..146,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 136..146,
+                    value: Tuple(
+                        TupleExpr {
+                            range: 136..146,
+                            elts: [
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 137..138,
+                                        value: Int(
+                                            1,
+                                        ),
+                                    },
+                                ),
+                                BinOp(
+                                    BinOpExpr {
+                                        range: 141..146,
+                                        left: Name(
+                                            NameExpr {
+                                                range: 141..142,
+                                                id: Name("x"),
+                                                ctx: Load,
+                                            },
+                                        ),
+                                        op: Add,
+                                        right: Name(
+                                            NameExpr {
+                                                range: 145..146,
+                                                id: Name("y"),
+                                                ctx: Load,
+                                            },
+                                        ),
+                                    },
+                                ),
+                            ],
+                            ctx: Load,
+                            parenthesized: true,
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+4 | (1,
+5 | 
+6 | x + y
+  |       Syntax Error: unexpected EOF while parsing
+  |

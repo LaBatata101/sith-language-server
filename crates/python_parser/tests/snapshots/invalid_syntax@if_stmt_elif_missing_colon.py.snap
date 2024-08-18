@@ -1,0 +1,77 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/err/if_stmt_elif_missing_colon.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..46,
+        body: [
+            If(
+                IfStmt {
+                    range: 0..45,
+                    test: Name(
+                        NameExpr {
+                            range: 3..4,
+                            id: Name("x"),
+                            ctx: Load,
+                        },
+                    ),
+                    body: [
+                        Pass(
+                            PassStmt {
+                                range: 10..14,
+                            },
+                        ),
+                    ],
+                    elif_else_clauses: [
+                        ElifElseClause {
+                            range: 15..30,
+                            test: Some(
+                                Name(
+                                    NameExpr {
+                                        range: 20..21,
+                                        id: Name("y"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ),
+                            body: [
+                                Pass(
+                                    PassStmt {
+                                        range: 26..30,
+                                    },
+                                ),
+                            ],
+                        },
+                        ElifElseClause {
+                            range: 31..45,
+                            test: None,
+                            body: [
+                                Pass(
+                                    PassStmt {
+                                        range: 41..45,
+                                    },
+                                ),
+                            ],
+                        },
+                    ],
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | if x:
+2 |     pass
+3 | elif y
+  |       ^ Syntax Error: Expected ':', found newline
+4 |     pass
+5 | else:
+6 |     pass
+  |

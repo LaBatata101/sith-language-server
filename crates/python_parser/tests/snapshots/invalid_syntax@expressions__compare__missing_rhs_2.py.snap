@@ -1,0 +1,79 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/invalid/expressions/compare/missing_rhs_2.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..15,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 0..8,
+                    value: Compare(
+                        CompareExpr {
+                            range: 0..8,
+                            left: Name(
+                                NameExpr {
+                                    range: 0..1,
+                                    id: Name("x"),
+                                    ctx: Load,
+                                },
+                            ),
+                            ops: [
+                                IsNot,
+                            ],
+                            comparators: [
+                                Name(
+                                    NameExpr {
+                                        range: 8..8,
+                                        id: Name(""),
+                                        ctx: Invalid,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 10..15,
+                    value: BinOp(
+                        BinOpExpr {
+                            range: 10..15,
+                            left: NumberLiteral(
+                                NumberLiteralExpr {
+                                    range: 10..11,
+                                    value: Int(
+                                        1,
+                                    ),
+                                },
+                            ),
+                            op: Add,
+                            right: NumberLiteral(
+                                NumberLiteralExpr {
+                                    range: 14..15,
+                                    value: Int(
+                                        2,
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | x is not
+  |         ^ Syntax Error: Expected an expression
+2 | 
+3 | 1 + 2
+  |

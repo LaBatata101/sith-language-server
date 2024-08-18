@@ -1,0 +1,810 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/valid/expressions/list.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..384,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 15..17,
+                    value: List(
+                        ListExpr {
+                            range: 15..17,
+                            elts: [],
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 18..21,
+                    value: List(
+                        ListExpr {
+                            range: 18..21,
+                            elts: [
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 19..20,
+                                        value: Int(
+                                            1,
+                                        ),
+                                    },
+                                ),
+                            ],
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 22..26,
+                    value: List(
+                        ListExpr {
+                            range: 22..26,
+                            elts: [
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 23..24,
+                                        value: Int(
+                                            1,
+                                        ),
+                                    },
+                                ),
+                            ],
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 27..36,
+                    value: List(
+                        ListExpr {
+                            range: 27..36,
+                            elts: [
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 28..29,
+                                        value: Int(
+                                            1,
+                                        ),
+                                    },
+                                ),
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 31..32,
+                                        value: Int(
+                                            2,
+                                        ),
+                                    },
+                                ),
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 34..35,
+                                        value: Int(
+                                            3,
+                                        ),
+                                    },
+                                ),
+                            ],
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 37..47,
+                    value: List(
+                        ListExpr {
+                            range: 37..47,
+                            elts: [
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 38..39,
+                                        value: Int(
+                                            1,
+                                        ),
+                                    },
+                                ),
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 41..42,
+                                        value: Int(
+                                            2,
+                                        ),
+                                    },
+                                ),
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 44..45,
+                                        value: Int(
+                                            3,
+                                        ),
+                                    },
+                                ),
+                            ],
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 75..78,
+                    value: List(
+                        ListExpr {
+                            range: 75..78,
+                            elts: [],
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 79..92,
+                    value: List(
+                        ListExpr {
+                            range: 79..92,
+                            elts: [
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 89..90,
+                                        value: Int(
+                                            1,
+                                        ),
+                                    },
+                                ),
+                            ],
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 93..114,
+                    value: List(
+                        ListExpr {
+                            range: 93..114,
+                            elts: [
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 99..100,
+                                        value: Int(
+                                            1,
+                                        ),
+                                    },
+                                ),
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 110..111,
+                                        value: Int(
+                                            2,
+                                        ),
+                                    },
+                                ),
+                            ],
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 125..132,
+                    value: List(
+                        ListExpr {
+                            range: 125..132,
+                            elts: [
+                                List(
+                                    ListExpr {
+                                        range: 126..131,
+                                        elts: [
+                                            List(
+                                                ListExpr {
+                                                    range: 127..130,
+                                                    elts: [
+                                                        NumberLiteral(
+                                                            NumberLiteralExpr {
+                                                                range: 128..129,
+                                                                value: Int(
+                                                                    1,
+                                                                ),
+                                                            },
+                                                        ),
+                                                    ],
+                                                    ctx: Load,
+                                                },
+                                            ),
+                                        ],
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 133..149,
+                    value: List(
+                        ListExpr {
+                            range: 133..149,
+                            elts: [
+                                List(
+                                    ListExpr {
+                                        range: 134..140,
+                                        elts: [
+                                            NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 135..136,
+                                                    value: Int(
+                                                        1,
+                                                    ),
+                                                },
+                                            ),
+                                            NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 138..139,
+                                                    value: Int(
+                                                        2,
+                                                    ),
+                                                },
+                                            ),
+                                        ],
+                                        ctx: Load,
+                                    },
+                                ),
+                                List(
+                                    ListExpr {
+                                        range: 142..148,
+                                        elts: [
+                                            NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 143..144,
+                                                    value: Int(
+                                                        3,
+                                                    ),
+                                                },
+                                            ),
+                                            NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 146..147,
+                                                    value: Int(
+                                                        4,
+                                                    ),
+                                                },
+                                            ),
+                                        ],
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 170..178,
+                    value: List(
+                        ListExpr {
+                            range: 170..178,
+                            elts: [
+                                Named(
+                                    NamedExpr {
+                                        range: 171..177,
+                                        target: Name(
+                                            NameExpr {
+                                                range: 171..172,
+                                                id: Name("x"),
+                                                ctx: Store,
+                                            },
+                                        ),
+                                        value: NumberLiteral(
+                                            NumberLiteralExpr {
+                                                range: 176..177,
+                                                value: Int(
+                                                    2,
+                                                ),
+                                            },
+                                        ),
+                                    },
+                                ),
+                            ],
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 179..188,
+                    value: List(
+                        ListExpr {
+                            range: 179..188,
+                            elts: [
+                                Named(
+                                    NamedExpr {
+                                        range: 180..186,
+                                        target: Name(
+                                            NameExpr {
+                                                range: 180..181,
+                                                id: Name("x"),
+                                                ctx: Store,
+                                            },
+                                        ),
+                                        value: NumberLiteral(
+                                            NumberLiteralExpr {
+                                                range: 185..186,
+                                                value: Int(
+                                                    2,
+                                                ),
+                                            },
+                                        ),
+                                    },
+                                ),
+                            ],
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 189..203,
+                    value: List(
+                        ListExpr {
+                            range: 189..203,
+                            elts: [
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 190..191,
+                                        value: Int(
+                                            1,
+                                        ),
+                                    },
+                                ),
+                                Named(
+                                    NamedExpr {
+                                        range: 193..199,
+                                        target: Name(
+                                            NameExpr {
+                                                range: 193..194,
+                                                id: Name("x"),
+                                                ctx: Store,
+                                            },
+                                        ),
+                                        value: NumberLiteral(
+                                            NumberLiteralExpr {
+                                                range: 198..199,
+                                                value: Int(
+                                                    2,
+                                                ),
+                                            },
+                                        ),
+                                    },
+                                ),
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 201..202,
+                                        value: Int(
+                                            3,
+                                        ),
+                                    },
+                                ),
+                            ],
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 223..233,
+                    value: List(
+                        ListExpr {
+                            range: 223..233,
+                            elts: [
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 224..225,
+                                        value: Int(
+                                            1,
+                                        ),
+                                    },
+                                ),
+                                Starred(
+                                    StarredExpr {
+                                        range: 227..229,
+                                        value: Name(
+                                            NameExpr {
+                                                range: 228..229,
+                                                id: Name("x"),
+                                                ctx: Load,
+                                            },
+                                        ),
+                                        ctx: Load,
+                                    },
+                                ),
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 231..232,
+                                        value: Int(
+                                            3,
+                                        ),
+                                    },
+                                ),
+                            ],
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 234..248,
+                    value: List(
+                        ListExpr {
+                            range: 234..248,
+                            elts: [
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 235..236,
+                                        value: Int(
+                                            1,
+                                        ),
+                                    },
+                                ),
+                                Starred(
+                                    StarredExpr {
+                                        range: 238..244,
+                                        value: BinOp(
+                                            BinOpExpr {
+                                                range: 239..244,
+                                                left: Name(
+                                                    NameExpr {
+                                                        range: 239..240,
+                                                        id: Name("x"),
+                                                        ctx: Load,
+                                                    },
+                                                ),
+                                                op: BitOr,
+                                                right: Name(
+                                                    NameExpr {
+                                                        range: 243..244,
+                                                        id: Name("y"),
+                                                        ctx: Load,
+                                                    },
+                                                ),
+                                            },
+                                        ),
+                                        ctx: Load,
+                                    },
+                                ),
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 246..247,
+                                        value: Int(
+                                            3,
+                                        ),
+                                    },
+                                ),
+                            ],
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 271..334,
+                    value: List(
+                        ListExpr {
+                            range: 271..334,
+                            elts: [
+                                BinOp(
+                                    BinOpExpr {
+                                        range: 272..277,
+                                        left: NumberLiteral(
+                                            NumberLiteralExpr {
+                                                range: 272..273,
+                                                value: Int(
+                                                    1,
+                                                ),
+                                            },
+                                        ),
+                                        op: Add,
+                                        right: NumberLiteral(
+                                            NumberLiteralExpr {
+                                                range: 276..277,
+                                                value: Int(
+                                                    2,
+                                                ),
+                                            },
+                                        ),
+                                    },
+                                ),
+                                List(
+                                    ListExpr {
+                                        range: 279..291,
+                                        elts: [
+                                            NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 280..281,
+                                                    value: Int(
+                                                        1,
+                                                    ),
+                                                },
+                                            ),
+                                            NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 283..284,
+                                                    value: Int(
+                                                        2,
+                                                    ),
+                                                },
+                                            ),
+                                            NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 286..287,
+                                                    value: Int(
+                                                        3,
+                                                    ),
+                                                },
+                                            ),
+                                            NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 289..290,
+                                                    value: Int(
+                                                        4,
+                                                    ),
+                                                },
+                                            ),
+                                        ],
+                                        ctx: Load,
+                                    },
+                                ),
+                                Tuple(
+                                    TupleExpr {
+                                        range: 293..306,
+                                        elts: [
+                                            Name(
+                                                NameExpr {
+                                                    range: 294..295,
+                                                    id: Name("a"),
+                                                    ctx: Load,
+                                                },
+                                            ),
+                                            BinOp(
+                                                BinOpExpr {
+                                                    range: 297..302,
+                                                    left: Name(
+                                                        NameExpr {
+                                                            range: 297..298,
+                                                            id: Name("b"),
+                                                            ctx: Load,
+                                                        },
+                                                    ),
+                                                    op: Add,
+                                                    right: Name(
+                                                        NameExpr {
+                                                            range: 301..302,
+                                                            id: Name("c"),
+                                                            ctx: Load,
+                                                        },
+                                                    ),
+                                                },
+                                            ),
+                                            Name(
+                                                NameExpr {
+                                                    range: 304..305,
+                                                    id: Name("d"),
+                                                    ctx: Load,
+                                                },
+                                            ),
+                                        ],
+                                        ctx: Load,
+                                        parenthesized: true,
+                                    },
+                                ),
+                                Set(
+                                    SetExpr {
+                                        range: 308..317,
+                                        elts: [
+                                            Name(
+                                                NameExpr {
+                                                    range: 309..310,
+                                                    id: Name("a"),
+                                                    ctx: Load,
+                                                },
+                                            ),
+                                            Name(
+                                                NameExpr {
+                                                    range: 312..313,
+                                                    id: Name("b"),
+                                                    ctx: Load,
+                                                },
+                                            ),
+                                            Name(
+                                                NameExpr {
+                                                    range: 315..316,
+                                                    id: Name("c"),
+                                                    ctx: Load,
+                                                },
+                                            ),
+                                        ],
+                                    },
+                                ),
+                                Dict(
+                                    DictExpr {
+                                        range: 319..325,
+                                        items: [
+                                            DictItem {
+                                                key: Some(
+                                                    Name(
+                                                        NameExpr {
+                                                            range: 320..321,
+                                                            id: Name("a"),
+                                                            ctx: Load,
+                                                        },
+                                                    ),
+                                                ),
+                                                value: NumberLiteral(
+                                                    NumberLiteralExpr {
+                                                        range: 323..324,
+                                                        value: Int(
+                                                            1,
+                                                        ),
+                                                    },
+                                                ),
+                                            },
+                                        ],
+                                    },
+                                ),
+                                Named(
+                                    NamedExpr {
+                                        range: 327..333,
+                                        target: Name(
+                                            NameExpr {
+                                                range: 327..328,
+                                                id: Name("x"),
+                                                ctx: Store,
+                                            },
+                                        ),
+                                        value: NumberLiteral(
+                                            NumberLiteralExpr {
+                                                range: 332..333,
+                                                value: Int(
+                                                    2,
+                                                ),
+                                            },
+                                        ),
+                                    },
+                                ),
+                            ],
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 335..383,
+                    value: List(
+                        ListExpr {
+                            range: 335..383,
+                            elts: [
+                                Call(
+                                    CallExpr {
+                                        range: 336..382,
+                                        func: Name(
+                                            NameExpr {
+                                                range: 336..341,
+                                                id: Name("call1"),
+                                                ctx: Load,
+                                            },
+                                        ),
+                                        arguments: Arguments {
+                                            range: 341..382,
+                                            args: [
+                                                Generator(
+                                                    GeneratorExpr {
+                                                        range: 342..381,
+                                                        elt: Call(
+                                                            CallExpr {
+                                                                range: 342..361,
+                                                                func: Name(
+                                                                    NameExpr {
+                                                                        range: 342..347,
+                                                                        id: Name("call2"),
+                                                                        ctx: Load,
+                                                                    },
+                                                                ),
+                                                                arguments: Arguments {
+                                                                    range: 347..361,
+                                                                    args: [
+                                                                        Call(
+                                                                            CallExpr {
+                                                                                range: 348..360,
+                                                                                func: Attribute(
+                                                                                    AttributeExpr {
+                                                                                        range: 348..358,
+                                                                                        value: Name(
+                                                                                            NameExpr {
+                                                                                                range: 348..353,
+                                                                                                id: Name("value"),
+                                                                                                ctx: Load,
+                                                                                            },
+                                                                                        ),
+                                                                                        attr: Identifier {
+                                                                                            id: Name("attr"),
+                                                                                            range: 354..358,
+                                                                                        },
+                                                                                        ctx: Load,
+                                                                                    },
+                                                                                ),
+                                                                                arguments: Arguments {
+                                                                                    range: 358..360,
+                                                                                    args: [],
+                                                                                    keywords: [],
+                                                                                },
+                                                                            },
+                                                                        ),
+                                                                    ],
+                                                                    keywords: [],
+                                                                },
+                                                            },
+                                                        ),
+                                                        generators: [
+                                                            Comprehension {
+                                                                range: 362..381,
+                                                                target: Name(
+                                                                    NameExpr {
+                                                                        range: 366..373,
+                                                                        id: Name("element"),
+                                                                        ctx: Store,
+                                                                    },
+                                                                ),
+                                                                iter: Name(
+                                                                    NameExpr {
+                                                                        range: 377..381,
+                                                                        id: Name("iter"),
+                                                                        ctx: Load,
+                                                                    },
+                                                                ),
+                                                                ifs: [],
+                                                                is_async: false,
+                                                            },
+                                                        ],
+                                                        parenthesized: false,
+                                                    },
+                                                ),
+                                            ],
+                                            keywords: [],
+                                        },
+                                    },
+                                ),
+                            ],
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```

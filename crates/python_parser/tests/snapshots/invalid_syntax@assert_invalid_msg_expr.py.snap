@@ -1,0 +1,160 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/err/assert_invalid_msg_expr.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..83,
+        body: [
+            Assert(
+                AssertStmt {
+                    range: 0..16,
+                    test: BooleanLiteral(
+                        BooleanLiteralExpr {
+                            range: 7..12,
+                            value: false,
+                        },
+                    ),
+                    msg: Some(
+                        Starred(
+                            StarredExpr {
+                                range: 14..16,
+                                value: Name(
+                                    NameExpr {
+                                        range: 15..16,
+                                        id: Name("x"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                ctx: Load,
+                            },
+                        ),
+                    ),
+                },
+            ),
+            Assert(
+                AssertStmt {
+                    range: 17..30,
+                    test: BooleanLiteral(
+                        BooleanLiteralExpr {
+                            range: 24..29,
+                            value: false,
+                        },
+                    ),
+                    msg: None,
+                },
+            ),
+            Assert(
+                AssertStmt {
+                    range: 31..39,
+                    test: Name(
+                        NameExpr {
+                            range: 38..39,
+                            id: Name("x"),
+                            ctx: Load,
+                        },
+                    ),
+                    msg: None,
+                },
+            ),
+            Assert(
+                AssertStmt {
+                    range: 40..61,
+                    test: BooleanLiteral(
+                        BooleanLiteralExpr {
+                            range: 47..52,
+                            value: false,
+                        },
+                    ),
+                    msg: Some(
+                        Yield(
+                            YieldExpr {
+                                range: 54..61,
+                                value: Some(
+                                    Name(
+                                        NameExpr {
+                                            range: 60..61,
+                                            id: Name("x"),
+                                            ctx: Load,
+                                        },
+                                    ),
+                                ),
+                            },
+                        ),
+                    ),
+                },
+            ),
+            Assert(
+                AssertStmt {
+                    range: 62..77,
+                    test: BooleanLiteral(
+                        BooleanLiteralExpr {
+                            range: 69..74,
+                            value: false,
+                        },
+                    ),
+                    msg: Some(
+                        Name(
+                            NameExpr {
+                                range: 76..77,
+                                id: Name("x"),
+                                ctx: Load,
+                            },
+                        ),
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 81..82,
+                    value: NumberLiteral(
+                        NumberLiteralExpr {
+                            range: 81..82,
+                            value: Int(
+                                1,
+                            ),
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | assert False, *x
+  |               ^^ Syntax Error: Starred expression cannot be used here
+2 | assert False, assert x
+3 | assert False, yield x
+  |
+
+
+  |
+1 | assert False, *x
+2 | assert False, assert x
+  |               ^^^^^^ Syntax Error: Expected an expression
+3 | assert False, yield x
+4 | assert False, x := 1
+  |
+
+
+  |
+1 | assert False, *x
+2 | assert False, assert x
+3 | assert False, yield x
+  |               ^^^^^^^ Syntax Error: Yield expression cannot be used here
+4 | assert False, x := 1
+  |
+
+
+  |
+2 | assert False, assert x
+3 | assert False, yield x
+4 | assert False, x := 1
+  |                 ^^ Syntax Error: Expected a statement
+  |

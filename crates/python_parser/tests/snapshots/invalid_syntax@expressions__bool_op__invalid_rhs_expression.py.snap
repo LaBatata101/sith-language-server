@@ -1,0 +1,120 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/invalid/expressions/bool_op/invalid_rhs_expression.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..31,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 0..17,
+                    value: BoolOp(
+                        BoolOpExpr {
+                            range: 0..17,
+                            op: And,
+                            values: [
+                                Name(
+                                    NameExpr {
+                                        range: 0..1,
+                                        id: Name("x"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                Lambda(
+                                    LambdaExpr {
+                                        range: 6..17,
+                                        parameters: Some(
+                                            Parameters {
+                                                range: 13..14,
+                                                posonlyargs: [],
+                                                args: [
+                                                    ParameterWithDefault {
+                                                        range: 13..14,
+                                                        parameter: Parameter {
+                                                            range: 13..14,
+                                                            name: Identifier {
+                                                                id: Name("y"),
+                                                                range: 13..14,
+                                                            },
+                                                            annotation: None,
+                                                        },
+                                                        default: None,
+                                                    },
+                                                ],
+                                                vararg: None,
+                                                kwonlyargs: [],
+                                                kwarg: None,
+                                            },
+                                        ),
+                                        body: Name(
+                                            NameExpr {
+                                                range: 16..17,
+                                                id: Name("y"),
+                                                ctx: Load,
+                                            },
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 19..31,
+                    value: BoolOp(
+                        BoolOpExpr {
+                            range: 19..31,
+                            op: Or,
+                            values: [
+                                Name(
+                                    NameExpr {
+                                        range: 19..20,
+                                        id: Name("x"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                Yield(
+                                    YieldExpr {
+                                        range: 24..31,
+                                        value: Some(
+                                            Name(
+                                                NameExpr {
+                                                    range: 30..31,
+                                                    id: Name("y"),
+                                                    ctx: Load,
+                                                },
+                                            ),
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | x and lambda y: y
+  |       ^^^^^^^^^^^ Syntax Error: Lambda expression cannot be used here
+2 | 
+3 | x or yield y
+  |
+
+
+  |
+1 | x and lambda y: y
+2 | 
+3 | x or yield y
+  |      ^^^^^^^ Syntax Error: Yield expression cannot be used here
+  |

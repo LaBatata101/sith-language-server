@@ -1,0 +1,299 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/valid/statement/delete.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..122,
+        body: [
+            Delete(
+                DeleteStmt {
+                    range: 0..5,
+                    targets: [
+                        Name(
+                            NameExpr {
+                                range: 4..5,
+                                id: Name("x"),
+                                ctx: Del,
+                            },
+                        ),
+                    ],
+                },
+            ),
+            Delete(
+                DeleteStmt {
+                    range: 6..13,
+                    targets: [
+                        Name(
+                            NameExpr {
+                                range: 11..12,
+                                id: Name("x"),
+                                ctx: Del,
+                            },
+                        ),
+                    ],
+                },
+            ),
+            Delete(
+                DeleteStmt {
+                    range: 14..23,
+                    targets: [
+                        Name(
+                            NameExpr {
+                                range: 18..19,
+                                id: Name("a"),
+                                ctx: Del,
+                            },
+                        ),
+                        Name(
+                            NameExpr {
+                                range: 21..22,
+                                id: Name("b"),
+                                ctx: Del,
+                            },
+                        ),
+                    ],
+                },
+            ),
+            Delete(
+                DeleteStmt {
+                    range: 24..40,
+                    targets: [
+                        Name(
+                            NameExpr {
+                                range: 28..29,
+                                id: Name("a"),
+                                ctx: Del,
+                            },
+                        ),
+                        Tuple(
+                            TupleExpr {
+                                range: 31..37,
+                                elts: [
+                                    Name(
+                                        NameExpr {
+                                            range: 32..33,
+                                            id: Name("b"),
+                                            ctx: Del,
+                                        },
+                                    ),
+                                    Name(
+                                        NameExpr {
+                                            range: 35..36,
+                                            id: Name("c"),
+                                            ctx: Del,
+                                        },
+                                    ),
+                                ],
+                                ctx: Del,
+                                parenthesized: true,
+                            },
+                        ),
+                        Name(
+                            NameExpr {
+                                range: 39..40,
+                                id: Name("d"),
+                                ctx: Del,
+                            },
+                        ),
+                    ],
+                },
+            ),
+            Delete(
+                DeleteStmt {
+                    range: 41..51,
+                    targets: [
+                        List(
+                            ListExpr {
+                                range: 45..51,
+                                elts: [
+                                    Name(
+                                        NameExpr {
+                                            range: 46..47,
+                                            id: Name("a"),
+                                            ctx: Del,
+                                        },
+                                    ),
+                                    Name(
+                                        NameExpr {
+                                            range: 49..50,
+                                            id: Name("b"),
+                                            ctx: Del,
+                                        },
+                                    ),
+                                ],
+                                ctx: Del,
+                            },
+                        ),
+                    ],
+                },
+            ),
+            Delete(
+                DeleteStmt {
+                    range: 52..70,
+                    targets: [
+                        List(
+                            ListExpr {
+                                range: 56..70,
+                                elts: [
+                                    Name(
+                                        NameExpr {
+                                            range: 57..58,
+                                            id: Name("a"),
+                                            ctx: Del,
+                                        },
+                                    ),
+                                    List(
+                                        ListExpr {
+                                            range: 60..66,
+                                            elts: [
+                                                Name(
+                                                    NameExpr {
+                                                        range: 61..62,
+                                                        id: Name("b"),
+                                                        ctx: Del,
+                                                    },
+                                                ),
+                                                Name(
+                                                    NameExpr {
+                                                        range: 64..65,
+                                                        id: Name("c"),
+                                                        ctx: Del,
+                                                    },
+                                                ),
+                                            ],
+                                            ctx: Del,
+                                        },
+                                    ),
+                                    Name(
+                                        NameExpr {
+                                            range: 68..69,
+                                            id: Name("d"),
+                                            ctx: Del,
+                                        },
+                                    ),
+                                ],
+                                ctx: Del,
+                            },
+                        ),
+                    ],
+                },
+            ),
+            Delete(
+                DeleteStmt {
+                    range: 71..78,
+                    targets: [
+                        Attribute(
+                            AttributeExpr {
+                                range: 75..78,
+                                value: Name(
+                                    NameExpr {
+                                        range: 75..76,
+                                        id: Name("x"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                attr: Identifier {
+                                    id: Name("y"),
+                                    range: 77..78,
+                                },
+                                ctx: Del,
+                            },
+                        ),
+                    ],
+                },
+            ),
+            Delete(
+                DeleteStmt {
+                    range: 79..87,
+                    targets: [
+                        Subscript(
+                            SubscriptExpr {
+                                range: 83..87,
+                                value: Name(
+                                    NameExpr {
+                                        range: 83..84,
+                                        id: Name("x"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                slice: Name(
+                                    NameExpr {
+                                        range: 85..86,
+                                        id: Name("y"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                ctx: Del,
+                            },
+                        ),
+                    ],
+                },
+            ),
+            Delete(
+                DeleteStmt {
+                    range: 88..121,
+                    targets: [
+                        Tuple(
+                            TupleExpr {
+                                range: 92..121,
+                                elts: [
+                                    Name(
+                                        NameExpr {
+                                            range: 98..99,
+                                            id: Name("x"),
+                                            ctx: Del,
+                                        },
+                                    ),
+                                    Attribute(
+                                        AttributeExpr {
+                                            range: 105..108,
+                                            value: Name(
+                                                NameExpr {
+                                                    range: 105..106,
+                                                    id: Name("x"),
+                                                    ctx: Load,
+                                                },
+                                            ),
+                                            attr: Identifier {
+                                                id: Name("y"),
+                                                range: 107..108,
+                                            },
+                                            ctx: Del,
+                                        },
+                                    ),
+                                    Subscript(
+                                        SubscriptExpr {
+                                            range: 114..118,
+                                            value: Name(
+                                                NameExpr {
+                                                    range: 114..115,
+                                                    id: Name("x"),
+                                                    ctx: Load,
+                                                },
+                                            ),
+                                            slice: Name(
+                                                NameExpr {
+                                                    range: 116..117,
+                                                    id: Name("y"),
+                                                    ctx: Load,
+                                                },
+                                            ),
+                                            ctx: Del,
+                                        },
+                                    ),
+                                ],
+                                ctx: Del,
+                                parenthesized: true,
+                            },
+                        ),
+                    ],
+                },
+            ),
+        ],
+    },
+)
+```

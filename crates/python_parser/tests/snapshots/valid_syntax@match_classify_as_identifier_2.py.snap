@@ -1,0 +1,319 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/ok/match_classify_as_identifier_2.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..149,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 0..5,
+                    value: Name(
+                        NameExpr {
+                            range: 0..5,
+                            id: Name("match"),
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 6..18,
+                    value: Compare(
+                        CompareExpr {
+                            range: 6..18,
+                            left: Name(
+                                NameExpr {
+                                    range: 6..11,
+                                    id: Name("match"),
+                                    ctx: Load,
+                                },
+                            ),
+                            ops: [
+                                NotEq,
+                            ],
+                            comparators: [
+                                Name(
+                                    NameExpr {
+                                        range: 15..18,
+                                        id: Name("foo"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 19..31,
+                    value: Tuple(
+                        TupleExpr {
+                            range: 19..31,
+                            elts: [
+                                Name(
+                                    NameExpr {
+                                        range: 20..23,
+                                        id: Name("foo"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                Name(
+                                    NameExpr {
+                                        range: 25..30,
+                                        id: Name("match"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                            ctx: Load,
+                            parenthesized: true,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 32..44,
+                    value: List(
+                        ListExpr {
+                            range: 32..44,
+                            elts: [
+                                Name(
+                                    NameExpr {
+                                        range: 33..36,
+                                        id: Name("foo"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                Name(
+                                    NameExpr {
+                                        range: 38..43,
+                                        id: Name("match"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 45..57,
+                    value: Set(
+                        SetExpr {
+                            range: 45..57,
+                            elts: [
+                                Name(
+                                    NameExpr {
+                                        range: 46..49,
+                                        id: Name("foo"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                Name(
+                                    NameExpr {
+                                        range: 51..56,
+                                        id: Name("match"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 58..63,
+                    value: Name(
+                        NameExpr {
+                            range: 58..63,
+                            id: Name("match"),
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            AnnAssign(
+                AnnAssignStmt {
+                    range: 65..75,
+                    target: Name(
+                        NameExpr {
+                            range: 65..70,
+                            id: Name("match"),
+                            ctx: Store,
+                        },
+                    ),
+                    annotation: Name(
+                        NameExpr {
+                            range: 72..75,
+                            id: Name("int"),
+                            ctx: Load,
+                        },
+                    ),
+                    value: None,
+                    simple: true,
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 76..82,
+                    value: Tuple(
+                        TupleExpr {
+                            range: 76..82,
+                            elts: [
+                                Name(
+                                    NameExpr {
+                                        range: 76..81,
+                                        id: Name("match"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                            ctx: Load,
+                            parenthesized: false,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 83..92,
+                    value: Attribute(
+                        AttributeExpr {
+                            range: 83..92,
+                            value: Name(
+                                NameExpr {
+                                    range: 83..88,
+                                    id: Name("match"),
+                                    ctx: Load,
+                                },
+                            ),
+                            attr: Identifier {
+                                id: Name("foo"),
+                                range: 89..92,
+                            },
+                            ctx: Load,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 93..104,
+                    value: BinOp(
+                        BinOpExpr {
+                            range: 93..104,
+                            left: Name(
+                                NameExpr {
+                                    range: 93..98,
+                                    id: Name("match"),
+                                    ctx: Load,
+                                },
+                            ),
+                            op: Div,
+                            right: Name(
+                                NameExpr {
+                                    range: 101..104,
+                                    id: Name("foo"),
+                                    ctx: Load,
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 105..117,
+                    value: BinOp(
+                        BinOpExpr {
+                            range: 105..117,
+                            left: Name(
+                                NameExpr {
+                                    range: 105..110,
+                                    id: Name("match"),
+                                    ctx: Load,
+                                },
+                            ),
+                            op: LShift,
+                            right: Name(
+                                NameExpr {
+                                    range: 114..117,
+                                    id: Name("foo"),
+                                    ctx: Load,
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 118..131,
+                    value: BoolOp(
+                        BoolOpExpr {
+                            range: 118..131,
+                            op: And,
+                            values: [
+                                Name(
+                                    NameExpr {
+                                        range: 118..123,
+                                        id: Name("match"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                Name(
+                                    NameExpr {
+                                        range: 128..131,
+                                        id: Name("foo"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 132..148,
+                    value: Compare(
+                        CompareExpr {
+                            range: 132..148,
+                            left: Name(
+                                NameExpr {
+                                    range: 132..137,
+                                    id: Name("match"),
+                                    ctx: Load,
+                                },
+                            ),
+                            ops: [
+                                IsNot,
+                            ],
+                            comparators: [
+                                Name(
+                                    NameExpr {
+                                        range: 145..148,
+                                        id: Name("foo"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```

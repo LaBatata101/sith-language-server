@@ -1,0 +1,93 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/invalid/expressions/yield_from/starred_expression.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..100,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 70..83,
+                    value: YieldFrom(
+                        YieldFromExpr {
+                            range: 70..83,
+                            value: Starred(
+                                StarredExpr {
+                                    range: 81..83,
+                                    value: Name(
+                                        NameExpr {
+                                            range: 82..83,
+                                            id: Name("x"),
+                                            ctx: Load,
+                                        },
+                                    ),
+                                    ctx: Load,
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 84..100,
+                    value: YieldFrom(
+                        YieldFromExpr {
+                            range: 84..100,
+                            value: Tuple(
+                                TupleExpr {
+                                    range: 95..100,
+                                    elts: [
+                                        Starred(
+                                            StarredExpr {
+                                                range: 95..97,
+                                                value: Name(
+                                                    NameExpr {
+                                                        range: 96..97,
+                                                        id: Name("x"),
+                                                        ctx: Load,
+                                                    },
+                                                ),
+                                                ctx: Load,
+                                            },
+                                        ),
+                                        Name(
+                                            NameExpr {
+                                                range: 99..100,
+                                                id: Name("y"),
+                                                ctx: Load,
+                                            },
+                                        ),
+                                    ],
+                                    ctx: Load,
+                                    parenthesized: false,
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | # Yield from doesn't allow top-level starred expression unlike yield
+2 | 
+3 | yield from *x
+  |            ^^ Syntax Error: Starred expression cannot be used here
+4 | yield from *x, y
+  |
+
+
+  |
+3 | yield from *x
+4 | yield from *x, y
+  |            ^^ Syntax Error: Starred expression cannot be used here
+  |

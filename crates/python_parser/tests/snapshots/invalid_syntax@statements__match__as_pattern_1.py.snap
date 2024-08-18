@@ -1,0 +1,74 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/invalid/statements/match/as_pattern_1.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..210,
+        body: [
+            Match(
+                MatchStmt {
+                    range: 0..209,
+                    subject: Name(
+                        NameExpr {
+                            range: 6..13,
+                            id: Name("subject"),
+                            ctx: Load,
+                        },
+                    ),
+                    cases: [
+                        MatchCase {
+                            range: 140..209,
+                            pattern: MatchValue(
+                                PatternMatchValue {
+                                    range: 145..158,
+                                    value: BinOp(
+                                        BinOpExpr {
+                                            range: 145..158,
+                                            left: Name(
+                                                NameExpr {
+                                                    range: 146..152,
+                                                    id: Name(""),
+                                                    ctx: Invalid,
+                                                },
+                                            ),
+                                            op: Add,
+                                            right: NumberLiteral(
+                                                NumberLiteralExpr {
+                                                    range: 156..158,
+                                                    value: Complex,
+                                                },
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Pass(
+                                    PassStmt {
+                                        range: 205..209,
+                                    },
+                                ),
+                            ],
+                        },
+                    ],
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+3 |     #             complex literal pattern
+4 |     #             v
+5 |     case (x as y) + 1j:
+  |           ^^^^^^ Syntax Error: Expected a real number in complex literal pattern
+6 |     #     ^^^^^^
+7 |     #    as-pattern
+  |

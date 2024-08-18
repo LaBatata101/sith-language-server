@@ -1,0 +1,201 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/err/f_string_invalid_starred_expr.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..112,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 77..83,
+                    value: FString(
+                        FStringExpr {
+                            range: 77..83,
+                            value: FStringValue {
+                                inner: Single(
+                                    FString(
+                                        FString {
+                                            range: 77..83,
+                                            elements: [
+                                                Expression(
+                                                    FStringExpressionElement {
+                                                        range: 79..82,
+                                                        expression: Starred(
+                                                            StarredExpr {
+                                                                range: 80..81,
+                                                                value: Name(
+                                                                    NameExpr {
+                                                                        range: 81..81,
+                                                                        id: Name(""),
+                                                                        ctx: Invalid,
+                                                                    },
+                                                                ),
+                                                                ctx: Load,
+                                                            },
+                                                        ),
+                                                        debug_text: None,
+                                                        conversion: None,
+                                                        format_spec: None,
+                                                    },
+                                                ),
+                                            ],
+                                            flags: FStringFlags {
+                                                prefix: Regular,
+                                                triple_quoted: false,
+                                            },
+                                        },
+                                    ),
+                                ),
+                            },
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 84..97,
+                    value: FString(
+                        FStringExpr {
+                            range: 84..97,
+                            value: FStringValue {
+                                inner: Single(
+                                    FString(
+                                        FString {
+                                            range: 84..97,
+                                            elements: [
+                                                Expression(
+                                                    FStringExpressionElement {
+                                                        range: 86..96,
+                                                        expression: Starred(
+                                                            StarredExpr {
+                                                                range: 87..95,
+                                                                value: BoolOp(
+                                                                    BoolOpExpr {
+                                                                        range: 88..95,
+                                                                        op: And,
+                                                                        values: [
+                                                                            Name(
+                                                                                NameExpr {
+                                                                                    range: 88..89,
+                                                                                    id: Name("x"),
+                                                                                    ctx: Load,
+                                                                                },
+                                                                            ),
+                                                                            Name(
+                                                                                NameExpr {
+                                                                                    range: 94..95,
+                                                                                    id: Name("y"),
+                                                                                    ctx: Load,
+                                                                                },
+                                                                            ),
+                                                                        ],
+                                                                    },
+                                                                ),
+                                                                ctx: Load,
+                                                            },
+                                                        ),
+                                                        debug_text: None,
+                                                        conversion: None,
+                                                        format_spec: None,
+                                                    },
+                                                ),
+                                            ],
+                                            flags: FStringFlags {
+                                                prefix: Regular,
+                                                triple_quoted: false,
+                                            },
+                                        },
+                                    ),
+                                ),
+                            },
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 98..111,
+                    value: FString(
+                        FStringExpr {
+                            range: 98..111,
+                            value: FStringValue {
+                                inner: Single(
+                                    FString(
+                                        FString {
+                                            range: 98..111,
+                                            elements: [
+                                                Expression(
+                                                    FStringExpressionElement {
+                                                        range: 100..110,
+                                                        expression: Starred(
+                                                            StarredExpr {
+                                                                range: 101..109,
+                                                                value: Yield(
+                                                                    YieldExpr {
+                                                                        range: 102..109,
+                                                                        value: Some(
+                                                                            Name(
+                                                                                NameExpr {
+                                                                                    range: 108..109,
+                                                                                    id: Name("x"),
+                                                                                    ctx: Load,
+                                                                                },
+                                                                            ),
+                                                                        ),
+                                                                    },
+                                                                ),
+                                                                ctx: Load,
+                                                            },
+                                                        ),
+                                                        debug_text: None,
+                                                        conversion: None,
+                                                        format_spec: None,
+                                                    },
+                                                ),
+                                            ],
+                                            flags: FStringFlags {
+                                                prefix: Regular,
+                                                triple_quoted: false,
+                                            },
+                                        },
+                                    ),
+                                ),
+                            },
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | # Starred expression inside f-string has a minimum precedence of bitwise or.
+2 | f"{*}"
+  |     ^ Syntax Error: Expected an expression
+3 | f"{*x and y}"
+4 | f"{*yield x}"
+  |
+
+
+  |
+1 | # Starred expression inside f-string has a minimum precedence of bitwise or.
+2 | f"{*}"
+3 | f"{*x and y}"
+  |     ^^^^^^^ Syntax Error: Boolean expression cannot be used here
+4 | f"{*yield x}"
+  |
+
+
+  |
+2 | f"{*}"
+3 | f"{*x and y}"
+4 | f"{*yield x}"
+  |     ^^^^^^^ Syntax Error: Yield expression cannot be used here
+  |

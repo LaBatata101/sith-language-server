@@ -1,0 +1,66 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/invalid/expressions/await/no_expression_0.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..73,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 61..66,
+                    value: Await(
+                        AwaitExpr {
+                            range: 61..66,
+                            value: Name(
+                                NameExpr {
+                                    range: 66..66,
+                                    id: Name(""),
+                                    ctx: Invalid,
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 68..73,
+                    value: BinOp(
+                        BinOpExpr {
+                            range: 68..73,
+                            left: Name(
+                                NameExpr {
+                                    range: 68..69,
+                                    id: Name("x"),
+                                    ctx: Load,
+                                },
+                            ),
+                            op: Add,
+                            right: Name(
+                                NameExpr {
+                                    range: 72..73,
+                                    id: Name("y"),
+                                    ctx: Load,
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | # No expression after `await`, an expression on another line
+2 | await
+  |      ^ Syntax Error: Expected an expression
+3 | 
+4 | x + y
+  |

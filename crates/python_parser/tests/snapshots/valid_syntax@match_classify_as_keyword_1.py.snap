@@ -1,0 +1,571 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/ok/match_classify_as_keyword_1.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..358,
+        body: [
+            Match(
+                MatchStmt {
+                    range: 0..26,
+                    subject: Name(
+                        NameExpr {
+                            range: 6..9,
+                            id: Name("foo"),
+                            ctx: Load,
+                        },
+                    ),
+                    cases: [
+                        MatchCase {
+                            range: 15..26,
+                            pattern: MatchAs(
+                                PatternMatchAs {
+                                    range: 20..21,
+                                    pattern: None,
+                                    name: None,
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Expr(
+                                    ExprStmt {
+                                        range: 23..26,
+                                        value: EllipsisLiteral(
+                                            EllipsisLiteralExpr {
+                                                range: 23..26,
+                                            },
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ],
+                },
+            ),
+            Match(
+                MatchStmt {
+                    range: 27..51,
+                    subject: NumberLiteral(
+                        NumberLiteralExpr {
+                            range: 33..34,
+                            value: Int(
+                                1,
+                            ),
+                        },
+                    ),
+                    cases: [
+                        MatchCase {
+                            range: 40..51,
+                            pattern: MatchAs(
+                                PatternMatchAs {
+                                    range: 45..46,
+                                    pattern: None,
+                                    name: None,
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Expr(
+                                    ExprStmt {
+                                        range: 48..51,
+                                        value: EllipsisLiteral(
+                                            EllipsisLiteralExpr {
+                                                range: 48..51,
+                                            },
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ],
+                },
+            ),
+            Match(
+                MatchStmt {
+                    range: 52..78,
+                    subject: NumberLiteral(
+                        NumberLiteralExpr {
+                            range: 58..61,
+                            value: Float,
+                        },
+                    ),
+                    cases: [
+                        MatchCase {
+                            range: 67..78,
+                            pattern: MatchAs(
+                                PatternMatchAs {
+                                    range: 72..73,
+                                    pattern: None,
+                                    name: None,
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Expr(
+                                    ExprStmt {
+                                        range: 75..78,
+                                        value: EllipsisLiteral(
+                                            EllipsisLiteralExpr {
+                                                range: 75..78,
+                                            },
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ],
+                },
+            ),
+            Match(
+                MatchStmt {
+                    range: 79..104,
+                    subject: NumberLiteral(
+                        NumberLiteralExpr {
+                            range: 85..87,
+                            value: Complex,
+                        },
+                    ),
+                    cases: [
+                        MatchCase {
+                            range: 93..104,
+                            pattern: MatchAs(
+                                PatternMatchAs {
+                                    range: 98..99,
+                                    pattern: None,
+                                    name: None,
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Expr(
+                                    ExprStmt {
+                                        range: 101..104,
+                                        value: EllipsisLiteral(
+                                            EllipsisLiteralExpr {
+                                                range: 101..104,
+                                            },
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ],
+                },
+            ),
+            Match(
+                MatchStmt {
+                    range: 105..133,
+                    subject: StringLiteral(
+                        StringLiteralExpr {
+                            range: 111..116,
+                            value: StringLiteralValue {
+                                inner: Single(
+                                    StringLiteral {
+                                        range: 111..116,
+                                        value: "foo",
+                                        flags: StringLiteralFlags {
+                                            prefix: Empty,
+                                            triple_quoted: false,
+                                        },
+                                    },
+                                ),
+                            },
+                        },
+                    ),
+                    cases: [
+                        MatchCase {
+                            range: 122..133,
+                            pattern: MatchAs(
+                                PatternMatchAs {
+                                    range: 127..128,
+                                    pattern: None,
+                                    name: None,
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Expr(
+                                    ExprStmt {
+                                        range: 130..133,
+                                        value: EllipsisLiteral(
+                                            EllipsisLiteralExpr {
+                                                range: 130..133,
+                                            },
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ],
+                },
+            ),
+            Match(
+                MatchStmt {
+                    range: 134..167,
+                    subject: FString(
+                        FStringExpr {
+                            range: 140..150,
+                            value: FStringValue {
+                                inner: Single(
+                                    FString(
+                                        FString {
+                                            range: 140..150,
+                                            elements: [
+                                                Literal(
+                                                    FStringLiteralElement {
+                                                        range: 142..146,
+                                                        value: "foo ",
+                                                    },
+                                                ),
+                                                Expression(
+                                                    FStringExpressionElement {
+                                                        range: 146..149,
+                                                        expression: Name(
+                                                            NameExpr {
+                                                                range: 147..148,
+                                                                id: Name("x"),
+                                                                ctx: Load,
+                                                            },
+                                                        ),
+                                                        debug_text: None,
+                                                        conversion: None,
+                                                        format_spec: None,
+                                                    },
+                                                ),
+                                            ],
+                                            flags: FStringFlags {
+                                                prefix: Regular,
+                                                triple_quoted: false,
+                                            },
+                                        },
+                                    ),
+                                ),
+                            },
+                        },
+                    ),
+                    cases: [
+                        MatchCase {
+                            range: 156..167,
+                            pattern: MatchAs(
+                                PatternMatchAs {
+                                    range: 161..162,
+                                    pattern: None,
+                                    name: None,
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Expr(
+                                    ExprStmt {
+                                        range: 164..167,
+                                        value: EllipsisLiteral(
+                                            EllipsisLiteralExpr {
+                                                range: 164..167,
+                                            },
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ],
+                },
+            ),
+            Match(
+                MatchStmt {
+                    range: 168..197,
+                    subject: Set(
+                        SetExpr {
+                            range: 174..180,
+                            elts: [
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 175..176,
+                                        value: Int(
+                                            1,
+                                        ),
+                                    },
+                                ),
+                                NumberLiteral(
+                                    NumberLiteralExpr {
+                                        range: 178..179,
+                                        value: Int(
+                                            2,
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                    cases: [
+                        MatchCase {
+                            range: 186..197,
+                            pattern: MatchAs(
+                                PatternMatchAs {
+                                    range: 191..192,
+                                    pattern: None,
+                                    name: None,
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Expr(
+                                    ExprStmt {
+                                        range: 194..197,
+                                        value: EllipsisLiteral(
+                                            EllipsisLiteralExpr {
+                                                range: 194..197,
+                                            },
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ],
+                },
+            ),
+            Match(
+                MatchStmt {
+                    range: 198..225,
+                    subject: UnaryOp(
+                        UnaryOpExpr {
+                            range: 204..208,
+                            op: Invert,
+                            operand: Name(
+                                NameExpr {
+                                    range: 205..208,
+                                    id: Name("foo"),
+                                    ctx: Load,
+                                },
+                            ),
+                        },
+                    ),
+                    cases: [
+                        MatchCase {
+                            range: 214..225,
+                            pattern: MatchAs(
+                                PatternMatchAs {
+                                    range: 219..220,
+                                    pattern: None,
+                                    name: None,
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Expr(
+                                    ExprStmt {
+                                        range: 222..225,
+                                        value: EllipsisLiteral(
+                                            EllipsisLiteralExpr {
+                                                range: 222..225,
+                                            },
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ],
+                },
+            ),
+            Match(
+                MatchStmt {
+                    range: 226..252,
+                    subject: EllipsisLiteral(
+                        EllipsisLiteralExpr {
+                            range: 232..235,
+                        },
+                    ),
+                    cases: [
+                        MatchCase {
+                            range: 241..252,
+                            pattern: MatchAs(
+                                PatternMatchAs {
+                                    range: 246..247,
+                                    pattern: None,
+                                    name: None,
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Expr(
+                                    ExprStmt {
+                                        range: 249..252,
+                                        value: EllipsisLiteral(
+                                            EllipsisLiteralExpr {
+                                                range: 249..252,
+                                            },
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ],
+                },
+            ),
+            Match(
+                MatchStmt {
+                    range: 253..283,
+                    subject: UnaryOp(
+                        UnaryOpExpr {
+                            range: 259..266,
+                            op: Not,
+                            operand: Name(
+                                NameExpr {
+                                    range: 263..266,
+                                    id: Name("foo"),
+                                    ctx: Load,
+                                },
+                            ),
+                        },
+                    ),
+                    cases: [
+                        MatchCase {
+                            range: 272..283,
+                            pattern: MatchAs(
+                                PatternMatchAs {
+                                    range: 277..278,
+                                    pattern: None,
+                                    name: None,
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Expr(
+                                    ExprStmt {
+                                        range: 280..283,
+                                        value: EllipsisLiteral(
+                                            EllipsisLiteralExpr {
+                                                range: 280..283,
+                                            },
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ],
+                },
+            ),
+            Match(
+                MatchStmt {
+                    range: 284..318,
+                    subject: Await(
+                        AwaitExpr {
+                            range: 290..301,
+                            value: Call(
+                                CallExpr {
+                                    range: 296..301,
+                                    func: Name(
+                                        NameExpr {
+                                            range: 296..299,
+                                            id: Name("foo"),
+                                            ctx: Load,
+                                        },
+                                    ),
+                                    arguments: Arguments {
+                                        range: 299..301,
+                                        args: [],
+                                        keywords: [],
+                                    },
+                                },
+                            ),
+                        },
+                    ),
+                    cases: [
+                        MatchCase {
+                            range: 307..318,
+                            pattern: MatchAs(
+                                PatternMatchAs {
+                                    range: 312..313,
+                                    pattern: None,
+                                    name: None,
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Expr(
+                                    ExprStmt {
+                                        range: 315..318,
+                                        value: EllipsisLiteral(
+                                            EllipsisLiteralExpr {
+                                                range: 315..318,
+                                            },
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ],
+                },
+            ),
+            Match(
+                MatchStmt {
+                    range: 319..357,
+                    subject: Lambda(
+                        LambdaExpr {
+                            range: 325..340,
+                            parameters: Some(
+                                Parameters {
+                                    range: 332..335,
+                                    posonlyargs: [],
+                                    args: [
+                                        ParameterWithDefault {
+                                            range: 332..335,
+                                            parameter: Parameter {
+                                                range: 332..335,
+                                                name: Identifier {
+                                                    id: Name("foo"),
+                                                    range: 332..335,
+                                                },
+                                                annotation: None,
+                                            },
+                                            default: None,
+                                        },
+                                    ],
+                                    vararg: None,
+                                    kwonlyargs: [],
+                                    kwarg: None,
+                                },
+                            ),
+                            body: Name(
+                                NameExpr {
+                                    range: 337..340,
+                                    id: Name("foo"),
+                                    ctx: Load,
+                                },
+                            ),
+                        },
+                    ),
+                    cases: [
+                        MatchCase {
+                            range: 346..357,
+                            pattern: MatchAs(
+                                PatternMatchAs {
+                                    range: 351..352,
+                                    pattern: None,
+                                    name: None,
+                                },
+                            ),
+                            guard: None,
+                            body: [
+                                Expr(
+                                    ExprStmt {
+                                        range: 354..357,
+                                        value: EllipsisLiteral(
+                                            EllipsisLiteralExpr {
+                                                range: 354..357,
+                                            },
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ],
+                },
+            ),
+        ],
+    },
+)
+```

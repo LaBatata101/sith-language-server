@@ -1,0 +1,60 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/err/with_items_parenthesized_missing_colon.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..57,
+        body: [
+            With(
+                WithStmt {
+                    range: 28..56,
+                    is_async: false,
+                    items: [
+                        WithItem {
+                            range: 34..39,
+                            context_expr: Name(
+                                NameExpr {
+                                    range: 34..39,
+                                    id: Name("item1"),
+                                    ctx: Load,
+                                },
+                            ),
+                            optional_vars: None,
+                        },
+                        WithItem {
+                            range: 41..46,
+                            context_expr: Name(
+                                NameExpr {
+                                    range: 41..46,
+                                    id: Name("item2"),
+                                    ctx: Load,
+                                },
+                            ),
+                            optional_vars: None,
+                        },
+                    ],
+                    body: [
+                        Pass(
+                            PassStmt {
+                                range: 52..56,
+                            },
+                        ),
+                    ],
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | # `)` followed by a newline
+2 | with (item1, item2)
+  |                    ^ Syntax Error: Expected ':', found newline
+3 |     pass
+  |

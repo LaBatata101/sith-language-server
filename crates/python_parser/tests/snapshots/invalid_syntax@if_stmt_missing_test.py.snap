@@ -1,0 +1,46 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/err/if_stmt_missing_test.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..9,
+        body: [
+            If(
+                IfStmt {
+                    range: 0..8,
+                    test: Name(
+                        NameExpr {
+                            range: 2..2,
+                            id: Name(""),
+                            ctx: Invalid,
+                        },
+                    ),
+                    body: [
+                        Expr(
+                            ExprStmt {
+                                range: 5..8,
+                                value: EllipsisLiteral(
+                                    EllipsisLiteralExpr {
+                                        range: 5..8,
+                                    },
+                                ),
+                            },
+                        ),
+                    ],
+                    elif_else_clauses: [],
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | if : ...
+  |    ^ Syntax Error: Expected an expression
+  |

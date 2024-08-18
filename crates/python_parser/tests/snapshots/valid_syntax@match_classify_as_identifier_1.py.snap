@@ -1,0 +1,44 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/ok/match_classify_as_identifier_1.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..18,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 0..17,
+                    value: Compare(
+                        CompareExpr {
+                            range: 0..17,
+                            left: Name(
+                                NameExpr {
+                                    range: 0..5,
+                                    id: Name("match"),
+                                    ctx: Load,
+                                },
+                            ),
+                            ops: [
+                                NotIn,
+                            ],
+                            comparators: [
+                                Name(
+                                    NameExpr {
+                                        range: 13..17,
+                                        id: Name("case"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```

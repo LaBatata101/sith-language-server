@@ -1,0 +1,48 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/inline/ok/async_for_statement.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..30,
+        body: [
+            For(
+                ForStmt {
+                    range: 0..29,
+                    is_async: true,
+                    target: Name(
+                        NameExpr {
+                            range: 10..16,
+                            id: Name("target"),
+                            ctx: Store,
+                        },
+                    ),
+                    iter: Name(
+                        NameExpr {
+                            range: 20..24,
+                            id: Name("iter"),
+                            ctx: Load,
+                        },
+                    ),
+                    body: [
+                        Expr(
+                            ExprStmt {
+                                range: 26..29,
+                                value: EllipsisLiteral(
+                                    EllipsisLiteralExpr {
+                                        range: 26..29,
+                                    },
+                                ),
+                            },
+                        ),
+                    ],
+                    orelse: [],
+                },
+            ),
+        ],
+    },
+)
+```

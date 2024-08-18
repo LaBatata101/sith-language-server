@@ -1,0 +1,248 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/valid/statement/simple.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..172,
+        body: [
+            Continue(
+                ContinueStmt {
+                    range: 61..69,
+                },
+            ),
+            Break(
+                BreakStmt {
+                    range: 70..75,
+                },
+            ),
+            If(
+                IfStmt {
+                    range: 77..86,
+                    test: Name(
+                        NameExpr {
+                            range: 80..81,
+                            id: Name("x"),
+                            ctx: Load,
+                        },
+                    ),
+                    body: [
+                        Expr(
+                            ExprStmt {
+                                range: 83..86,
+                                value: EllipsisLiteral(
+                                    EllipsisLiteralExpr {
+                                        range: 83..86,
+                                    },
+                                ),
+                            },
+                        ),
+                    ],
+                    elif_else_clauses: [],
+                },
+            ),
+            If(
+                IfStmt {
+                    range: 87..100,
+                    test: BooleanLiteral(
+                        BooleanLiteralExpr {
+                            range: 90..94,
+                            value: true,
+                        },
+                    ),
+                    body: [
+                        Pass(
+                            PassStmt {
+                                range: 96..100,
+                            },
+                        ),
+                    ],
+                    elif_else_clauses: [],
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 101..102,
+                    value: NumberLiteral(
+                        NumberLiteralExpr {
+                            range: 101..102,
+                            value: Int(
+                                1,
+                            ),
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 104..105,
+                    value: NumberLiteral(
+                        NumberLiteralExpr {
+                            range: 104..105,
+                            value: Int(
+                                2,
+                            ),
+                        },
+                    ),
+                },
+            ),
+            Pass(
+                PassStmt {
+                    range: 107..111,
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 112..113,
+                    value: NumberLiteral(
+                        NumberLiteralExpr {
+                            range: 112..113,
+                            value: Int(
+                                1,
+                            ),
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 115..118,
+                    value: EllipsisLiteral(
+                        EllipsisLiteralExpr {
+                            range: 115..118,
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 120..133,
+                    value: If(
+                        IfExpr {
+                            range: 120..133,
+                            test: Name(
+                                NameExpr {
+                                    range: 125..126,
+                                    id: Name("b"),
+                                    ctx: Load,
+                                },
+                            ),
+                            body: Name(
+                                NameExpr {
+                                    range: 120..121,
+                                    id: Name("a"),
+                                    ctx: Load,
+                                },
+                            ),
+                            orelse: Name(
+                                NameExpr {
+                                    range: 132..133,
+                                    id: Name("c"),
+                                    ctx: Load,
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+            If(
+                IfStmt {
+                    range: 135..157,
+                    test: Name(
+                        NameExpr {
+                            range: 138..139,
+                            id: Name("c"),
+                            ctx: Load,
+                        },
+                    ),
+                    body: [
+                        Expr(
+                            ExprStmt {
+                                range: 141..142,
+                                value: Name(
+                                    NameExpr {
+                                        range: 141..142,
+                                        id: Name("B"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            },
+                        ),
+                        Delete(
+                            DeleteStmt {
+                                range: 144..149,
+                                targets: [
+                                    Name(
+                                        NameExpr {
+                                            range: 148..149,
+                                            id: Name("A"),
+                                            ctx: Del,
+                                        },
+                                    ),
+                                ],
+                            },
+                        ),
+                    ],
+                    elif_else_clauses: [
+                        ElifElseClause {
+                            range: 150..157,
+                            test: None,
+                            body: [
+                                Expr(
+                                    ExprStmt {
+                                        range: 156..157,
+                                        value: Name(
+                                            NameExpr {
+                                                range: 156..157,
+                                                id: Name("C"),
+                                                ctx: Load,
+                                            },
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ],
+                },
+            ),
+            If(
+                IfStmt {
+                    range: 158..171,
+                    test: Name(
+                        NameExpr {
+                            range: 161..162,
+                            id: Name("x"),
+                            ctx: Load,
+                        },
+                    ),
+                    body: [
+                        Expr(
+                            ExprStmt {
+                                range: 164..171,
+                                value: Yield(
+                                    YieldExpr {
+                                        range: 164..171,
+                                        value: Some(
+                                            Name(
+                                                NameExpr {
+                                                    range: 170..171,
+                                                    id: Name("x"),
+                                                    ctx: Load,
+                                                },
+                                            ),
+                                        ),
+                                    },
+                                ),
+                            },
+                        ),
+                    ],
+                    elif_else_clauses: [],
+                },
+            ),
+        ],
+    },
+)
+```

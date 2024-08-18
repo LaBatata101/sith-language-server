@@ -1,0 +1,58 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/invalid/expressions/arguments/missing_comma.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..9,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 0..9,
+                    value: Call(
+                        CallExpr {
+                            range: 0..9,
+                            func: Name(
+                                NameExpr {
+                                    range: 0..4,
+                                    id: Name("call"),
+                                    ctx: Load,
+                                },
+                            ),
+                            arguments: Arguments {
+                                range: 4..9,
+                                args: [
+                                    Name(
+                                        NameExpr {
+                                            range: 5..6,
+                                            id: Name("x"),
+                                            ctx: Load,
+                                        },
+                                    ),
+                                    Name(
+                                        NameExpr {
+                                            range: 7..8,
+                                            id: Name("y"),
+                                            ctx: Load,
+                                        },
+                                    ),
+                                ],
+                                keywords: [],
+                            },
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
+## Errors
+
+  |
+1 | call(x y)
+  |        ^ Syntax Error: Expected ',', found name
+  |

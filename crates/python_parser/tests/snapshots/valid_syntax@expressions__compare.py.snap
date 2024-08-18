@@ -1,0 +1,697 @@
+---
+source: crates/python_parser/tests/fixtures.rs
+input_file: crates/python_parser/resources/valid/expressions/compare.py
+---
+## AST
+
+```
+Module(
+    ModModule {
+        range: 0..542,
+        body: [
+            Expr(
+                ExprStmt {
+                    range: 9..15,
+                    value: Compare(
+                        CompareExpr {
+                            range: 9..15,
+                            left: Name(
+                                NameExpr {
+                                    range: 9..10,
+                                    id: Name("a"),
+                                    ctx: Load,
+                                },
+                            ),
+                            ops: [
+                                Eq,
+                            ],
+                            comparators: [
+                                Name(
+                                    NameExpr {
+                                        range: 14..15,
+                                        id: Name("b"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 16..21,
+                    value: Compare(
+                        CompareExpr {
+                            range: 16..21,
+                            left: Name(
+                                NameExpr {
+                                    range: 16..17,
+                                    id: Name("b"),
+                                    ctx: Load,
+                                },
+                            ),
+                            ops: [
+                                Lt,
+                            ],
+                            comparators: [
+                                Name(
+                                    NameExpr {
+                                        range: 20..21,
+                                        id: Name("a"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 22..27,
+                    value: Compare(
+                        CompareExpr {
+                            range: 22..27,
+                            left: Name(
+                                NameExpr {
+                                    range: 22..23,
+                                    id: Name("b"),
+                                    ctx: Load,
+                                },
+                            ),
+                            ops: [
+                                Gt,
+                            ],
+                            comparators: [
+                                Name(
+                                    NameExpr {
+                                        range: 26..27,
+                                        id: Name("a"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 28..34,
+                    value: Compare(
+                        CompareExpr {
+                            range: 28..34,
+                            left: Name(
+                                NameExpr {
+                                    range: 28..29,
+                                    id: Name("a"),
+                                    ctx: Load,
+                                },
+                            ),
+                            ops: [
+                                GtE,
+                            ],
+                            comparators: [
+                                Name(
+                                    NameExpr {
+                                        range: 33..34,
+                                        id: Name("b"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 35..41,
+                    value: Compare(
+                        CompareExpr {
+                            range: 35..41,
+                            left: Name(
+                                NameExpr {
+                                    range: 35..36,
+                                    id: Name("a"),
+                                    ctx: Load,
+                                },
+                            ),
+                            ops: [
+                                LtE,
+                            ],
+                            comparators: [
+                                Name(
+                                    NameExpr {
+                                        range: 40..41,
+                                        id: Name("b"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 42..48,
+                    value: Compare(
+                        CompareExpr {
+                            range: 42..48,
+                            left: Name(
+                                NameExpr {
+                                    range: 42..43,
+                                    id: Name("a"),
+                                    ctx: Load,
+                                },
+                            ),
+                            ops: [
+                                NotEq,
+                            ],
+                            comparators: [
+                                Name(
+                                    NameExpr {
+                                        range: 47..48,
+                                        id: Name("b"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 49..55,
+                    value: Compare(
+                        CompareExpr {
+                            range: 49..55,
+                            left: Name(
+                                NameExpr {
+                                    range: 49..50,
+                                    id: Name("a"),
+                                    ctx: Load,
+                                },
+                            ),
+                            ops: [
+                                Is,
+                            ],
+                            comparators: [
+                                Name(
+                                    NameExpr {
+                                        range: 54..55,
+                                        id: Name("c"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 56..62,
+                    value: Compare(
+                        CompareExpr {
+                            range: 56..62,
+                            left: Name(
+                                NameExpr {
+                                    range: 56..57,
+                                    id: Name("a"),
+                                    ctx: Load,
+                                },
+                            ),
+                            ops: [
+                                In,
+                            ],
+                            comparators: [
+                                Name(
+                                    NameExpr {
+                                        range: 61..62,
+                                        id: Name("b"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 63..73,
+                    value: Compare(
+                        CompareExpr {
+                            range: 63..73,
+                            left: Name(
+                                NameExpr {
+                                    range: 63..64,
+                                    id: Name("a"),
+                                    ctx: Load,
+                                },
+                            ),
+                            ops: [
+                                NotIn,
+                            ],
+                            comparators: [
+                                Name(
+                                    NameExpr {
+                                        range: 72..73,
+                                        id: Name("c"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 74..84,
+                    value: Compare(
+                        CompareExpr {
+                            range: 74..84,
+                            left: Name(
+                                NameExpr {
+                                    range: 74..75,
+                                    id: Name("a"),
+                                    ctx: Load,
+                                },
+                            ),
+                            ops: [
+                                IsNot,
+                            ],
+                            comparators: [
+                                Name(
+                                    NameExpr {
+                                        range: 83..84,
+                                        id: Name("b"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 110..156,
+                    value: Compare(
+                        CompareExpr {
+                            range: 110..156,
+                            left: Name(
+                                NameExpr {
+                                    range: 110..111,
+                                    id: Name("a"),
+                                    ctx: Load,
+                                },
+                            ),
+                            ops: [
+                                NotIn,
+                                IsNot,
+                                NotIn,
+                                NotIn,
+                                IsNot,
+                            ],
+                            comparators: [
+                                Name(
+                                    NameExpr {
+                                        range: 119..120,
+                                        id: Name("b"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                Name(
+                                    NameExpr {
+                                        range: 128..129,
+                                        id: Name("c"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                Name(
+                                    NameExpr {
+                                        range: 137..138,
+                                        id: Name("d"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                Name(
+                                    NameExpr {
+                                        range: 146..147,
+                                        id: Name("e"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                Name(
+                                    NameExpr {
+                                        range: 155..156,
+                                        id: Name("f"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 177..203,
+                    value: Compare(
+                        CompareExpr {
+                            range: 177..203,
+                            left: BinOp(
+                                BinOpExpr {
+                                    range: 177..182,
+                                    left: Name(
+                                        NameExpr {
+                                            range: 177..178,
+                                            id: Name("a"),
+                                            ctx: Load,
+                                        },
+                                    ),
+                                    op: BitOr,
+                                    right: Name(
+                                        NameExpr {
+                                            range: 181..182,
+                                            id: Name("b"),
+                                            ctx: Load,
+                                        },
+                                    ),
+                                },
+                            ),
+                            ops: [
+                                Lt,
+                                NotIn,
+                            ],
+                            comparators: [
+                                BinOp(
+                                    BinOpExpr {
+                                        range: 185..190,
+                                        left: Name(
+                                            NameExpr {
+                                                range: 185..186,
+                                                id: Name("c"),
+                                                ctx: Load,
+                                            },
+                                        ),
+                                        op: BitOr,
+                                        right: Name(
+                                            NameExpr {
+                                                range: 189..190,
+                                                id: Name("d"),
+                                                ctx: Load,
+                                            },
+                                        ),
+                                    },
+                                ),
+                                BinOp(
+                                    BinOpExpr {
+                                        range: 198..203,
+                                        left: Name(
+                                            NameExpr {
+                                                range: 198..199,
+                                                id: Name("e"),
+                                                ctx: Load,
+                                            },
+                                        ),
+                                        op: BitAnd,
+                                        right: Name(
+                                            NameExpr {
+                                                range: 202..203,
+                                                id: Name("f"),
+                                                ctx: Load,
+                                            },
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 379..393,
+                    value: UnaryOp(
+                        UnaryOpExpr {
+                            range: 379..393,
+                            op: Not,
+                            operand: Compare(
+                                CompareExpr {
+                                    range: 383..393,
+                                    left: Name(
+                                        NameExpr {
+                                            range: 383..384,
+                                            id: Name("x"),
+                                            ctx: Load,
+                                        },
+                                    ),
+                                    ops: [
+                                        NotIn,
+                                    ],
+                                    comparators: [
+                                        Name(
+                                            NameExpr {
+                                                range: 392..393,
+                                                id: Name("y"),
+                                                ctx: Load,
+                                            },
+                                        ),
+                                    ],
+                                },
+                            ),
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 395..416,
+                    value: BoolOp(
+                        BoolOpExpr {
+                            range: 395..416,
+                            op: Or,
+                            values: [
+                                Name(
+                                    NameExpr {
+                                        range: 395..396,
+                                        id: Name("x"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                BoolOp(
+                                    BoolOpExpr {
+                                        range: 400..416,
+                                        op: And,
+                                        values: [
+                                            Compare(
+                                                CompareExpr {
+                                                    range: 400..410,
+                                                    left: Name(
+                                                        NameExpr {
+                                                            range: 400..401,
+                                                            id: Name("y"),
+                                                            ctx: Load,
+                                                        },
+                                                    ),
+                                                    ops: [
+                                                        NotIn,
+                                                    ],
+                                                    comparators: [
+                                                        Name(
+                                                            NameExpr {
+                                                                range: 409..410,
+                                                                id: Name("z"),
+                                                                ctx: Load,
+                                                            },
+                                                        ),
+                                                    ],
+                                                },
+                                            ),
+                                            Name(
+                                                NameExpr {
+                                                    range: 415..416,
+                                                    id: Name("a"),
+                                                    ctx: Load,
+                                                },
+                                            ),
+                                        ],
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 417..429,
+                    value: Compare(
+                        CompareExpr {
+                            range: 417..429,
+                            left: Name(
+                                NameExpr {
+                                    range: 417..418,
+                                    id: Name("x"),
+                                    ctx: Load,
+                                },
+                            ),
+                            ops: [
+                                Eq,
+                            ],
+                            comparators: [
+                                Await(
+                                    AwaitExpr {
+                                        range: 422..429,
+                                        value: Name(
+                                            NameExpr {
+                                                range: 428..429,
+                                                id: Name("y"),
+                                                ctx: Load,
+                                            },
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 430..446,
+                    value: Compare(
+                        CompareExpr {
+                            range: 430..446,
+                            left: Name(
+                                NameExpr {
+                                    range: 430..431,
+                                    id: Name("x"),
+                                    ctx: Load,
+                                },
+                            ),
+                            ops: [
+                                IsNot,
+                            ],
+                            comparators: [
+                                Await(
+                                    AwaitExpr {
+                                        range: 439..446,
+                                        value: Name(
+                                            NameExpr {
+                                                range: 445..446,
+                                                id: Name("y"),
+                                                ctx: Load,
+                                            },
+                                        ),
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+            Expr(
+                ExprStmt {
+                    range: 489..541,
+                    value: Compare(
+                        CompareExpr {
+                            range: 489..541,
+                            left: Name(
+                                NameExpr {
+                                    range: 489..490,
+                                    id: Name("a"),
+                                    ctx: Load,
+                                },
+                            ),
+                            ops: [
+                                Lt,
+                                Eq,
+                                Gt,
+                                Is,
+                                NotIn,
+                                IsNot,
+                                LtE,
+                                GtE,
+                                NotEq,
+                            ],
+                            comparators: [
+                                Name(
+                                    NameExpr {
+                                        range: 493..494,
+                                        id: Name("b"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                Name(
+                                    NameExpr {
+                                        range: 498..499,
+                                        id: Name("c"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                Name(
+                                    NameExpr {
+                                        range: 502..503,
+                                        id: Name("d"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                Name(
+                                    NameExpr {
+                                        range: 507..508,
+                                        id: Name("e"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                Name(
+                                    NameExpr {
+                                        range: 516..517,
+                                        id: Name("f"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                Name(
+                                    NameExpr {
+                                        range: 525..526,
+                                        id: Name("g"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                Name(
+                                    NameExpr {
+                                        range: 530..531,
+                                        id: Name("h"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                Name(
+                                    NameExpr {
+                                        range: 535..536,
+                                        id: Name("i"),
+                                        ctx: Load,
+                                    },
+                                ),
+                                Name(
+                                    NameExpr {
+                                        range: 540..541,
+                                        id: Name("j"),
+                                        ctx: Load,
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                },
+            ),
+        ],
+    },
+)
+```
