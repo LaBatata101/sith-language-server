@@ -1,5 +1,5 @@
 [package]
-name = "python-lsp"
+name = "sith-lsp"
 version = "0.1.0"
 edition = "2021"
 
@@ -12,7 +12,7 @@ members = ["crates/*"]
 python_ast = { workspace = true }
 python_parser = { workspace = true }
 ruff_python_resolver = { workspace = true }
-ruff_server = { workspace = true }
+sith_server = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 tracing-tree = { workspace = true }
@@ -26,7 +26,7 @@ ruff_index = { path = "crates/ruff_index", package = "ruff_index" }
 ruff_source_file = { path = "crates/ruff_source_file", package = "ruff_source_file" }
 python_ast = { path = "crates/python_ast", package = "python_ast" }
 python_parser = { path = "crates/python_parser", package = "python_parser" }
-ruff_server = { path = "crates/ruff_server", package = "ruff_server" }
+sith_server = { path = "crates/sith_server", package = "sith_server" }
 semantic_model = { path = "crates/semantic_model", package = "semantic_model" }
 ruff_python_resolver = { path = "crates/ruff_python_resolver", package = "ruff_python_resolver" }
 python_ast_utils = { path = "crates/python_ast_utils", package = "python_ast_utils" }

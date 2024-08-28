@@ -1,0 +1,32 @@
+[package]
+name = "sith_server"
+version = "0.2.2"
+publish = false
+edition = "2021"
+
+[lib]
+
+[dependencies]
+python_ast = { workspace = true }
+python_parser = { workspace = true }
+ruff_source_file = { workspace = true }
+ruff_text_size = { workspace = true }
+semantic_model = { workspace = true }
+ruff_python_resolver = { workspace = true }
+python_ast_utils  = { workspace = true }
+python_utils = { workspace = true }
+
+compact_str = { workspace = true }
+anyhow = { workspace = true }
+crossbeam = { workspace = true }
+jod-thread = { workspace = true }
+libc = { workspace = true }
+lsp-server = { workspace = true }
+lsp-types = { workspace = true }
+rustc-hash = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+insta = { version = "1.31.0", features = ["yaml"] }
