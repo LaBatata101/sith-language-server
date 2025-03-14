@@ -319,10 +319,13 @@ impl Indexer {
                 .filter_map(|(file_id, is_thirdparty)| {
                     let path = self.file_path(&file_id);
                     if path.is_file() && path.extension().is_some_and(|ext| ext != "so") {
-                        let content = fs::read_to_string(path.as_path())
+                        let content = fs::read(path.as_path())
                             .unwrap_or_else(|e| panic!("{e}: {}", path.display()));
+
+                        let utf8_content = String::from_utf8_lossy(&content);
+
                         let (table, parsed_file, deferred_paths) =
-                            self.index_content(file_id, is_thirdparty, &content);
+                            self.index_content(file_id, is_thirdparty, &utf8_content);
 
                         Some((file_id, table, parsed_file, deferred_paths))
                     } else {
