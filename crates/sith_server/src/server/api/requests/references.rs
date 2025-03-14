@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc};
 
 use lsp_types::{self as types, request as req, Url};
 use python_ast::{
@@ -13,6 +13,7 @@ use ruff_source_file::LineIndex;
 use ruff_text_size::{Ranged, TextRange};
 use rustc_hash::FxHashMap;
 use semantic_model::{
+    self as sm,
     db::{FileId, SymbolTableDb},
     declaration::DeclarationQuery,
     symbol_table::SymbolTable,
@@ -92,7 +93,7 @@ fn references(
             snapshot.document().contents()
         } else {
             // TODO: log if this fails
-            &fs::read_to_string(path.as_path()).ok()?
+            &sm::util::read_to_string(path.as_path()).ok()?
         };
 
         let index = LineIndex::from_source_text(source);

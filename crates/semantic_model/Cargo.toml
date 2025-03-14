@@ -27,6 +27,7 @@ directories = { workspace = true }
 walkdir = { workspace = true }
 indexmap = { workspace = true }
 serde = { workspace = true }
+tracing = { workspace = true }
 
 [build-dependencies]
 path-slash = { workspace = true }

@@ -12,7 +12,7 @@ use crate::{
 use lsp_types::{self as types, request as req, Url};
 use python_ast_utils::{identifier_from_node, node_at_offset, nodes::NodeStack};
 use ruff_source_file::LineIndex;
-use semantic_model::declaration::DeclarationQuery;
+use semantic_model::{self as sm, declaration::DeclarationQuery};
 
 pub(crate) struct Rename;
 
@@ -82,7 +82,7 @@ fn rename(
         let content = if file_path == &current_file_path {
             document.contents()
         } else {
-            &std::fs::read_to_string(file_path.as_path()).ok()?
+            &sm::util::read_to_string(file_path.as_path()).ok()?
         };
         let index = LineIndex::from_source_text(content);
         let url = Url::from_file_path(file_path.as_path()).ok()?;

@@ -9,6 +9,7 @@ use python_ast_utils::{
 use python_utils::{get_python_doc, nodes::get_documentation_string_from_node};
 use ruff_text_size::{Ranged, TextRange, TextSize};
 use semantic_model::{
+    self as sm,
     db::{FileId, SymbolTableDb},
     declaration::DeclarationQuery,
     type_inference::{PythonType, ResolvedType, TypeInferer},
@@ -159,7 +160,7 @@ fn get_docs_for_non_stub(
         let node_stack = db.indexer().node_stack(non_stub_path);
         get_documentation_string_from_node(node_stack.nodes().get(node_id).unwrap())
     } else {
-        let content = std::fs::read_to_string(non_stub_path.as_path()).ok()?;
+        let content = sm::util::read_to_string(non_stub_path.as_path()).ok()?;
         let (table, ast) =
             db.indexer()
                 .symbol_table_builder(non_stub_path, file_id, true, &content);

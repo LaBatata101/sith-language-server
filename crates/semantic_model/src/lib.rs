@@ -6,6 +6,7 @@ mod scope;
 mod symbol;
 pub mod symbol_table;
 pub mod type_inference;
+pub mod util;
 mod vendored;
 
 pub use scope::*;

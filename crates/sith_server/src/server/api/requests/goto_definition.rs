@@ -1,4 +1,3 @@
-use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -8,11 +7,11 @@ use python_ast_utils::nodes::Nodes;
 use python_ast_utils::{identifier_from_node, node_at_offset};
 use ruff_source_file::LineIndex;
 use ruff_text_size::Ranged;
-use semantic_model::db::SymbolTableDb;
 use semantic_model::declaration::{Declaration, DeclarationQuery, ImportSource};
 use semantic_model::type_inference::TypeInferer;
 use semantic_model::type_inference::{PythonType, ResolvedType};
 use semantic_model::ScopeId;
+use semantic_model::{self as sm, db::SymbolTableDb};
 use types::GotoDefinitionResponse;
 
 use crate::edit::{position_to_offset, ToLocation};
@@ -188,7 +187,7 @@ fn create_location_response(
     let content = if is_same_document {
         snapshot.document().contents()
     } else {
-        &fs::read_to_string(path)
+        &sm::util::read_to_string(path)
             .map_err(|e| anyhow::anyhow!("Failed to read {} contents: {e}", path.display()))
             .with_failure_code(lsp_server::ErrorCode::RequestFailed)?
     };

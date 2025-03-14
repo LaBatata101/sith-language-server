@@ -24,6 +24,7 @@ use crate::{
     declaration::{DeclId, Declaration, DeclarationQuery, ImportSource},
     symbol::{Symbol, SymbolId},
     symbol_table::{ImportResolverConfig, SymbolTable, SymbolTableBuilder},
+    util,
     vendored::setup_typeshed,
     Scope, ScopeId,
 };
@@ -319,13 +320,14 @@ impl Indexer {
                 .filter_map(|(file_id, is_thirdparty)| {
                     let path = self.file_path(&file_id);
                     if path.is_file() && path.extension().is_some_and(|ext| ext != "so") {
-                        let content = fs::read(path.as_path())
-                            .unwrap_or_else(|e| panic!("{e}: {}", path.display()));
-
-                        let utf8_content = String::from_utf8_lossy(&content);
+                        let contents = util::read_to_string(path.as_path())
+                            .map_err(|err| {
+                                tracing::error!("Failed to read `{}`: {err}", path.display());
+                            })
+                            .ok()?;
 
                         let (table, parsed_file, deferred_paths) =
-                            self.index_content(file_id, is_thirdparty, &utf8_content);
+                            self.index_content(file_id, is_thirdparty, &contents);
 
                         Some((file_id, table, parsed_file, deferred_paths))
                     } else {

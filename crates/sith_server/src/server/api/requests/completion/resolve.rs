@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf};
+use std::path::PathBuf;
 
 use lsp_types::{
     request::{self as req},
@@ -7,7 +7,7 @@ use lsp_types::{
 use python_ast_utils::nodes::NodeStack;
 use python_parser::parse_module;
 use python_utils::{get_python_doc, nodes::get_documentation_string_from_node};
-use semantic_model::{db::SymbolTableDb, declaration::DeclarationQuery, ScopeId};
+use semantic_model::{self as sm, db::SymbolTableDb, declaration::DeclarationQuery, ScopeId};
 
 use crate::server::Result;
 use crate::{
@@ -95,7 +95,7 @@ fn get_completion_item_documentation(
 
                         get_documentation_string_from_node(completion_item_node)
                     } else {
-                        let content = fs::read_to_string(non_stub_path.as_path()).unwrap();
+                        let content = sm::util::read_to_string(non_stub_path.as_path()).ok()?;
                         let (table, ast) = db.indexer().symbol_table_builder(
                             non_stub_path,
                             completion_item_symbol_data.file_id(),
@@ -130,7 +130,7 @@ pub(crate) fn get_module_documentation(db: &SymbolTableDb, path: &PathBuf) -> Op
     let ast = if db.indexer().is_indexed(path) {
         db.indexer().ast_or_panic(path)
     } else {
-        let contents = fs::read_to_string(path).expect("failed to read file!");
+        let contents = sm::util::read_to_string(path).ok()?;
         &parse_module(&contents)
     };
     ast.suite()
