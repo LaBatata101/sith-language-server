@@ -56,7 +56,6 @@ impl Server {
         let client_capabilities = init_params.capabilities;
         let position_encoding = Self::find_best_position_encoding(&client_capabilities);
         let server_capabilities = Self::server_capabilities(&client_capabilities);
-
         let connection = connection.initialize_finish(
             id,
             &server_capabilities,
@@ -323,6 +322,30 @@ impl Server {
                     work_done_progress: None,
                 },
             }),
+            semantic_tokens_provider: Some(
+                types::SemanticTokensServerCapabilities::SemanticTokensRegistrationOptions(
+                    types::SemanticTokensRegistrationOptions {
+                        text_document_registration_options:
+                            types::TextDocumentRegistrationOptions {
+                                document_selector: Some(vec![types::DocumentFilter {
+                                    language: Some("python".into()),
+                                    scheme: Some("file".into()),
+                                    pattern: None,
+                                }]),
+                            },
+                        semantic_tokens_options: types::SemanticTokensOptions {
+                            work_done_progress_options: WorkDoneProgressOptions::default(),
+                            range: Some(true),
+                            full: Some(types::SemanticTokensFullOptions::Bool(true)),
+                            legend: types::SemanticTokensLegend {
+                                token_modifiers: vec![],
+                                token_types: api::SupportedSemanticTokens::all(),
+                            },
+                        },
+                        static_registration_options: types::StaticRegistrationOptions::default(),
+                    },
+                ),
+            ),
             ..Default::default()
         }
     }

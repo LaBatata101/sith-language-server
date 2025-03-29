@@ -63,6 +63,92 @@ impl Token {
                 | TokenKind::FStringEnd
         )
     }
+
+    /// Returns `true` if this is a keyword token.
+    pub const fn is_keyword(&self) -> bool {
+        matches!(
+            self.kind,
+            TokenKind::From
+                | TokenKind::Import
+                | TokenKind::As
+                | TokenKind::Async
+                | TokenKind::Await
+                | TokenKind::Def
+                | TokenKind::Class
+                | TokenKind::With
+                | TokenKind::For
+                | TokenKind::While
+                | TokenKind::Break
+                | TokenKind::Continue
+                | TokenKind::Match
+                | TokenKind::Case
+                | TokenKind::Type
+                | TokenKind::Not
+                | TokenKind::Or
+                | TokenKind::And
+                | TokenKind::None
+                | TokenKind::True
+                | TokenKind::False
+                | TokenKind::Assert
+                | TokenKind::Del
+                | TokenKind::If
+                | TokenKind::Elif
+                | TokenKind::Else
+                | TokenKind::Try
+                | TokenKind::Except
+                | TokenKind::Finally
+                | TokenKind::Raise
+                | TokenKind::Global
+                | TokenKind::In
+                | TokenKind::Is
+                | TokenKind::Lambda
+                | TokenKind::Nonlocal
+                | TokenKind::Pass
+                | TokenKind::Return
+                | TokenKind::Yield,
+        )
+    }
+
+    /// Returns `true` if this is a operator token.
+    pub const fn is_operator(&self) -> bool {
+        matches!(
+            self.kind,
+            TokenKind::At
+                | TokenKind::AtEqual
+                | TokenKind::Plus
+                | TokenKind::PlusEqual
+                | TokenKind::Percent
+                | TokenKind::PercentEqual
+                | TokenKind::Minus
+                | TokenKind::MinusEqual
+                | TokenKind::Slash
+                | TokenKind::SlashEqual
+                | TokenKind::DoubleSlash
+                | TokenKind::DoubleSlashEqual
+                | TokenKind::Star
+                | TokenKind::StarEqual
+                | TokenKind::DoubleStar
+                | TokenKind::DoubleStarEqual
+                | TokenKind::LeftShift
+                | TokenKind::LeftShiftEqual
+                | TokenKind::RightShift
+                | TokenKind::RightShiftEqual
+                | TokenKind::Amper
+                | TokenKind::AmperEqual
+                | TokenKind::Vbar
+                | TokenKind::VbarEqual
+                | TokenKind::CircumFlex
+                | TokenKind::CircumflexEqual
+                | TokenKind::Tilde
+                | TokenKind::ColonEqual
+                | TokenKind::Less
+                | TokenKind::LessEqual
+                | TokenKind::Greater
+                | TokenKind::GreaterEqual
+                | TokenKind::EqEqual
+                | TokenKind::NotEqual
+        )
+    }
 }
 
 impl Ranged for Token {

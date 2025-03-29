@@ -11,6 +11,7 @@ mod hover;
 mod prepare_rename;
 mod references;
 mod rename;
+mod semantic_tokens;
 mod signature_help;
 
 use super::{
@@ -31,6 +32,9 @@ pub(super) use hover::Hover;
 pub(super) use prepare_rename::PrepareRename;
 pub(super) use references::References;
 pub(super) use rename::Rename;
+pub(super) use semantic_tokens::full::SemanticTokensFull;
+pub(super) use semantic_tokens::range::SemanticTokensRange;
+pub(crate) use semantic_tokens::SupportedSemanticTokens;
 pub(super) use signature_help::SignatureHelp;
 
 type FormatResponse = Option<Vec<lsp_types::TextEdit>>;

@@ -7,6 +7,7 @@ mod requests;
 mod traits;
 
 use notifications as notification;
+pub(crate) use request::SupportedSemanticTokens;
 use requests as request;
 
 use self::traits::{NotificationHandler, RequestHandler};
@@ -80,6 +81,12 @@ pub(super) fn request<'a>(req: server::Request) -> Task<'a> {
         }
         request::SignatureHelp::METHOD => {
             background_request_task::<request::SignatureHelp>(req, BackgroundSchedule::Worker)
+        }
+        request::SemanticTokensFull::METHOD => {
+            background_request_task::<request::SemanticTokensFull>(req, BackgroundSchedule::Worker)
+        }
+        request::SemanticTokensRange::METHOD => {
+            background_request_task::<request::SemanticTokensRange>(req, BackgroundSchedule::Worker)
         }
         method => {
             tracing::warn!("Received request {method} which does not have a handler");
