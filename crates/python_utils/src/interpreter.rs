@@ -22,7 +22,8 @@ use crate::parse_python_version;
 /// 3. Checks for Poetry configuration via `pyproject.toml`
 /// 4. Checks for Pipenv configuration via `Pipfile`
 /// 5. Looks for pyenv configuration via `.python-version` file
-/// 6. As a last resort, performs a system-wide search for Python executables
+/// 6. Checks the `CONDA_PREFIX` environment variable for a possibly active virtual environment
+/// 7. As a last resort, performs a system-wide search for Python executables
 pub fn resolve_python_interpreter(root: impl AsRef<Path>) -> Option<PathBuf> {
     let mut python_path = None;
     // 1) Try to get the python path from activated VIRTUAL_ENV.
@@ -84,7 +85,13 @@ pub fn resolve_python_interpreter(root: impl AsRef<Path>) -> Option<PathBuf> {
         }
     }
 
-    // 6) Try to find a python interpreter doing a system-wide search
+    // 6) Try to get the python path from CONDA_PREFIX.
+    if let Some(conda_prefix) = env::var_os("CONDA_PREFIX") {
+        tracing::info!("Found Python path in CONDA_PREFIX ({conda_prefix:?})");
+        python_path = get_python_path_in_venv(conda_prefix);
+    }
+
+    // 7) Try to find a python interpreter doing a system-wide search
     if python_path.is_none() {
         let root_path = get_system_root_path(root.as_ref());
         python_path = try_to_resolve_python_path(root_path);
@@ -310,11 +317,7 @@ fn get_python_path_in_venv(venv_path: impl AsRef<Path>) -> Option<PathBuf> {
         Some(venv_path.as_ref().join("Scripts").join("python.exe"))
     } else {
         let python_path = venv_path.as_ref().join("bin").join("python");
-        if matches!(fs::read_link(&python_path).map(|p| p.exists()), Ok(true)) {
-            Some(python_path)
-        } else {
-            None
-        }
+        fs::canonicalize(python_path).ok()
     }
 }
 
