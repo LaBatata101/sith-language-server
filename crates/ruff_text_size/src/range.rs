@@ -203,6 +203,36 @@ impl TextRange {
         self.start() <= other.start() && other.end() <= self.end()
     }
 
+    /// Check if this range completely contains another range, or if the other range starts or ends within this range.
+    ///
+    /// This function returns `true` if any of the following conditions are met:
+    /// - `self` completely contains `other` (i.e., `self.start() <= other.start()` and `other.end() <= self.end()`).
+    /// - The start of `other` is within `self` (i.e., `self.start() <= other.start() < self.end()`).
+    /// - The end of `other` is within `self` (i.e., `self.start() <= other.end() < self.end()`).
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use ruff_text_size::*;
+    /// let range = TextRange::new(5.into(), 15.into());
+    ///
+    /// let partial_overlap_start = TextRange::new(10.into(), 20.into());
+    /// assert!(range.contains_range_with_partial_overlap(partial_overlap_start));
+    ///
+    /// let partial_overlap_end = TextRange::new(0.into(), 10.into());
+    /// assert!(range.contains_range_with_partial_overlap(partial_overlap_end));
+    ///
+    /// let smaller = TextRange::new(6.into(), 14.into());
+    /// assert!(range.contains_range_with_partial_overlap(smaller));
+    ///
+    /// let larger = TextRange::new(0.into(), 20.into());
+    /// assert!(!range.contains_range_with_partial_overlap(larger));
+    /// ```
+    #[inline]
+    pub fn contains_range_with_partial_overlap(self, other: TextRange) -> bool {
+        self.contains_range(other) || self.contains(other.start()) || self.contains(other.end())
+    }
+
     /// The range covered by both ranges, if it exists.
     /// If the ranges touch but do not overlap, the output range is empty.
     ///
