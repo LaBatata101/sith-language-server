@@ -1,5 +1,6 @@
 use lsp_types::{self as types, request as req};
 
+use crate::edit::RangeExt;
 use crate::server::api::Result;
 use crate::{
     server::{
@@ -9,7 +10,7 @@ use crate::{
     session::DocumentSnapshot,
 };
 
-use super::full::semantic_tokens_full;
+use super::{compute_semantic_tokens, ComputeSemanticTokenOptions};
 
 pub(crate) struct SemanticTokensRange;
 
@@ -27,14 +28,27 @@ impl BackgroundDocumentRequestHandler for SemanticTokensRange {
         _notifier: Notifier,
         params: types::SemanticTokensRangeParams,
     ) -> Result<Option<types::SemanticTokensRangeResult>> {
-        // TODO: get the tokens and ast nodes that are contained in the range
-        Ok(
-            None, // semantic_tokens_full(&snapshot, params.text_document.uri).map(|result| {
-                 //     let types::SemanticTokensResult::Tokens(semantic_tokens) = result else {
-                 //         unreachable!()
-                 //     };
-                 //     types::SemanticTokensRangeResult::from(semantic_tokens)
-                 // }),
-        )
+        Ok(semantic_tokens_range(&snapshot, params))
     }
+}
+
+fn semantic_tokens_range(
+    snapshot: &DocumentSnapshot,
+    params: types::SemanticTokensRangeParams,
+) -> Option<types::SemanticTokensRangeResult> {
+    let document_path = params.text_document.uri.to_file_path().ok()?;
+    let document = snapshot.document();
+    let parsed_file = snapshot.db().indexer().ast(&document_path)?;
+    let range =
+        params
+            .range
+            .to_text_range(document.contents(), document.index(), snapshot.encoding());
+
+    Some(types::SemanticTokensRangeResult::from(
+        compute_semantic_tokens(
+            parsed_file,
+            document,
+            ComputeSemanticTokenOptions::InRange(range),
+        ),
+    ))
 }
