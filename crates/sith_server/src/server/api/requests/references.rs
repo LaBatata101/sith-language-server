@@ -15,8 +15,9 @@ use sith_python_ast_utils::{
 };
 use sith_semantic_model::{
     self as sm,
-    db::{FileId, SymbolTableDb},
+    db::SymbolTableDb,
     declaration::DeclarationQuery,
+    indexer::FileId,
     symbol_table::SymbolTable,
     type_inference::{PythonType, ResolvedType, TypeInferer},
     ScopeId, ScopeKind,

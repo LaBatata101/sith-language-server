@@ -1,7 +1,7 @@
 pub mod builtins;
 pub mod db;
 pub mod declaration;
-mod indexer;
+pub mod indexer;
 pub mod mro;
 mod scope;
 mod symbol;

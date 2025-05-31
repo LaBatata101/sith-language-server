@@ -11,7 +11,7 @@ use sith_benchmark::{TestCase, TestFile, TestFileDownloadError, TARGET_DIR};
 use sith_python_parser::parse_module;
 use sith_python_utils::interpreter::resolve_python_interpreter;
 use sith_python_utils::PythonHost;
-use sith_semantic_model::db::FileId;
+use sith_semantic_model::indexer::FileId;
 use sith_semantic_model::symbol_table::{ImportResolverConfig, SymbolTableBuilder};
 
 const TOMLLIB_312_URL: &str = "https://raw.githubusercontent.com/python/cpython/8e8a4baf652f6e1cee7acde9d78c4b6154539748/Lib/tomllib";

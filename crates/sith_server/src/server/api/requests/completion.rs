@@ -23,7 +23,8 @@ use sith_python_parser::{TokenKind, Tokens};
 use sith_python_utils::get_python_module_names_in_path;
 use sith_semantic_model::{
     builtins::BUILTIN_KEYWORDS,
-    db::{FileId, SymbolTableDb},
+    db::SymbolTableDb,
+    indexer::FileId,
     declaration::{DeclId, DeclStmt, DeclarationKind, DeclarationQuery},
     mro::compute_mro,
     type_inference::{PythonType, ResolvedType, TypeInferer},

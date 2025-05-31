@@ -10,8 +10,9 @@ use sith_python_ast_utils::{
 use sith_python_utils::{get_python_doc, nodes::get_documentation_string_from_node};
 use sith_semantic_model::{
     self as sm,
-    db::{FileId, SymbolTableDb},
+    db::SymbolTableDb,
     declaration::DeclarationQuery,
+    indexer::FileId,
     type_inference::{PythonType, ResolvedType, TypeInferer},
     ScopeId,
 };
